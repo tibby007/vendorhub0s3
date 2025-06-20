@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, FileText, Settings, TrendingUp, Plus, Eye } from 'lucide-react';
 import VendorManagement from '@/components/vendor/VendorManagement';
+import SubmissionsManager from '@/components/submissions/SubmissionsManager';
 
 const PartnerAdminDashboard = () => {
   const [activeSection, setActiveSection] = useState<string>('overview');
@@ -51,16 +51,7 @@ const PartnerAdminDashboard = () => {
       case 'vendors':
         return <VendorManagement />;
       case 'submissions':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">Deal Submissions</h2>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-gray-600">Submissions management coming soon...</p>
-              </CardContent>
-            </Card>
-          </div>
-        );
+        return <SubmissionsManager />;
       case 'analytics':
         return (
           <div className="space-y-6">

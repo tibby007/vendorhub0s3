@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Clock, CheckCircle, Plus, Eye, Calculator } from 'lucide-react';
 import CustomerApplicationForm from '@/components/vendor/CustomerApplicationForm';
+import PreQualTool from '@/components/vendor/PreQualTool';
 
 const VendorDashboard = () => {
   const [activeSection, setActiveSection] = useState<string>('overview');
@@ -62,16 +62,7 @@ const VendorDashboard = () => {
           </div>
         );
       case 'prequal':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">PreQual Tool</h2>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-gray-600">Pre-qualification tool coming soon...</p>
-              </CardContent>
-            </Card>
-          </div>
-        );
+        return <PreQualTool />;
       case 'resources':
         return (
           <div className="space-y-6">
