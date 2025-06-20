@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,11 +98,17 @@ const Landing = () => {
               <Button variant="ghost" asChild>
                 <Link to="/auth">Login</Link>
               </Button>
-              <Button variant="outline" className="hidden sm:flex">
-                <Phone className="w-4 h-4 mr-2" />
-                Book a Demo
+              <Button 
+                variant="outline" 
+                className="hidden sm:flex border-vendor-gold-400 text-vendor-gold-700 hover:bg-vendor-gold-50"
+                asChild
+              >
+                <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
+                  <Phone className="w-4 h-4 mr-2" />
+                  Book a Demo
+                </a>
               </Button>
-              <Button asChild>
+              <Button asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
                 <Link to="/auth">Start Free Trial</Link>
               </Button>
             </div>
@@ -113,7 +120,7 @@ const Landing = () => {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
         <div className="max-w-7xl mx-auto text-center">
           <div className="mb-6">
-            <Badge className="bg-vendor-green-100 text-vendor-green-700 px-4 py-2 text-sm font-medium">
+            <Badge className="bg-vendor-gold-100 text-vendor-gold-800 px-4 py-2 text-sm font-medium border border-vendor-gold-200">
               <Calendar className="w-4 h-4 mr-2" />
               3-Day Free Trial • No Credit Card Required
             </Badge>
@@ -130,9 +137,16 @@ const Landing = () => {
             <Button size="lg" className="bg-vendor-green-600 hover:bg-vendor-green-700" asChild>
               <Link to="/auth">Start 3-Day Free Trial</Link>
             </Button>
-            <Button size="lg" variant="outline" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              Book a Demo
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="flex items-center gap-2 border-vendor-gold-400 text-vendor-gold-700 hover:bg-vendor-gold-50"
+              asChild
+            >
+              <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
+                <Phone className="w-4 h-4" />
+                Book a Demo
+              </a>
             </Button>
           </div>
           <p className="text-sm text-gray-500 mt-4">
@@ -156,9 +170,9 @@ const Landing = () => {
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
+              <Card key={index} className="text-center hover:shadow-lg transition-shadow border-gray-200 hover:border-vendor-gold-200">
                 <CardHeader>
-                  <div className="w-12 h-12 bg-vendor-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-vendor-green-100 to-vendor-gold-50 rounded-lg flex items-center justify-center mx-auto mb-4 border border-vendor-gold-100">
                     <div className="text-vendor-green-600">
                       {feature.icon}
                     </div>
@@ -175,7 +189,7 @@ const Landing = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-vendor-gold-25">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
@@ -184,19 +198,26 @@ const Landing = () => {
             <p className="text-lg text-gray-600 mb-4">
               Choose the plan that fits your business size and growth goals
             </p>
-            <div className="inline-flex items-center gap-2 bg-vendor-green-100 text-vendor-green-700 px-4 py-2 rounded-full text-sm font-medium">
+            <div className="inline-flex items-center gap-2 bg-vendor-gold-100 text-vendor-gold-800 px-4 py-2 rounded-full text-sm font-medium border border-vendor-gold-200">
               <Calendar className="w-4 h-4" />
               All plans include a 3-day free trial
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto items-center lg:items-stretch">
             {pricingTiers.map((tier, index) => (
-              <Card key={index} className={`relative ${tier.popular ? 'ring-2 ring-vendor-green-500 shadow-lg' : ''}`}>
+              <Card 
+                key={index} 
+                className={`relative flex-1 ${
+                  tier.popular 
+                    ? 'ring-2 ring-vendor-gold-400 shadow-2xl scale-105 bg-white border-vendor-gold-200' 
+                    : 'shadow-lg border-gray-200 hover:border-vendor-gold-200'
+                } transition-all duration-300 hover:shadow-xl`}
+              >
                 {tier.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-vendor-green-500 text-white px-4 py-1">
-                      <Star className="w-3 h-3 mr-1" />
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-gradient-to-r from-vendor-gold-500 to-vendor-gold-600 text-white px-6 py-2 shadow-lg">
+                      <Star className="w-4 h-4 mr-1" />
                       Most Popular
                     </Badge>
                   </div>
@@ -211,8 +232,8 @@ const Landing = () => {
                   <CardDescription className="mt-2">{tier.description}</CardDescription>
                 </CardHeader>
                 
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
+                <CardContent className="flex-1 flex flex-col">
+                  <ul className="space-y-3 mb-6 flex-1">
                     {tier.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center gap-3">
                         <CheckCircle className="w-5 h-5 text-vendor-green-500 flex-shrink-0" />
@@ -222,7 +243,11 @@ const Landing = () => {
                   </ul>
                   
                   <Button 
-                    className={`w-full ${tier.popular ? 'bg-vendor-green-600 hover:bg-vendor-green-700' : ''}`}
+                    className={`w-full ${
+                      tier.popular 
+                        ? 'bg-gradient-to-r from-vendor-gold-500 to-vendor-gold-600 hover:from-vendor-gold-600 hover:to-vendor-gold-700 text-white shadow-lg' 
+                        : 'border-vendor-green-500 text-vendor-green-600 hover:bg-vendor-green-50'
+                    }`}
                     variant={tier.popular ? 'default' : 'outline'}
                   >
                     {tier.buttonText}
@@ -234,7 +259,7 @@ const Landing = () => {
 
           {/* Annual Savings Callout */}
           <div className="text-center mt-12">
-            <Card className="inline-block p-6 bg-vendor-gold-50 border-vendor-gold-200">
+            <Card className="inline-block p-6 bg-gradient-to-r from-vendor-gold-50 to-vendor-gold-100 border-vendor-gold-200 shadow-lg">
               <div className="flex items-center gap-3">
                 <Star className="w-6 h-6 text-vendor-gold-600" />
                 <div>
@@ -248,7 +273,7 @@ const Landing = () => {
       </section>
 
       {/* Affiliate Program CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-vendor-green-600">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-vendor-green-600 to-vendor-green-700">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
             Join Our Affiliate Program
@@ -262,12 +287,16 @@ const Landing = () => {
               Apply for Affiliate Program
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-vendor-green-600">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-vendor-gold-300 text-vendor-gold-100 hover:bg-vendor-gold-500 hover:text-white hover:border-vendor-gold-400"
+            >
               Learn More
             </Button>
           </div>
           <p className="text-vendor-green-100 mt-4 text-sm">
-            Up to 20% recurring commission • Fast approval process
+            <span className="text-vendor-gold-200 font-medium">Up to 20% recurring commission</span> • Fast approval process
           </p>
         </div>
       </section>
