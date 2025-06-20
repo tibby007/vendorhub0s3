@@ -122,7 +122,7 @@ const Landing = () => {
           <div className="mb-6">
             <Badge className="bg-vendor-gold-100 text-vendor-gold-800 px-4 py-2 text-sm font-medium border border-vendor-gold-200">
               <Calendar className="w-4 h-4 mr-2" />
-              3-Day Free Trial • No Credit Card Required
+              3-Day Free Trial • Start Today
             </Badge>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
@@ -150,7 +150,7 @@ const Landing = () => {
             </Button>
           </div>
           <p className="text-sm text-gray-500 mt-4">
-            Try all features free for 3 days • No commitment • Cancel anytime
+            Try all features free for 3 days • Cancel anytime
           </p>
         </div>
       </section>
