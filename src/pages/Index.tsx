@@ -1,13 +1,54 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import LoginForm from '@/components/auth/LoginForm';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import SuperAdminDashboard from '@/components/dashboard/SuperAdminDashboard';
+import PartnerAdminDashboard from '@/components/dashboard/PartnerAdminDashboard';
+import VendorDashboard from '@/components/dashboard/VendorDashboard';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-vendor-green-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading VendorHub...</p>
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginForm />;
+  }
+
+  const renderDashboard = () => {
+    switch (user.role) {
+      case 'Super Admin':
+        return <SuperAdminDashboard />;
+      case 'Partner Admin':
+        return <PartnerAdminDashboard />;
+      case 'Vendor':
+        return <VendorDashboard />;
+      default:
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Unknown Role</h1>
+              <p className="text-gray-600">Please contact your administrator.</p>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      {renderDashboard()}
+    </DashboardLayout>
   );
 };
 
