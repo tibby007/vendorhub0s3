@@ -228,11 +228,6 @@ const LoginForm = () => {
             </Card>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Demo Credentials:</p>
-          <p>Email: admin@vendorhub.com | Password: password123</p>
-        </div>
       </div>
     </div>
   );
