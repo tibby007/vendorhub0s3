@@ -1,11 +1,14 @@
 
 import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Check, Star, Users, Zap, Headphones, Code, Calendar } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface PlanFeature {
   name: string;
@@ -18,6 +21,8 @@ interface SubscriptionPlan {
   description: string;
   monthlyPrice: number;
   annualPrice: number;
+  monthlyPriceId: string;
+  annualPriceId: string;
   maxVendors: number | null;
   features: PlanFeature[];
   popular?: boolean;
@@ -25,7 +30,9 @@ interface SubscriptionPlan {
 }
 
 const SubscriptionPlans = () => {
+  const { session } = useAuth();
   const [isAnnual, setIsAnnual] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const plans: SubscriptionPlan[] = [
     {
@@ -34,6 +41,8 @@ const SubscriptionPlans = () => {
       description: 'Perfect for small teams getting started',
       monthlyPrice: 97,
       annualPrice: 97 * 12 * 0.83, // 17% savings
+      monthlyPriceId: 'price_1Rc1dbB1YJBVEg8wlVQbLAIR',
+      annualPriceId: 'price_1Rc1e7B1YJBVEg8wjKH1HiZ0',
       maxVendors: 3,
       icon: <Users className="w-6 h-6" />,
       features: [
@@ -54,6 +63,8 @@ const SubscriptionPlans = () => {
       description: 'Ideal for growing businesses',
       monthlyPrice: 197,
       annualPrice: 197 * 12 * 0.83, // 17% savings
+      monthlyPriceId: 'price_1Rc1eXB1YJBVEg8wXyhCVw7X',
+      annualPriceId: 'price_1Rc1etB1YJBVEg8wbEgve1jj',
       maxVendors: 7,
       popular: true,
       icon: <Zap className="w-6 h-6" />,
@@ -76,6 +87,8 @@ const SubscriptionPlans = () => {
       description: 'For enterprise-scale operations',
       monthlyPrice: 397,
       annualPrice: 397 * 12 * 0.83, // 17% savings
+      monthlyPriceId: 'price_1Rc1fkB1YJBVEg8wqjcXMzEK',
+      annualPriceId: 'price_1Rc1fkB1YJBVEg8wSBzyX6WQ',
       maxVendors: null,
       icon: <Star className="w-6 h-6" />,
       features: [
@@ -100,6 +113,46 @@ const SubscriptionPlans = () => {
   const getSavings = (plan: SubscriptionPlan) => {
     if (!isAnnual) return 0;
     return Math.round(((plan.monthlyPrice * 12) - plan.annualPrice) / (plan.monthlyPrice * 12) * 100);
+  };
+
+  const handleSubscribe = async (plan: SubscriptionPlan) => {
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to subscribe to a plan",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingPlan(plan.id);
+    try {
+      const priceId = isAnnual ? plan.annualPriceId : plan.monthlyPriceId;
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          priceId,
+          tier: plan.name.replace('VendorHub ', ''),
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      // Open Stripe checkout in a new tab
+      window.open(data.url, '_blank');
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start checkout process",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPlan(null);
+    }
   };
 
   return (
@@ -194,8 +247,10 @@ const SubscriptionPlans = () => {
               <Button 
                 className={`w-full ${plan.popular ? 'bg-vendor-green-600 hover:bg-vendor-green-700' : ''}`}
                 variant={plan.popular ? 'default' : 'outline'}
+                onClick={() => handleSubscribe(plan)}
+                disabled={loadingPlan === plan.id}
               >
-                Start Free Trial
+                {loadingPlan === plan.id ? 'Processing...' : 'Start Free Trial'}
               </Button>
               
               <p className="text-xs text-gray-500 text-center mt-2">
