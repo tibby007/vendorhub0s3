@@ -1,181 +1,199 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Users, FileText, BookOpen, Settings, Bell, TrendingUp, Clock } from 'lucide-react';
+import { Users, FileText, Settings, TrendingUp, Plus, Eye } from 'lucide-react';
+import VendorManagement from '@/components/vendor/VendorManagement';
 
 const PartnerAdminDashboard = () => {
-  const pendingSubmissions = [
-    { id: 1, customer: 'ABC Manufacturing', vendor: 'TechVendor Pro', submitted: '2 hours ago', status: 'Pending Review' },
-    { id: 2, customer: 'XYZ Services', vendor: 'BusinessFlow LLC', submitted: '5 hours ago', status: 'Manual Review' },
-    { id: 3, customer: 'Global Dynamics', vendor: 'VendorMax Inc', submitted: '1 day ago', status: 'Pending Review' }
+  const [activeSection, setActiveSection] = useState<string>('overview');
+
+  const dashboardCards = [
+    {
+      title: "Total Vendors",
+      value: "12",
+      description: "Active vendor accounts",
+      icon: Users,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      section: "vendors"
+    },
+    {
+      title: "Pending Applications",
+      value: "8",
+      description: "Awaiting review",
+      icon: FileText,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      section: "submissions"
+    },
+    {
+      title: "This Month's Revenue",
+      value: "$24,500",
+      description: "+12% from last month",
+      icon: TrendingUp,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      section: "analytics"
+    },
+    {
+      title: "Settings",
+      value: "Configure",
+      description: "Platform settings",
+      icon: Settings,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      section: "settings"
+    }
   ];
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Users className="w-7 h-7 text-vendor-green-500" />
-              Partner Admin Dashboard
-            </h1>
-            <p className="text-gray-600 mt-1">Manage your vendor network and submissions</p>
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'vendors':
+        return <VendorManagement />;
+      case 'submissions':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">Deal Submissions</h2>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-gray-600">Submissions management coming soon...</p>
+              </CardContent>
+            </Card>
           </div>
-          <Button className="bg-vendor-green-500 hover:bg-vendor-green-600">
-            <Bell className="w-4 h-4 mr-2" />
-            Notifications
-          </Button>
-        </div>
-      </div>
+        );
+      case 'analytics':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-gray-600">Analytics dashboard coming soon...</p>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      case 'settings':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-gray-600">Settings panel coming soon...</p>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      default:
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Partner Admin Dashboard</h2>
+              <p className="text-gray-600">Manage your vendor network and monitor performance</p>
+            </div>
 
-      <div className="p-6 space-y-6">
-        {/* Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="card-hover cursor-pointer border-l-4 border-l-vendor-green-500">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900">Vendor Management</h3>
-                  <p className="text-sm text-gray-600 mt-1">Manage your vendor network</p>
-                </div>
-                <Users className="w-8 h-8 text-vendor-green-500" />
-              </div>
-            </CardContent>
-          </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {dashboardCards.map((card, index) => {
+                const Icon = card.icon;
+                return (
+                  <Card 
+                    key={index} 
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => setActiveSection(card.section)}
+                  >
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600">
+                        {card.title}
+                      </CardTitle>
+                      <div className={`w-8 h-8 ${card.bgColor} rounded-lg flex items-center justify-center`}>
+                        <Icon className={`w-4 h-4 ${card.color}`} />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-gray-900">{card.value}</div>
+                      <p className="text-xs text-gray-600 mt-1">{card.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
 
-          <Card className="card-hover cursor-pointer border-l-4 border-l-vendor-gold-500">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900">Deal Submissions</h3>
-                  <p className="text-sm text-gray-600 mt-1">CRM & submission tracking</p>
-                </div>
-                <FileText className="w-8 h-8 text-vendor-gold-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="card-hover cursor-pointer border-l-4 border-l-blue-500">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900">Resources</h3>
-                  <p className="text-sm text-gray-600 mt-1">Guidelines & documentation</p>
-                </div>
-                <BookOpen className="w-8 h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="card-hover cursor-pointer border-l-4 border-l-gray-500">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900">Account Settings</h3>
-                  <p className="text-sm text-gray-600 mt-1">Profile & preferences</p>
-                </div>
-                <Settings className="w-8 h-8 text-gray-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Active Vendors</p>
-                  <p className="text-3xl font-bold text-vendor-green-600">12</p>
-                </div>
-                <Users className="w-8 h-8 text-vendor-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Submissions</p>
-                  <p className="text-3xl font-bold text-vendor-gold-600">3</p>
-                </div>
-                <Clock className="w-8 h-8 text-vendor-gold-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">This Month</p>
-                  <p className="text-3xl font-bold text-blue-600">28</p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Approval Rate</p>
-                  <p className="text-3xl font-bold text-green-600">87%</p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Pending Submissions Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Pending Submissions Summary
-            </CardTitle>
-            <CardDescription>
-              Recent submissions requiring your attention
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {pendingSubmissions.map((submission) => (
-                <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <h4 className="font-medium text-gray-900">{submission.customer}</h4>
-                        <p className="text-sm text-gray-600">Submitted by: {submission.vendor}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                  <CardDescription>Latest vendor and submission activity</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">New vendor registered</p>
+                        <p className="text-xs text-gray-600">ABC Solutions joined your network</p>
+                        <p className="text-xs text-gray-500">2 hours ago</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Application submitted</p>
+                        <p className="text-xs text-gray-600">New customer application from Tech Corp</p>
+                        <p className="text-xs text-gray-500">4 hours ago</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Application approved</p>
+                        <p className="text-xs text-gray-600">FastTrack Logistics application approved</p>
+                        <p className="text-xs text-gray-500">1 day ago</p>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <Badge variant={submission.status === 'Manual Review' ? 'destructive' : 'secondary'}>
-                        {submission.status}
-                      </Badge>
-                      <p className="text-xs text-gray-500 mt-1">{submission.submitted}</p>
-                    </div>
-                    <Button size="sm" className="bg-vendor-green-500 hover:bg-vendor-green-600">
-                      Review
-                    </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                  <CardDescription>Common tasks and shortcuts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      onClick={() => setActiveSection('vendors')}
+                    >
+                      <Plus className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm">Add Vendor</span>
+                    </button>
+                    <button 
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      onClick={() => setActiveSection('submissions')}
+                    >
+                      <Eye className="w-4 h-4 text-green-600" />
+                      <span className="text-sm">View Submissions</span>
+                    </button>
                   </div>
-                </div>
-              ))}
+                </CardContent>
+              </Card>
             </div>
-            <div className="mt-4 pt-4 border-t">
-              <Button variant="outline" className="w-full">
-                View All Submissions
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="p-6">
+      {activeSection !== 'overview' && (
+        <button
+          onClick={() => setActiveSection('overview')}
+          className="mb-6 text-blue-600 hover:text-blue-800 font-medium"
+        >
+          ← Back to Dashboard
+        </button>
+      )}
+      {renderContent()}
     </div>
   );
 };
