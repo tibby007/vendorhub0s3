@@ -65,7 +65,7 @@ const CustomerApplicationForm = () => {
       // Get vendor data
       const { data: vendorData, error: vendorError } = await supabase
         .from('vendors')
-        .select('id')
+        .select('id, partner_admin_id')
         .eq('user_id', user.id)
         .single();
 
@@ -112,13 +112,14 @@ const CustomerApplicationForm = () => {
         }
       }
 
-      // Create submission record
+      // Create submission record with proper partner_admin_id
       const { error: submissionError } = await supabase
         .from('submissions')
         .insert({
           id: submissionId,
           vendor_id: vendorData.id,
           customer_id: customer.id,
+          partner_admin_id: vendorData.partner_admin_id,
           sales_invoice_url: salesInvoiceUrl,
           drivers_license_url: driversLicenseUrl,
           misc_documents_url: miscDocumentsUrls.length > 0 ? miscDocumentsUrls : null,
