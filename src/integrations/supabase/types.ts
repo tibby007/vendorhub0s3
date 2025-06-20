@@ -9,7 +9,273 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          address: string
+          biz_address: string | null
+          biz_name: string | null
+          biz_start_date: string | null
+          created_at: string
+          credit_permission: boolean | null
+          customer_name: string
+          dob: string | null
+          ein: string | null
+          email: string | null
+          id: string
+          phone: string
+          ssn: string | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          biz_address?: string | null
+          biz_name?: string | null
+          biz_start_date?: string | null
+          created_at?: string
+          credit_permission?: boolean | null
+          customer_name: string
+          dob?: string | null
+          ein?: string | null
+          email?: string | null
+          id?: string
+          phone: string
+          ssn?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          biz_address?: string | null
+          biz_name?: string | null
+          biz_start_date?: string | null
+          created_at?: string
+          credit_permission?: boolean | null
+          customer_name?: string
+          dob?: string | null
+          ein?: string | null
+          email?: string | null
+          id?: string
+          phone?: string
+          ssn?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partners: {
+        Row: {
+          contact_email: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          contact_email: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      resources: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          partner_admin_id: string
+          publication_date: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          partner_admin_id: string
+          publication_date?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          partner_admin_id?: string
+          publication_date?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_partner_admin_id_fkey"
+            columns: ["partner_admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submissions: {
+        Row: {
+          approval_terms: string | null
+          created_at: string
+          customer_id: string
+          drivers_license_url: string | null
+          id: string
+          misc_documents_url: string[] | null
+          partner_admin_id: string
+          sales_invoice_url: string | null
+          status: string
+          submission_date: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          approval_terms?: string | null
+          created_at?: string
+          customer_id: string
+          drivers_license_url?: string | null
+          id?: string
+          misc_documents_url?: string[] | null
+          partner_admin_id: string
+          sales_invoice_url?: string | null
+          status?: string
+          submission_date?: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          approval_terms?: string | null
+          created_at?: string
+          customer_id?: string
+          drivers_license_url?: string | null
+          id?: string
+          misc_documents_url?: string[] | null
+          partner_admin_id?: string
+          sales_invoice_url?: string | null
+          status?: string
+          submission_date?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_partner_admin_id_fkey"
+            columns: ["partner_admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          partner_id: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          partner_id?: string | null
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          partner_id?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vendors: {
+        Row: {
+          contact_address: string | null
+          contact_email: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          partner_admin_id: string
+          updated_at: string
+          user_id: string | null
+          vendor_name: string
+        }
+        Insert: {
+          contact_address?: string | null
+          contact_email: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          partner_admin_id: string
+          updated_at?: string
+          user_id?: string | null
+          vendor_name: string
+        }
+        Update: {
+          contact_address?: string | null
+          contact_email?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          partner_admin_id?: string
+          updated_at?: string
+          user_id?: string | null
+          vendor_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_partner_admin_id_fkey"
+            columns: ["partner_admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
