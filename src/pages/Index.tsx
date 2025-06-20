@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import LoginForm from '@/components/auth/LoginForm';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import SuperAdminDashboard from '@/components/dashboard/SuperAdminDashboard';
 import PartnerAdminDashboard from '@/components/dashboard/PartnerAdminDashboard';
@@ -9,6 +9,13 @@ import VendorDashboard from '@/components/dashboard/VendorDashboard';
 
 const Index = () => {
   const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -22,7 +29,7 @@ const Index = () => {
   }
 
   if (!user) {
-    return <LoginForm />;
+    return null; // Will redirect to auth page
   }
 
   const renderDashboard = () => {
