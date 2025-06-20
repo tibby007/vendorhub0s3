@@ -58,6 +58,7 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
+      // Use the current origin for redirect URL to avoid errors
       const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { data, error } = await supabase.auth.signUp({
@@ -82,7 +83,7 @@ const LoginForm = () => {
       }
 
       if (data.user) {
-        // Create user profile
+        // Create user profile - this should now work with the fixed RLS policies
         const { error: profileError } = await supabase
           .from('users')
           .insert({
@@ -94,11 +95,26 @@ const LoginForm = () => {
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
+          toast({
+            title: "Profile Creation Failed",
+            description: profileError.message,
+            variant: "destructive",
+          });
+          return;
         }
 
         toast({
-          title: "Account Created",
-          description: "Please check your email to verify your account",
+          title: "Account Created Successfully",
+          description: "You can now log in with your credentials. Email verification is optional.",
+        });
+
+        // Clear the signup form
+        setSignupData({
+          email: '',
+          password: '',
+          confirmPassword: '',
+          name: '',
+          role: 'Partner Admin'
         });
       }
     } catch (error) {
