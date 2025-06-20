@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Users, FileText, Shield, CheckCircle, Star, ArrowRight } from 'lucide-react';
+import { Building2, Users, FileText, Shield, CheckCircle, Star, ArrowRight, Calendar, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Landing = () => {
@@ -32,53 +31,53 @@ const Landing = () => {
 
   const pricingTiers = [
     {
-      name: "Starter",
-      price: "$99",
+      name: "VendorHub Basic",
+      price: "$97",
       period: "/month",
       description: "Perfect for small partner networks",
       features: [
-        "Up to 5 vendors",
+        "Up to 3 vendors",
         "50 submissions/month",
         "Basic reporting",
         "Email support",
         "Standard document storage"
       ],
       popular: false,
-      buttonText: "Start Free Trial"
+      buttonText: "Start 3-Day Free Trial"
     },
     {
-      name: "Professional",
-      price: "$299",
+      name: "VendorHub Pro",
+      price: "$197",
       period: "/month",
       description: "Ideal for growing businesses",
       features: [
-        "Up to 25 vendors",
+        "Up to 7 vendors",
         "500 submissions/month",
         "Advanced analytics",
         "Priority support",
         "Unlimited document storage",
-        "Custom branding",
-        "API access"
+        "White-label branding",
+        "PreQual tool"
       ],
       popular: true,
-      buttonText: "Start Free Trial"
+      buttonText: "Start 3-Day Free Trial"
     },
     {
-      name: "Enterprise",
-      price: "Custom",
-      period: "",
-      description: "For large-scale operations",
+      name: "VendorHub Premium",
+      price: "$397",
+      period: "/month",
+      description: "For enterprise-scale operations",
       features: [
         "Unlimited vendors",
         "Unlimited submissions",
         "White-label solution",
         "Dedicated support",
-        "Custom integrations",
+        "Full API access",
         "Advanced security",
         "Training & onboarding"
       ],
       popular: false,
-      buttonText: "Contact Sales"
+      buttonText: "Start 3-Day Free Trial"
     }
   ];
 
@@ -98,8 +97,12 @@ const Landing = () => {
               <Button variant="ghost" asChild>
                 <Link to="/auth">Login</Link>
               </Button>
+              <Button variant="outline" className="hidden sm:flex">
+                <Phone className="w-4 h-4 mr-2" />
+                Book a Demo
+              </Button>
               <Button asChild>
-                <Link to="/auth">Get Started</Link>
+                <Link to="/auth">Start Free Trial</Link>
               </Button>
             </div>
           </div>
@@ -109,6 +112,12 @@ const Landing = () => {
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
         <div className="max-w-7xl mx-auto text-center">
+          <div className="mb-6">
+            <Badge className="bg-vendor-green-100 text-vendor-green-700 px-4 py-2 text-sm font-medium">
+              <Calendar className="w-4 h-4 mr-2" />
+              3-Day Free Trial • No Credit Card Required
+            </Badge>
+          </div>
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
             Streamline Your
             <span className="text-vendor-green-600"> Vendor Network</span>
@@ -119,13 +128,16 @@ const Landing = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-vendor-green-600 hover:bg-vendor-green-700" asChild>
-              <Link to="/auth">Start Free Trial</Link>
+              <Link to="/auth">Start 3-Day Free Trial</Link>
             </Button>
-            <Button size="lg" variant="outline">
-              <Link to="#pricing">View Pricing</Link>
+            <Button size="lg" variant="outline" className="flex items-center gap-2">
+              <Phone className="w-4 h-4" />
+              Book a Demo
             </Button>
           </div>
-          <p className="text-sm text-gray-500 mt-4">14-day free trial • No credit card required</p>
+          <p className="text-sm text-gray-500 mt-4">
+            Try all features free for 3 days • No commitment • Cancel anytime
+          </p>
         </div>
       </section>
 
@@ -169,9 +181,13 @@ const Landing = () => {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 mb-4">
               Choose the plan that fits your business size and growth goals
             </p>
+            <div className="inline-flex items-center gap-2 bg-vendor-green-100 text-vendor-green-700 px-4 py-2 rounded-full text-sm font-medium">
+              <Calendar className="w-4 h-4" />
+              All plans include a 3-day free trial
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -215,6 +231,19 @@ const Landing = () => {
               </Card>
             ))}
           </div>
+
+          {/* Annual Savings Callout */}
+          <div className="text-center mt-12">
+            <Card className="inline-block p-6 bg-vendor-gold-50 border-vendor-gold-200">
+              <div className="flex items-center gap-3">
+                <Star className="w-6 h-6 text-vendor-gold-600" />
+                <div>
+                  <p className="font-medium text-vendor-gold-900">Save 17% with Annual Billing</p>
+                  <p className="text-sm text-vendor-gold-700">Switch to yearly plans after your free trial</p>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
       </section>
 
@@ -238,7 +267,7 @@ const Landing = () => {
             </Button>
           </div>
           <p className="text-vendor-green-100 mt-4 text-sm">
-            Up to 30% recurring commission • Fast approval process
+            Up to 20% recurring commission • Fast approval process
           </p>
         </div>
       </section>

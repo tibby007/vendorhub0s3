@@ -1,8 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, FileText, Settings, TrendingUp, Plus, Eye } from 'lucide-react';
+import { Users, FileText, Settings, TrendingUp, Plus, Eye, Palette, CreditCard } from 'lucide-react';
 import VendorManagement from '@/components/vendor/VendorManagement';
 import SubmissionsManager from '@/components/submissions/SubmissionsManager';
+import BrandingSettings from '@/components/branding/BrandingSettings';
+import SubscriptionPlans from '@/components/subscription/SubscriptionPlans';
 
 const PartnerAdminDashboard = () => {
   const [activeSection, setActiveSection] = useState<string>('overview');
@@ -36,12 +39,30 @@ const PartnerAdminDashboard = () => {
       section: "analytics"
     },
     {
+      title: "White-Label Branding",
+      value: "Customize",
+      description: "Portal appearance",
+      icon: Palette,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      section: "branding"
+    },
+    {
+      title: "Subscription",
+      value: "Pro Plan",
+      description: "Manage billing",
+      icon: CreditCard,
+      color: "text-vendor-green-600",
+      bgColor: "bg-vendor-green-50",
+      section: "subscription"
+    },
+    {
       title: "Settings",
       value: "Configure",
       description: "Platform settings",
       icon: Settings,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      color: "text-gray-600",
+      bgColor: "bg-gray-50",
       section: "settings"
     }
   ];
@@ -52,6 +73,10 @@ const PartnerAdminDashboard = () => {
         return <VendorManagement />;
       case 'submissions':
         return <SubmissionsManager />;
+      case 'branding':
+        return <BrandingSettings />;
+      case 'subscription':
+        return <SubscriptionPlans />;
       case 'analytics':
         return (
           <div className="space-y-6">
@@ -82,7 +107,7 @@ const PartnerAdminDashboard = () => {
               <p className="text-gray-600">Manage your vendor network and monitor performance</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {dashboardCards.map((card, index) => {
                 const Icon = card.icon;
                 return (
@@ -164,6 +189,20 @@ const PartnerAdminDashboard = () => {
                     >
                       <Eye className="w-4 h-4 text-green-600" />
                       <span className="text-sm">View Submissions</span>
+                    </button>
+                    <button 
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      onClick={() => setActiveSection('branding')}
+                    >
+                      <Palette className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm">Customize Brand</span>
+                    </button>
+                    <button 
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      onClick={() => setActiveSection('subscription')}
+                    >
+                      <CreditCard className="w-4 h-4 text-vendor-green-600" />
+                      <span className="text-sm">Manage Plan</span>
                     </button>
                   </div>
                 </CardContent>
