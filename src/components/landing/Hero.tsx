@@ -1,13 +1,19 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import { Play, ArrowRight } from 'lucide-react';
 
 const Hero = () => {
   return (
     <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
       <div className="max-w-7xl mx-auto text-center">
         <div className="max-w-3xl mx-auto">
+          <Badge className="mb-4 bg-vendor-green-100 text-vendor-green-700 border-vendor-green-200">
+            <Play className="w-3 h-3 mr-1" />
+            Try Interactive Demo - No Signup Required
+          </Badge>
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
             Scale Your Business with
             <span className="text-vendor-green-600"> Smart Vendor</span>
@@ -19,13 +25,19 @@ const Hero = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button size="lg" asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
-              <Link to="/auth">Start Free Trial</Link>
+              <Link to="/demo-credentials" className="flex items-center gap-2">
+                <Play className="w-4 h-4" />
+                Try Interactive Demo
+              </Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="border-vendor-green-600 text-vendor-green-600 hover:bg-vendor-green-50">
               <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
-                Book Demo
+                Book Personal Demo
               </a>
             </Button>
+          </div>
+          <div className="text-sm text-gray-500 mb-8">
+            ✓ Full feature access  ✓ Real data scenarios  ✓ 30-minute session  ✓ No credit card required
           </div>
         </div>
 
@@ -38,6 +50,18 @@ const Hero = () => {
               className="w-full rounded-xl"
             />
           </div>
+          
+          {/* Interactive Demo Overlay */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black/20 rounded-2xl">
+            <Button size="lg" asChild className="bg-white text-gray-900 hover:bg-gray-100 shadow-xl">
+              <Link to="/demo-credentials" className="flex items-center gap-2">
+                <Play className="w-5 h-5" />
+                Try This Live
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
+          </div>
+          
           {/* Floating elements for visual appeal */}
           <div className="absolute -top-4 -left-4 w-8 h-8 bg-vendor-green-500 rounded-full opacity-20 animate-pulse"></div>
           <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-vendor-gold-500 rounded-full opacity-20 animate-pulse" style={{animationDelay: '1s'}}></div>
