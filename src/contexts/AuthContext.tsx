@@ -34,6 +34,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const createMissingUserProfile = async (authUser: User) => {
+    try {
+      console.log('Creating missing user profile for:', authUser.id);
+      const { error } = await supabase
+        .from('users')
+        .insert({
+          id: authUser.id,
+          email: authUser.email || '',
+          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+          role: 'Partner Admin' // Default role
+        });
+
+      if (error) {
+        console.error('Error creating missing user profile:', error);
+        return null;
+      }
+
+      // Return the created user data
+      return {
+        role: 'Partner Admin',
+        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+        partner_id: null
+      };
+    } catch (error) {
+      console.error('Error in createMissingUserProfile:', error);
+      return null;
+    }
+  };
+
   const refreshSubscription = async () => {
     if (!session) return;
     
@@ -75,7 +104,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
               if (error) {
                 console.error('Error fetching user data:', error);
-                setUser(session.user as AuthUser);
+                
+                // If user doesn't exist in public.users, try to create the profile
+                if (error.code === 'PGRST116') { // No rows returned
+                  console.log('User profile not found, creating one...');
+                  const createdUserData = await createMissingUserProfile(session.user);
+                  
+                  if (createdUserData) {
+                    setUser({
+                      ...session.user,
+                      role: createdUserData.role,
+                      name: createdUserData.name,
+                      partnerId: createdUserData.partner_id,
+                    } as AuthUser);
+                  } else {
+                    // Fallback to basic auth user data
+                    setUser(session.user as AuthUser);
+                  }
+                } else {
+                  setUser(session.user as AuthUser);
+                }
               } else {
                 setUser({
                   ...session.user,

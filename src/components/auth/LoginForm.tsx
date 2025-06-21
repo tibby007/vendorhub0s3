@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,11 +34,39 @@ const LoginForm = () => {
 
     try {
       await login(loginData.email, loginData.password);
+      // Redirect to dashboard after successful login
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const createUserProfile = async (userId: string, email: string, name: string, role: string) => {
+    try {
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email: email,
+          name: name,
+          role: role
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        toast({
+          title: "Profile Creation Failed",
+          description: profileError.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error creating user profile:', error);
+      return false;
     }
   };
 
@@ -84,22 +111,14 @@ const LoginForm = () => {
 
       if (data.user) {
         // Create user profile - this should now work with the fixed RLS policies
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: signupData.email,
-            name: signupData.name,
-            role: signupData.role
-          });
+        const profileCreated = await createUserProfile(
+          data.user.id,
+          signupData.email,
+          signupData.name,
+          signupData.role
+        );
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          toast({
-            title: "Profile Creation Failed",
-            description: profileError.message,
-            variant: "destructive",
-          });
+        if (!profileCreated) {
           return;
         }
 
