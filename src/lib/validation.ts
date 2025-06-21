@@ -24,6 +24,7 @@ export const customerSchema = z.object({
   ein: z.string().regex(/^\d{2}-\d{7}$/, 'EIN must be in format XX-XXXXXXX').optional(),
   biz_start_date: z.string().optional(),
   biz_address: z.string().max(500, 'Business address too long').optional(),
+  biz_phone: z.string().regex(/^\+?[\d\s\-\(\)]{10,15}$/, 'Invalid business phone number format').optional(),
   credit_permission: z.boolean()
 });
 

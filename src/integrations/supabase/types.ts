@@ -14,6 +14,7 @@ export type Database = {
           address: string
           biz_address: string | null
           biz_name: string | null
+          biz_phone: string | null
           biz_start_date: string | null
           created_at: string
           credit_permission: boolean | null
@@ -30,6 +31,7 @@ export type Database = {
           address: string
           biz_address?: string | null
           biz_name?: string | null
+          biz_phone?: string | null
           biz_start_date?: string | null
           created_at?: string
           credit_permission?: boolean | null
@@ -46,6 +48,7 @@ export type Database = {
           address?: string
           biz_address?: string | null
           biz_name?: string | null
+          biz_phone?: string | null
           biz_start_date?: string | null
           created_at?: string
           credit_permission?: boolean | null
