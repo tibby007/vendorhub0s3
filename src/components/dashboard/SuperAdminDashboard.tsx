@@ -1,14 +1,18 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Users, UserPlus, Building, Eye, Edit, Trash2, Shield, DollarSign } from 'lucide-react';
 import ResellerManagement from '@/components/resellers/ResellerManagement';
+import AddPartnerAdminForm from '@/components/admin/AddPartnerAdminForm';
+import AddResellerForm from '@/components/admin/AddResellerForm';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('partners');
+  const [isAddPartnerDialogOpen, setIsAddPartnerDialogOpen] = useState(false);
+  const [isAddResellerDialogOpen, setIsAddResellerDialogOpen] = useState(false);
 
   // Mock data
   const partnerAdmins = [
@@ -37,14 +41,41 @@ const SuperAdminDashboard = () => {
             <p className="text-gray-600 mt-1">Manage the entire VendorHub platform</p>
           </div>
           <div className="flex gap-3">
-            <Button className="bg-vendor-green-500 hover:bg-vendor-green-600">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Partner Admin
-            </Button>
-            <Button variant="outline" className="border-vendor-gold-300 text-vendor-gold-700 hover:bg-vendor-gold-50">
-              <Building className="w-4 h-4 mr-2" />
-              Add Reseller
-            </Button>
+            <Dialog open={isAddPartnerDialogOpen} onOpenChange={setIsAddPartnerDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-vendor-green-500 hover:bg-vendor-green-600">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add Partner Admin
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add Partner Admin</DialogTitle>
+                  <DialogDescription>
+                    Create a new partner administrator account
+                  </DialogDescription>
+                </DialogHeader>
+                <AddPartnerAdminForm onSuccess={() => setIsAddPartnerDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={isAddResellerDialogOpen} onOpenChange={setIsAddResellerDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-vendor-gold-300 text-vendor-gold-700 hover:bg-vendor-gold-50">
+                  <Building className="w-4 h-4 mr-2" />
+                  Add Reseller
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add Reseller</DialogTitle>
+                  <DialogDescription>
+                    Add a new reseller to the platform
+                  </DialogDescription>
+                </DialogHeader>
+                <AddResellerForm onSuccess={() => setIsAddResellerDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
