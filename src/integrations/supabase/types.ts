@@ -331,6 +331,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: string
       }
+      get_vendor_partner_admin_id: {
+        Args: { user_id: string }
+        Returns: string
+      }
       is_current_user_vendor_for_submission: {
         Args: { submission_vendor_id: string }
         Returns: boolean
