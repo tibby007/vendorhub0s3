@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Building2, Clock, Users, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { DemoAnalytics, DEMO_EVENTS } from '@/utils/demoAnalytics';
 
 interface DemoLeadCaptureFormProps {
   onSuccess: (credentials: { email: string; password: string; role: string }) => void;
@@ -46,6 +47,10 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
       console.log('Demo registration response:', data);
 
       if (data.success && data.credentials) {
+        // Start demo analytics session
+        const sessionId = DemoAnalytics.startSession(formData, formData.role);
+        console.log('Demo session started with ID:', sessionId);
+
         toast.success("Demo Access Granted!", {
           description: "Your credentials have been generated. Check your email for details.",
         });

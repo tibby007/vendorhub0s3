@@ -8,9 +8,16 @@ import { Link } from 'react-router-dom';
 interface DemoSessionManagerProps {
   sessionDuration?: number; // in minutes
   onSessionExpired?: () => void;
+  onUpgradePrompted?: () => void;
+  onUpgradeClicked?: () => void;
 }
 
-const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSessionManagerProps) => {
+const DemoSessionManager = ({ 
+  sessionDuration = 30, 
+  onSessionExpired,
+  onUpgradePrompted,
+  onUpgradeClicked
+}: DemoSessionManagerProps) => {
   const [timeRemaining, setTimeRemaining] = useState(sessionDuration * 60); // in seconds
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -26,6 +33,7 @@ const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSess
         // Show upgrade prompt at 10 minutes and 5 minutes remaining
         if (prev === 600 || prev === 300) {
           setShowUpgradePrompt(true);
+          onUpgradePrompted?.();
         }
         
         return prev - 1;
@@ -33,7 +41,7 @@ const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSess
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [onSessionExpired]);
+  }, [onSessionExpired, onUpgradePrompted]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -45,6 +53,10 @@ const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSess
     if (timeRemaining <= 300) return 'text-red-600'; // Last 5 minutes
     if (timeRemaining <= 600) return 'text-orange-600'; // Last 10 minutes
     return 'text-vendor-green-600';
+  };
+
+  const handleUpgradeClick = () => {
+    onUpgradeClicked?.();
   };
 
   if (isMinimized) {
@@ -93,6 +105,7 @@ const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSess
                 asChild 
                 size="sm" 
                 className="w-full bg-vendor-green-600 hover:bg-vendor-green-700"
+                onClick={handleUpgradeClick}
               >
                 <Link to="/auth">
                   Get Full Access
@@ -117,6 +130,7 @@ const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSess
                 <Button 
                   asChild 
                   className="w-full bg-vendor-green-600 hover:bg-vendor-green-700"
+                  onClick={handleUpgradeClick}
                 >
                   <Link to="/auth">
                     Get Full Access
@@ -150,6 +164,7 @@ const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSess
                 <Button 
                   asChild 
                   className="w-full bg-vendor-green-600 hover:bg-vendor-green-700"
+                  onClick={handleUpgradeClick}
                 >
                   <Link to="/auth">
                     Get Full Access

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DemoSessionManager from '@/components/demo/DemoSessionManager';
 import { DemoAnalytics, DEMO_EVENTS } from '@/utils/demoAnalytics';
 
@@ -10,6 +10,7 @@ interface DemoSessionWrapperProps {
 
 const DemoSessionWrapper: React.FC<DemoSessionWrapperProps> = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isDemoSession, setIsDemoSession] = useState(false);
 
   useEffect(() => {
@@ -17,15 +18,31 @@ const DemoSessionWrapper: React.FC<DemoSessionWrapperProps> = ({ children }) => 
     setIsDemoSession(demoSession);
 
     if (demoSession) {
-      DemoAnalytics.trackEvent(DEMO_EVENTS.PAGE_VIEW, { page: 'login' });
+      // Track page views during demo session
+      const page = location.pathname.replace('/', '') || 'home';
+      DemoAnalytics.trackEvent(DEMO_EVENTS.PAGE_VIEW, { 
+        page,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log('Demo session active - tracking page view:', page);
     }
-  }, []);
+  }, [location]);
 
   const handleSessionExpired = () => {
+    console.log('Demo session expired');
     DemoAnalytics.trackEvent(DEMO_EVENTS.SESSION_EXPIRED);
     DemoAnalytics.endSession();
     setIsDemoSession(false);
     navigate('/demo-credentials');
+  };
+
+  const handleUpgradePrompt = () => {
+    DemoAnalytics.trackEvent(DEMO_EVENTS.UPGRADE_PROMPTED);
+  };
+
+  const handleUpgradeClick = () => {
+    DemoAnalytics.trackEvent(DEMO_EVENTS.UPGRADE_CLICKED);
   };
 
   return (
@@ -34,6 +51,8 @@ const DemoSessionWrapper: React.FC<DemoSessionWrapperProps> = ({ children }) => 
         <DemoSessionManager 
           sessionDuration={30}
           onSessionExpired={handleSessionExpired}
+          onUpgradePrompted={handleUpgradePrompt}
+          onUpgradeClicked={handleUpgradeClick}
         />
       )}
       {children}

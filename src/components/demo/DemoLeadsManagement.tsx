@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -339,8 +338,7 @@ const DemoLeadsManagement = () => {
                                   if (selectedLead) {
                                     updateLead(selectedLead.id, {
                                       follow_up_status: followUpStatus,
-                                      notes: notes,
-                                      updated_at: new Date().toISOString()
+                                      notes: notes
                                     });
                                   }
                                 }}
