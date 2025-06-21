@@ -20,13 +20,13 @@ interface DemoLeadRequest {
   role: string;
   employees?: string;
   useCase?: string;
+  csrfToken?: string;
 }
 
 // Input validation functions
 const validateInput = (data: DemoLeadRequest): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
-  // Required field validation
   if (!data.name || data.name.trim().length < 2 || data.name.length > 100) {
     errors.push('Name must be between 2 and 100 characters');
   }
@@ -43,7 +43,6 @@ const validateInput = (data: DemoLeadRequest): { isValid: boolean; errors: strin
     errors.push('Valid role selection is required');
   }
   
-  // Optional field validation
   if (data.phone && !isValidPhone(data.phone)) {
     errors.push('Invalid phone number format');
   }
@@ -82,7 +81,8 @@ const sanitizeInput = (data: DemoLeadRequest): DemoLeadRequest => {
     phone: data.phone ? sanitizeHtml(data.phone.trim()) : undefined,
     role: data.role,
     employees: data.employees ? sanitizeHtml(data.employees) : undefined,
-    useCase: data.useCase ? sanitizeHtml(data.useCase.trim()) : undefined
+    useCase: data.useCase ? sanitizeHtml(data.useCase.trim()) : undefined,
+    csrfToken: data.csrfToken
   };
 };
 
@@ -128,6 +128,53 @@ const generateSessionId = (): string => {
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 };
 
+const createDemoUser = async (credentials: { email: string; password: string; role: string }, sessionId: string, supabase: any) => {
+  try {
+    console.log('Creating demo user:', credentials.email);
+    
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: credentials.email,
+      password: credentials.password,
+      email_confirm: true,
+      user_metadata: {
+        name: `Demo ${credentials.role}`,
+        role: credentials.role,
+        demo_session_id: sessionId,
+        demo_expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes
+      }
+    });
+
+    if (authError) {
+      console.error('Auth user creation error:', authError);
+      throw authError;
+    }
+
+    console.log('Demo user created successfully:', authData.user?.id);
+    
+    // Create user profile
+    const { error: profileError } = await supabase
+      .from('users')
+      .insert({
+        id: authData.user.id,
+        name: `Demo ${credentials.role}`,
+        email: credentials.email,
+        role: credentials.role,
+        partner_id: credentials.role === 'Partner Admin' ? crypto.randomUUID() : null
+      });
+
+    if (profileError) {
+      console.error('Profile creation error:', profileError);
+      // Don't throw here, we can still proceed with the demo
+    }
+
+    return authData.user;
+  } catch (error) {
+    console.error('Demo user creation failed:', error);
+    throw error;
+  }
+};
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -152,6 +199,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Create Supabase client with service role for admin operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -175,9 +223,19 @@ const handler = async (req: Request): Promise<Response> => {
     // Sanitize input
     const sanitizedData = sanitizeInput(leadData);
 
-    // Generate secure demo credentials
+    // Generate secure demo credentials and session ID
     const demoCredentials = generateSecureCredentials(sanitizedData.role);
     const sessionId = generateSessionId();
+
+    // Create demo user in Supabase Auth
+    let demoUser = null;
+    try {
+      demoUser = await createDemoUser(demoCredentials, sessionId, supabase);
+      console.log('Demo user created with ID:', demoUser?.id);
+    } catch (error) {
+      console.error('Failed to create demo user:', error);
+      // Continue with lead registration even if user creation fails
+    }
 
     // Insert lead into database
     const { data: lead, error: insertError } = await supabase
@@ -205,11 +263,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Lead stored in database:', lead.id);
 
-    // Get admin email from environment variable
-    const adminEmail = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') || 'admin@vendorhub.com';
-
-    // Send admin notification email
+    // Send emails (don't fail the request if emails fail)
     try {
+      const adminEmail = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') || 'admin@vendorhub.com';
+
+      // Send admin notification email
       await resend.emails.send({
         from: 'VendorHub Demo <demo@vendorhub.com>',
         to: [adminEmail],
@@ -239,23 +297,19 @@ const handler = async (req: Request): Promise<Response> => {
               <h3 style="margin-top: 0; color: #166534;">Demo Session Details</h3>
               <p><strong>Session ID:</strong> ${sessionId}</p>
               <p><strong>Role:</strong> ${demoCredentials.role}</p>
+              <p><strong>Demo User Created:</strong> ${demoUser ? 'Yes' : 'No'}</p>
               <p><strong>Registration Time:</strong> ${new Date().toISOString()}</p>
             </div>
-
-            <p style="color: #64748b; font-size: 14px;">
-              This lead has been automatically added to your SuperAdmin dashboard for follow-up.
-            </p>
           </div>
         `,
       });
       console.log('Admin notification sent successfully');
     } catch (emailError) {
       console.error('Failed to send admin notification:', emailError);
-      // Don't fail the whole request if email fails
     }
 
-    // Send welcome email to prospect
     try {
+      // Send welcome email to prospect
       await resend.emails.send({
         from: 'VendorHub Demo <demo@vendorhub.com>',
         to: [sanitizedData.email],
@@ -287,7 +341,7 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${Deno.env.get('SITE_URL') || 'https://your-app-url.com'}/auth" 
+              <a href="${Deno.env.get('SITE_URL') || window.location.origin}/auth" 
                  style="background: #16a34a; color: white; padding: 15px 30px; 
                         border-radius: 8px; text-decoration: none; font-weight: bold; 
                         display: inline-block;">
@@ -316,7 +370,6 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('Welcome email sent successfully');
     } catch (emailError) {
       console.error('Failed to send welcome email:', emailError);
-      // Don't fail the whole request if email fails
     }
 
     return new Response(
@@ -324,7 +377,8 @@ const handler = async (req: Request): Promise<Response> => {
         success: true, 
         sessionId: sessionId,
         credentials: demoCredentials,
-        leadId: lead.id 
+        leadId: lead.id,
+        demoUserCreated: !!demoUser
       }),
       {
         status: 200,
@@ -339,7 +393,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.error('Error in demo lead registration:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to process demo registration. Please try again.' 
+        error: 'Failed to process demo registration. Please try again.',
+        details: error.message 
       }),
       {
         status: 500,
