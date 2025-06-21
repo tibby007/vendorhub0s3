@@ -24,9 +24,9 @@ const Navigation = () => {
               className="hidden sm:flex border-vendor-gold-400 text-vendor-gold-700 hover:bg-vendor-gold-50"
               asChild
             >
-              <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
+              <a href="mailto:affiliates@vendorhub.com?subject=Affiliate Program Application">
                 <Phone className="w-4 h-4 mr-2" />
-                Book a Demo
+                Apply for Affiliate Program
               </a>
             </Button>
             <Button asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
