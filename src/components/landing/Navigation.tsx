@@ -29,6 +29,9 @@ const Navigation = () => {
                 Apply for Affiliate Program
               </Link>
             </Button>
+            <Button variant="ghost" asChild className="text-sm">
+              <Link to="/demo-credentials">Demo Accounts</Link>
+            </Button>
             <Button asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
               <Link to="/auth">Start Free Trial</Link>
             </Button>

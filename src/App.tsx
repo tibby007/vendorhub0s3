@@ -11,7 +11,7 @@ import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import Subscription from "./pages/Subscription";
 import AffiliateApplication from "./pages/AffiliateApplication";
-import Demo from "./pages/Demo";
+import DemoCredentials from "./pages/DemoCredentials";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,7 +30,7 @@ const App = () => {
               <Route path="/dashboard" element={<Index />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/affiliate-apply" element={<AffiliateApplication />} />
-              <Route path="/demo" element={<Demo />} />
+              <Route path="/demo-credentials" element={<DemoCredentials />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

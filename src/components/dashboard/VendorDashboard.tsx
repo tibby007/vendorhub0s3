@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Clock, CheckCircle, Plus, Eye, Calculator } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Plus, Eye, Calculator, BookOpen } from 'lucide-react';
 import CustomerApplicationForm from '@/components/vendor/CustomerApplicationForm';
 import PreQualTool from '@/components/vendor/PreQualTool';
+import VendorResources from '@/components/vendor/VendorResources';
 
 const VendorDashboard = () => {
   const [activeSection, setActiveSection] = useState<string>('overview');
@@ -64,16 +66,7 @@ const VendorDashboard = () => {
       case 'prequal':
         return <PreQualTool />;
       case 'resources':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">Resources</h2>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-gray-600">Resources section coming soon...</p>
-              </CardContent>
-            </Card>
-          </div>
-        );
+        return <VendorResources />;
       default:
         return (
           <div className="space-y-6">
@@ -171,6 +164,13 @@ const VendorDashboard = () => {
                     >
                       <Calculator className="w-4 h-4 text-purple-600" />
                       <span className="text-sm">Pre-Qualify Customer</span>
+                    </button>
+                    <button 
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      onClick={() => setActiveSection('resources')}
+                    >
+                      <BookOpen className="w-4 h-4 text-indigo-600" />
+                      <span className="text-sm">View Resources</span>
                     </button>
                   </div>
                 </CardContent>
