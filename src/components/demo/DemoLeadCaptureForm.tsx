@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Building2, Clock, Users, CheckCircle } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DemoLeadCaptureFormProps {
   onSuccess: (credentials: { email: string; password: string; role: string }) => void;
@@ -30,36 +31,33 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
     setIsLoading(true);
 
     try {
-      // Simulate API call for lead capture
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Store lead data in localStorage for demo purposes
-      const leadData = {
-        ...formData,
-        timestamp: new Date().toISOString(),
-        sessionId: Math.random().toString(36).substring(7)
-      };
+      console.log('Submitting demo lead registration:', formData);
       
-      localStorage.setItem('demo_lead_data', JSON.stringify(leadData));
-
-      // Generate demo credentials based on selected role
-      const demoCredentials = {
-        email: formData.role === 'Partner Admin' ? 'demo-partner@vendorhub.com' : 'demo-vendor@vendorhub.com',
-        password: 'DemoPass123!',
-        role: formData.role
-      };
-
-      toast({
-        title: "Demo Access Granted!",
-        description: "Your credentials have been generated. Explore VendorHub for the next 30 minutes.",
+      // Call the edge function for demo registration
+      const { data, error } = await supabase.functions.invoke('demo-lead-registration', {
+        body: formData
       });
 
-      onSuccess(demoCredentials);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate demo access. Please try again.",
-        variant: "destructive",
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      console.log('Demo registration response:', data);
+
+      if (data.success && data.credentials) {
+        toast.success("Demo Access Granted!", {
+          description: "Your credentials have been generated. Check your email for details.",
+        });
+
+        onSuccess(data.credentials);
+      } else {
+        throw new Error('Failed to generate demo credentials');
+      }
+    } catch (error: any) {
+      console.error('Demo registration error:', error);
+      toast.error("Registration Failed", {
+        description: error.message || "Failed to generate demo access. Please try again.",
       });
     } finally {
       setIsLoading(false);
