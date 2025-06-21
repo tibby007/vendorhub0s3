@@ -5,41 +5,70 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, ArrowRight, ArrowLeft, Play } from 'lucide-react';
 
-const demoSteps = [
+const partnerAdminSteps = [
   {
-    title: "Welcome to VendorHub Demo",
-    description: "This is a live demo of our Partner Admin dashboard. You'll see how easy it is to manage your vendor network and grow your business.",
+    title: "Welcome to VendorHub Partner Admin",
+    description: "Manage your vendor network, review applications, and track revenue across your entire partner ecosystem.",
     highlight: "overview"
   },
   {
     title: "Vendor Management",
-    description: "Easily add, monitor, and manage all your vendor partners. Track their performance and revenue contributions in real-time.",
+    description: "Add, monitor, and manage all your vendor partners. Track their performance and revenue contributions in real-time.",
     highlight: "vendors"
   },
   {
-    title: "Deal Submissions",
-    description: "Review customer applications submitted by your vendors. Approve, reject, or request manual review with just a few clicks.",
+    title: "Deal Submissions Review",
+    description: "Review customer applications submitted by your vendors. Approve, reject, or request manual review with detailed insights.",
     highlight: "submissions"
   },
   {
     title: "Revenue Analytics",
-    description: "Get detailed insights into your revenue streams, growth trends, and vendor performance metrics.",
+    description: "Get comprehensive insights into revenue streams, growth trends, and vendor performance metrics.",
     highlight: "analytics"
   },
   {
-    title: "White-Label Branding",
-    description: "Customize the platform with your own branding to create a seamless experience for your vendors.",
-    highlight: "branding"
+    title: "Switch to Vendor View",
+    description: "Use the role selector above to experience the vendor dashboard and see how your partners interact with the system.",
+    highlight: "role-switch"
+  }
+];
+
+const vendorSteps = [
+  {
+    title: "Welcome to VendorHub Vendor Portal",
+    description: "Submit customer applications, track their status, and monitor your commission earnings through an intuitive interface.",
+    highlight: "overview"
+  },
+  {
+    title: "Submit Applications",
+    description: "Easily submit new customer funding applications with our streamlined form. All required information is captured efficiently.",
+    highlight: "submit"
+  },
+  {
+    title: "Track Your Submissions",
+    description: "Monitor the status of all your applications in real-time. See approvals, pending reviews, and detailed feedback.",
+    highlight: "submissions"
+  },
+  {
+    title: "Commission Tracking",
+    description: "Track your earnings with detailed commission breakdowns and performance metrics to optimize your sales strategy.",
+    highlight: "analytics"
+  },
+  {
+    title: "Switch to Partner View",
+    description: "Use the role selector above to see the Partner Admin dashboard and understand the complete workflow.",
+    highlight: "role-switch"
   }
 ];
 
 const DemoGuide = () => {
-  const { showGuide, setShowGuide, currentStep, setCurrentStep } = useDemo();
+  const { showGuide, setShowGuide, currentStep, setCurrentStep, currentDemoRole } = useDemo();
 
   if (!showGuide) return null;
 
-  const currentStepData = demoSteps[currentStep];
-  const isLastStep = currentStep === demoSteps.length - 1;
+  const steps = currentDemoRole === 'Partner Admin' ? partnerAdminSteps : vendorSteps;
+  const currentStepData = steps[currentStep];
+  const isLastStep = currentStep === steps.length - 1;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -48,10 +77,10 @@ const DemoGuide = () => {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Play className="w-5 h-5 text-vendor-green-600" />
-              Demo Guide
+              {currentDemoRole} Demo Guide
             </CardTitle>
             <CardDescription>
-              Step {currentStep + 1} of {demoSteps.length}
+              Step {currentStep + 1} of {steps.length}
             </CardDescription>
           </div>
           <Button
@@ -97,7 +126,7 @@ const DemoGuide = () => {
           </div>
           
           <div className="flex space-x-1">
-            {demoSteps.map((_, index) => (
+            {steps.map((_, index) => (
               <div
                 key={index}
                 className={`h-2 flex-1 rounded ${

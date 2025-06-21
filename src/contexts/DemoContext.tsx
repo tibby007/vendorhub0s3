@@ -8,6 +8,8 @@ interface DemoContextType {
   setShowGuide: (show: boolean) => void;
   currentStep: number;
   setCurrentStep: (step: number) => void;
+  currentDemoRole: 'Partner Admin' | 'Vendor';
+  setCurrentDemoRole: (role: 'Partner Admin' | 'Vendor') => void;
   demoData: DemoData;
 }
 
@@ -30,12 +32,29 @@ interface DemoData {
     submittedDate: string;
     amount: number;
   }>;
+  vendorSubmissions: Array<{
+    id: string;
+    customerName: string;
+    businessName: string;
+    status: 'Approved' | 'Pending' | 'Rejected' | 'Manual Review';
+    submittedDate: string;
+    amount: number;
+    notes?: string;
+  }>;
   analytics: {
     totalRevenue: number;
     monthlyGrowth: number;
     totalVendors: number;
     pendingApplications: number;
     approvalRate: number;
+  };
+  vendorAnalytics: {
+    totalSubmissions: number;
+    approvedSubmissions: number;
+    pendingSubmissions: number;
+    totalCommission: number;
+    monthlyCommission: number;
+    conversionRate: number;
   };
 }
 
@@ -125,12 +144,66 @@ const demoData: DemoData = {
       amount: 15000
     }
   ],
+  vendorSubmissions: [
+    {
+      id: '1',
+      customerName: 'Acme Manufacturing',
+      businessName: 'Acme Corp',
+      status: 'Approved',
+      submittedDate: '2024-06-15',
+      amount: 45000,
+      notes: 'Excellent credit profile, quick approval'
+    },
+    {
+      id: '2',
+      customerName: 'Sunrise Healthcare',
+      businessName: 'Sunrise Medical',
+      status: 'Manual Review',
+      submittedDate: '2024-06-20',
+      amount: 67000,
+      notes: 'Requires additional documentation'
+    },
+    {
+      id: '3',
+      customerName: 'City Retail Chain',
+      businessName: 'City Markets',
+      status: 'Pending',
+      submittedDate: '2024-06-21',
+      amount: 35000
+    },
+    {
+      id: '4',
+      customerName: 'Mountain Coffee Co',
+      businessName: 'Mountain Brew',
+      status: 'Approved',
+      submittedDate: '2024-06-18',
+      amount: 22000,
+      notes: 'Fast track approval - existing relationship'
+    },
+    {
+      id: '5',
+      customerName: 'Tech Startup Hub',
+      businessName: 'StartupSpace',
+      status: 'Rejected',
+      submittedDate: '2024-06-16',
+      amount: 18000,
+      notes: 'Insufficient business history'
+    }
+  ],
   analytics: {
     totalRevenue: 370000,
     monthlyGrowth: 18.5,
     totalVendors: 4,
     pendingApplications: 2,
     approvalRate: 78.2
+  },
+  vendorAnalytics: {
+    totalSubmissions: 5,
+    approvedSubmissions: 2,
+    pendingSubmissions: 1,
+    totalCommission: 8400,
+    monthlyCommission: 3200,
+    conversionRate: 40
   }
 };
 
@@ -140,6 +213,7 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isDemoMode, setDemoMode] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [currentDemoRole, setCurrentDemoRole] = useState<'Partner Admin' | 'Vendor'>('Partner Admin');
 
   return (
     <DemoContext.Provider
@@ -150,6 +224,8 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setShowGuide,
         currentStep,
         setCurrentStep,
+        currentDemoRole,
+        setCurrentDemoRole,
         demoData,
       }}
     >
