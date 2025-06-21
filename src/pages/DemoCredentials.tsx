@@ -11,7 +11,7 @@ const DemoCredentials = () => {
     {
       role: 'Partner Admin',
       email: 'demo-partner@vendorhub.com',
-      password: 'demo123',
+      password: 'DemoPass123!',
       description: 'Full administrative access to manage vendors, review submissions, and access analytics',
       icon: Building2,
       features: [
@@ -25,7 +25,7 @@ const DemoCredentials = () => {
     {
       role: 'Vendor',
       email: 'demo-vendor@vendorhub.com', 
-      password: 'demo123',
+      password: 'DemoPass123!',
       description: 'Vendor portal access to submit applications, track status, and access resources',
       icon: Users,
       features: [
@@ -157,7 +157,7 @@ const DemoCredentials = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
-                  <a href="https://calendly.com/your-booking-link" target="_blank" rel="noopener noreferrer">
+                  <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
                     Schedule a Demo
                   </a>
                 </Button>
@@ -169,7 +169,7 @@ const DemoCredentials = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ export const setupDemoAccounts = async () => {
     // Create demo partner admin account
     const { data: partnerAuthData, error: partnerAuthError } = await supabase.auth.signUp({
       email: 'demo-partner@vendorhub.com',
-      password: 'demo123',
+      password: 'DemoPass123!',
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
@@ -26,7 +26,7 @@ export const setupDemoAccounts = async () => {
     // Create demo vendor account
     const { data: vendorAuthData, error: vendorAuthError } = await supabase.auth.signUp({
       email: 'demo-vendor@vendorhub.com',
-      password: 'demo123',
+      password: 'DemoPass123!',
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {

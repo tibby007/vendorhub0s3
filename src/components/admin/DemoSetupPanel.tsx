@@ -112,7 +112,7 @@ const DemoSetupPanel = () => {
         </Button>
 
         <div className="text-xs text-gray-500 text-center">
-          Password for both accounts: <code className="bg-gray-100 px-1 rounded">demo123</code>
+          Password for both accounts: <code className="bg-gray-100 px-1 rounded">DemoPass123!</code>
         </div>
       </CardContent>
     </Card>

@@ -22,7 +22,7 @@ const Hero = () => {
               <Link to="/auth">Start Free Trial</Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="border-vendor-green-600 text-vendor-green-600 hover:bg-vendor-green-50">
-              <a href="https://calendly.com/your-booking-link" target="_blank" rel="noopener noreferrer">
+              <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
                 Book Demo
               </a>
             </Button>
