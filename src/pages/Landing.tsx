@@ -284,19 +284,24 @@ const Landing = () => {
             Get access to marketing materials, dedicated support, and monthly payouts.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" className="bg-white text-vendor-green-600 hover:bg-gray-100">
-              Apply for Affiliate Program
-              <ArrowRight className="w-4 h-4 ml-2" />
+            <Button size="lg" variant="secondary" className="bg-white text-vendor-green-600 hover:bg-gray-100" asChild>
+              <a href="mailto:affiliates@vendorhub.com">
+                Apply for Affiliate Program
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </a>
             </Button>
             <Button 
               size="lg" 
               variant="outline" 
-              className="border-vendor-gold-300 text-vendor-gold-100 hover:bg-vendor-gold-500 hover:text-white hover:border-vendor-gold-400"
+              className="border-white text-white hover:bg-white hover:text-vendor-green-600"
+              asChild
             >
-              Learn More
+              <a href="#pricing">
+                Learn More
+              </a>
             </Button>
           </div>
-          <p className="text-vendor-green-100 mt-4 text-sm">
+          <p className="text-white mt-4 text-sm">
             <span className="text-vendor-gold-200 font-medium">Up to 20% recurring commission</span> • Fast approval process
           </p>
         </div>
@@ -324,7 +329,6 @@ const Landing = () => {
                 <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
                 <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
               </ul>
             </div>
             
@@ -340,7 +344,6 @@ const Landing = () => {
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#" className="hover:text-white transition-colors">Chat Support</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Service Status</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Affiliate Program</a></li>
               </ul>
