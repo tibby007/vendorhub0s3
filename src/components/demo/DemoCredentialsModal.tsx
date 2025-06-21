@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Copy, Check, ArrowRight, Lock, Mail, Timer } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface DemoCredentialsModalProps {
@@ -16,9 +15,10 @@ interface DemoCredentialsModalProps {
     role: string;
   };
   sessionId: string;
+  onContinue?: () => void;
 }
 
-const DemoCredentialsModal = ({ isOpen, onOpenChange, credentials, sessionId }: DemoCredentialsModalProps) => {
+const DemoCredentialsModal = ({ isOpen, onOpenChange, credentials, sessionId, onContinue }: DemoCredentialsModalProps) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string, field: string) => {
@@ -35,6 +35,14 @@ const DemoCredentialsModal = ({ isOpen, onOpenChange, credentials, sessionId }: 
   const copyAllCredentials = async () => {
     const credentialsText = `Demo Credentials:\nEmail: ${credentials.email}\nPassword: ${credentials.password}\nRole: ${credentials.role}`;
     await copyToClipboard(credentialsText, 'All credentials');
+  };
+
+  const handleContinue = () => {
+    if (onContinue) {
+      onContinue();
+    } else {
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -146,11 +154,14 @@ const DemoCredentialsModal = ({ isOpen, onOpenChange, credentials, sessionId }: 
               Copy All Credentials
             </Button>
             
-            <Button asChild className="w-full bg-vendor-green-600 hover:bg-vendor-green-700">
-              <Link to="/auth" className="flex items-center justify-center gap-2">
-                Start Demo Session
+            <Button 
+              onClick={handleContinue}
+              className="w-full bg-vendor-green-600 hover:bg-vendor-green-700"
+            >
+              <span className="flex items-center justify-center gap-2">
+                Continue to Demo Login
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </span>
             </Button>
           </div>
 

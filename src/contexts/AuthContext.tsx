@@ -34,88 +34,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const createMissingUserProfile = async (authUser: User) => {
+  const upsertUserProfile = async (authUser: User) => {
     try {
-      console.log('Creating missing user profile for:', authUser.id);
-      const { error } = await supabase
-        .from('users')
-        .insert({
-          id: authUser.id,
-          email: authUser.email || '',
-          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-          role: 'Partner Admin' // Default role
-        });
-
-      if (error) {
-        console.error('Error creating missing user profile:', error);
-        return null;
-      }
-
-      // Return the created user data
-      return {
-        role: 'Partner Admin',
-        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-        partner_id: null
-      };
-    } catch (error) {
-      console.error('Error in createMissingUserProfile:', error);
-      return null;
-    }
-  };
-
-  const fetchUserProfile = async (authUser: User) => {
-    try {
-      console.log('Fetching user profile for:', authUser.id);
-      const { data: userData, error } = await supabase
+      console.log('Upserting user profile for:', authUser.id);
+      
+      // First check if user exists
+      const { data: existingUser, error: selectError } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUser.id)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching user data:', error);
-        // If user doesn't exist, try to create the profile
-        if (error.code === 'PGRST116') { // No rows returned
-          console.log('User profile not found, creating one...');
-          const createdUserData = await createMissingUserProfile(authUser);
-          
-          if (createdUserData) {
-            return {
-              ...authUser,
-              role: createdUserData.role,
-              name: createdUserData.name,
-              partnerId: createdUserData.partner_id,
-            } as AuthUser;
-          }
-        }
-        // Fallback to basic auth user data
-        return authUser as AuthUser;
+      if (selectError && selectError.code !== 'PGRST116') {
+        console.error('Error checking existing user:', selectError);
       }
 
-      if (!userData) {
-        console.log('No user data found, creating profile...');
-        const createdUserData = await createMissingUserProfile(authUser);
+      let userData;
+      
+      if (existingUser) {
+        console.log('User profile already exists, using existing data:', existingUser);
+        userData = existingUser;
+      } else {
+        // Create new profile with proper defaults
+        const defaultRole = authUser.user_metadata?.role || 'Partner Admin';
+        const defaultName = authUser.user_metadata?.name || 
+                           authUser.email?.split('@')[0] || 
+                           'User';
+
+        console.log('Creating new user profile with:', { defaultRole, defaultName });
         
-        if (createdUserData) {
-          return {
-            ...authUser,
-            role: createdUserData.role,
-            name: createdUserData.name,
-            partnerId: createdUserData.partner_id,
-          } as AuthUser;
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: authUser.id,
+            email: authUser.email || '',
+            name: defaultName,
+            role: defaultRole,
+            partner_id: defaultRole === 'Partner Admin' ? crypto.randomUUID() : null
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating user profile:', insertError);
+          // If insert fails due to conflict, try to fetch existing user again
+          if (insertError.code === '23505') {
+            console.log('Conflict detected, fetching existing user...');
+            const { data: conflictUser } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', authUser.id)
+              .single();
+            userData = conflictUser;
+          } else {
+            throw insertError;
+          }
+        } else {
+          userData = newUser;
         }
-        return authUser as AuthUser;
       }
 
+      // Return enriched user data
       return {
         ...authUser,
-        role: userData.role,
-        name: userData.name,
-        partnerId: userData.partner_id,
+        role: userData?.role || authUser.user_metadata?.role || 'Partner Admin',
+        name: userData?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+        partnerId: userData?.partner_id,
       } as AuthUser;
+
     } catch (err) {
-      console.error('Error in fetchUserProfile:', err);
-      return authUser as AuthUser;
+      console.error('Error in upsertUserProfile:', err);
+      // Fallback to user metadata if available
+      return {
+        ...authUser,
+        role: authUser.user_metadata?.role || 'Partner Admin',
+        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+        partnerId: null,
+      } as AuthUser;
     }
   };
 
@@ -152,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Use setTimeout to defer the async operation and prevent blocking
           setTimeout(async () => {
             try {
-              const enrichedUser = await fetchUserProfile(session.user);
+              const enrichedUser = await upsertUserProfile(session.user);
               setUser(enrichedUser);
               console.log('User profile loaded:', enrichedUser);
               

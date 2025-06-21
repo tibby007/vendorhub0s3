@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DemoAnalytics, DEMO_EVENTS } from '@/utils/demoAnalytics';
@@ -19,6 +19,30 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for demo mode and auto-populate credentials
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const isDemoMode = urlParams.get('demo') === 'true';
+    
+    if (isDemoMode) {
+      const storedCredentials = sessionStorage.getItem('demoCredentials');
+      if (storedCredentials) {
+        try {
+          const credentials = JSON.parse(storedCredentials);
+          setEmail(credentials.email);
+          setPassword(credentials.password);
+          
+          toast.info('Demo Credentials Loaded', {
+            description: 'Your demo credentials have been automatically filled in.',
+          });
+        } catch (error) {
+          console.error('Error parsing stored demo credentials:', error);
+        }
+      }
+    }
+  }, [location]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +87,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
 
         toast.error('Login Failed', {
           description: errorMessage,
-          duration: 8000, // Longer duration for demo error messages
+          duration: 8000,
         });
 
         // Track failed demo login
@@ -119,6 +143,9 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
           return;
         }
 
+        // Clear stored credentials after successful login
+        sessionStorage.removeItem('demoCredentials');
+
         toast.success('Demo Login Successful!', {
           description: `Welcome to your VendorHub demo experience as ${data.user?.user_metadata?.role}.`,
         });
@@ -141,31 +168,40 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
     }
   };
 
+  // Check if we're in demo mode from URL or session storage
+  const isInDemoMode = isDemoSession || 
+                       new URLSearchParams(location.search).get('demo') === 'true' ||
+                       sessionStorage.getItem('demoSessionActive') === 'true';
+
   return (
     <Card>
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">
-          {isDemoSession ? 'Demo Login' : 'Sign in to your account'}
+          {isInDemoMode ? 'Demo Login' : 'Sign in to your account'}
         </CardTitle>
         <CardDescription>
-          {isDemoSession 
+          {isInDemoMode 
             ? 'Use the demo credentials provided to access your demo session'
             : 'Enter your email and password to sign in'
           }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isDemoSession && (
+        {isInDemoMode && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Access</h4>
             <p className="text-xs text-blue-700">
-              Use the demo credentials from your registration email or the credentials modal to login.
+              {email && password ? 
+                'Demo credentials have been automatically filled in. Click "Access Demo" to continue.' :
+                'Use the demo credentials from your registration email or the credentials modal to login.'
+              }
               Demo sessions are limited to 30 minutes.
             </p>
-            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
-              <strong>Troubleshooting:</strong> If login fails, the demo account creation may have failed. 
-              Try registering for a new demo session.
-            </div>
+            {email && password && (
+              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
+                <strong>Ready to go!</strong> Your demo credentials are loaded and ready to use.
+              </div>
+            )}
           </div>
         )}
 
@@ -175,7 +211,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
             <Input
               id="email"
               type="email"
-              placeholder={isDemoSession ? "demo-partner@vendorhub.com" : "your@email.com"}
+              placeholder={isInDemoMode ? "demo-partner@vendorhub.com" : "your@email.com"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -199,11 +235,11 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
             className="w-full" 
             disabled={isLoading}
           >
-            {isLoading ? 'Signing in...' : (isDemoSession ? 'Access Demo' : 'Sign in')}
+            {isLoading ? 'Signing in...' : (isInDemoMode ? 'Access Demo' : 'Sign in')}
           </Button>
         </form>
 
-        {!isDemoSession && (
+        {!isInDemoMode && (
           <>
             <Separator />
             <div className="text-center">

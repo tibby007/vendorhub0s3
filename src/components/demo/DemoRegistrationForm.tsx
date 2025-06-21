@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { DemoAnalytics, DEMO_EVENTS } from '@/utils/demoAnalytics';
 import { SecurityUtils, RateLimiter } from '@/utils/securityUtils';
@@ -15,6 +16,7 @@ interface DemoRegistrationFormProps {
 }
 
 const DemoRegistrationForm = ({ onSuccess }: DemoRegistrationFormProps) => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [demoCredentials, setDemoCredentials] = useState<{ email: string; password: string; role: string } | null>(null);
@@ -57,6 +59,19 @@ const DemoRegistrationForm = ({ onSuccess }: DemoRegistrationFormProps) => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleContinueToDemo = () => {
+    if (!demoCredentials) return;
+    
+    setShowCredentialsModal(false);
+    
+    // Store demo credentials in session storage for auto-population
+    sessionStorage.setItem('demoCredentials', JSON.stringify(demoCredentials));
+    sessionStorage.setItem('demoSessionActive', 'true');
+    
+    // Navigate to auth page with demo mode indicator
+    navigate('/auth?demo=true');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -268,13 +283,14 @@ const DemoRegistrationForm = ({ onSuccess }: DemoRegistrationFormProps) => {
         </Button>
       </form>
 
-      {/* Credentials Modal */}
+      {/* Enhanced Credentials Modal */}
       {demoCredentials && (
         <DemoCredentialsModal
           isOpen={showCredentialsModal}
           onOpenChange={setShowCredentialsModal}
           credentials={demoCredentials}
           sessionId={sessionId}
+          onContinue={handleContinueToDemo}
         />
       )}
     </>
