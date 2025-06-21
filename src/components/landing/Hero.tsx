@@ -33,8 +33,8 @@ const Hero = () => {
         <div className="relative max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl shadow-2xl p-1">
             <img 
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80" 
-              alt="VendorHub Partner Admin Dashboard - Comprehensive vendor management interface showing revenue analytics, vendor performance metrics, and deal submissions overview" 
+              src="/lovable-uploads/49c8cae3-9c77-45a1-b941-46dc54270815.png" 
+              alt="VendorHub Partner Admin Dashboard showing real-time vendor management interface with revenue analytics, pending applications, and recent submissions" 
               className="w-full rounded-xl"
             />
           </div>
