@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Affiliate = () => {
   return (
@@ -16,10 +17,10 @@ const Affiliate = () => {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button size="lg" variant="secondary" className="bg-white text-vendor-green-600 hover:bg-gray-100" asChild>
-            <a href="mailto:affiliates@vendorhub.com?subject=Affiliate Program Application">
+            <Link to="/affiliate-apply">
               Apply for Affiliate Program
               <ArrowRight className="w-4 h-4 ml-2" />
-            </a>
+            </Link>
           </Button>
           <Button 
             size="lg" 

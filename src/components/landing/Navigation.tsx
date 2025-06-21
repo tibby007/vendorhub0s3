@@ -24,10 +24,10 @@ const Navigation = () => {
               className="hidden sm:flex border-vendor-gold-400 text-vendor-gold-700 hover:bg-vendor-gold-50"
               asChild
             >
-              <a href="mailto:affiliates@vendorhub.com?subject=Affiliate Program Application">
+              <Link to="/affiliate-apply">
                 <Phone className="w-4 h-4 mr-2" />
                 Apply for Affiliate Program
-              </a>
+              </Link>
             </Button>
             <Button asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
               <Link to="/auth">Start Free Trial</Link>
