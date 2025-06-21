@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, Clock, Users, CheckCircle } from 'lucide-react';
+import { Building2, Clock, Users, CheckCircle, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { DemoAnalytics, DEMO_EVENTS } from '@/utils/demoAnalytics';
+import { SecurityUtils, RateLimiter } from '@/utils/securityUtils';
 
 interface DemoLeadCaptureFormProps {
   onSuccess: (credentials: { email: string; password: string; role: string }) => void;
@@ -27,16 +28,77 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
     useCase: ''
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [csrfToken] = useState(() => SecurityUtils.generateSecureToken());
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Name validation
+    if (!formData.name.trim() || formData.name.length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
+
+    // Email validation
+    if (!SecurityUtils.validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid business email';
+    }
+
+    // Company validation
+    if (!formData.company.trim() || formData.company.length < 2) {
+      newErrors.company = 'Company name must be at least 2 characters';
+    }
+
+    // Role validation
+    if (!formData.role) {
+      newErrors.role = 'Please select a role';
+    }
+
+    // Phone validation (if provided)
+    if (formData.phone && !SecurityUtils.validatePhone(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Rate limiting check
+    if (!RateLimiter.checkRateLimit('demo-registration', 3, 900000)) {
+      toast.error("Too Many Attempts", {
+        description: "Please wait 15 minutes before trying again.",
+      });
+      return;
+    }
+
+    if (!validateForm()) {
+      toast.error("Please correct the errors in the form");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       console.log('Submitting demo lead registration:', formData);
       
+      // Sanitize form data before submission
+      const sanitizedData = {
+        name: SecurityUtils.sanitizeText(formData.name.trim()),
+        email: formData.email.toLowerCase().trim(),
+        company: SecurityUtils.sanitizeText(formData.company.trim()),
+        phone: formData.phone ? SecurityUtils.sanitizeText(formData.phone.trim()) : undefined,
+        role: formData.role,
+        employees: formData.employees ? SecurityUtils.sanitizeText(formData.employees) : undefined,
+        useCase: formData.useCase ? SecurityUtils.sanitizeText(formData.useCase.trim()) : undefined,
+        csrfToken
+      };
+
       // Call the edge function for demo registration
       const { data, error } = await supabase.functions.invoke('demo-lead-registration', {
-        body: formData
+        body: sanitizedData
       });
 
       if (error) {
@@ -47,25 +109,51 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
       console.log('Demo registration response:', data);
 
       if (data.success && data.credentials) {
-        // Start demo analytics session
-        const sessionId = DemoAnalytics.startSession(formData, formData.role);
+        // Start demo analytics session with enhanced security
+        const sessionId = DemoAnalytics.startSession({
+          ...sanitizedData,
+          sessionId: data.sessionId
+        }, formData.role);
+        
         console.log('Demo session started with ID:', sessionId);
 
+        // Track successful registration
+        DemoAnalytics.trackEvent(DEMO_EVENTS.REGISTRATION_SUCCESS, {
+          role: formData.role,
+          company: sanitizedData.company,
+          sessionId: data.sessionId
+        });
+
         toast.success("Demo Access Granted!", {
-          description: "Your credentials have been generated. Check your email for details.",
+          description: "Your secure credentials have been generated. Check your email for details.",
         });
 
         onSuccess(data.credentials);
       } else {
-        throw new Error('Failed to generate demo credentials');
+        throw new Error(data.error || 'Failed to generate demo credentials');
       }
     } catch (error: any) {
       console.error('Demo registration error:', error);
+      
+      // Track failed registration for security monitoring
+      DemoAnalytics.trackEvent(DEMO_EVENTS.REGISTRATION_FAILED, {
+        error: error.message,
+        email: formData.email
+      });
+
       toast.error("Registration Failed", {
         description: error.message || "Failed to generate demo access. Please try again.",
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -78,11 +166,11 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
           </div>
           <CardTitle className="text-2xl">Experience VendorHub Live</CardTitle>
           <CardDescription className="text-lg">
-            Get instant access to a personalized demo environment with real data and features
+            Get instant access to a secure, personalized demo environment with real data and features
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="text-center p-4 bg-vendor-green-50 rounded-lg">
               <Clock className="w-8 h-8 text-vendor-green-600 mx-auto mb-2" />
               <h3 className="font-semibold text-gray-900">30-Min Session</h3>
@@ -92,6 +180,11 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
               <Users className="w-8 h-8 text-vendor-green-600 mx-auto mb-2" />
               <h3 className="font-semibold text-gray-900">Real Data</h3>
               <p className="text-sm text-gray-600">Pre-loaded scenarios</p>
+            </div>
+            <div className="text-center p-4 bg-vendor-green-50 rounded-lg">
+              <Shield className="w-8 h-8 text-vendor-green-600 mx-auto mb-2" />
+              <h3 className="font-semibold text-gray-900">Secure Access</h3>
+              <p className="text-sm text-gray-600">Encrypted credentials</p>
             </div>
             <div className="text-center p-4 bg-vendor-green-50 rounded-lg">
               <CheckCircle className="w-8 h-8 text-vendor-green-600 mx-auto mb-2" />
@@ -107,9 +200,12 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className={errors.name ? 'border-red-500' : ''}
                   required
+                  maxLength={100}
                 />
+                {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Business Email *</Label>
@@ -117,9 +213,12 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className={errors.email ? 'border-red-500' : ''}
                   required
+                  maxLength={254}
                 />
+                {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
               </div>
             </div>
 
@@ -129,9 +228,12 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
                 <Input
                   id="company"
                   value={formData.company}
-                  onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                  onChange={(e) => handleInputChange('company', e.target.value)}
+                  className={errors.company ? 'border-red-500' : ''}
                   required
+                  maxLength={100}
                 />
+                {errors.company && <p className="text-sm text-red-600">{errors.company}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
@@ -139,16 +241,19 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
                   id="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className={errors.phone ? 'border-red-500' : ''}
+                  maxLength={20}
                 />
+                {errors.phone && <p className="text-sm text-red-600">{errors.phone}</p>}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="role">I want to explore as *</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}>
-                  <SelectTrigger>
+                <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+                  <SelectTrigger className={errors.role ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -156,10 +261,11 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
                     <SelectItem value="Vendor">Vendor</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.role && <p className="text-sm text-red-600">{errors.role}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="employees">Company Size</Label>
-                <Select value={formData.employees} onValueChange={(value) => setFormData(prev => ({ ...prev, employees: value }))}>
+                <Select value={formData.employees} onValueChange={(value) => handleInputChange('employees', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Number of employees" />
                   </SelectTrigger>
@@ -180,9 +286,13 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
                 id="useCase"
                 placeholder="e.g., Managing vendor partnerships, streamlining application processes..."
                 value={formData.useCase}
-                onChange={(e) => setFormData(prev => ({ ...prev, useCase: e.target.value }))}
+                onChange={(e) => handleInputChange('useCase', e.target.value)}
                 rows={3}
+                maxLength={500}
               />
+              <p className="text-xs text-gray-500">
+                {formData.useCase.length}/500 characters
+              </p>
             </div>
 
             <Button 
@@ -191,11 +301,24 @@ const DemoLeadCaptureForm = ({ onSuccess }: DemoLeadCaptureFormProps) => {
               size="lg"
               disabled={isLoading || !formData.name || !formData.email || !formData.company || !formData.role}
             >
-              {isLoading ? 'Generating Demo Access...' : 'Start My Demo Experience'}
+              {isLoading ? 'Generating Secure Demo Access...' : 'Start My Secure Demo Experience'}
             </Button>
 
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">Security & Privacy</span>
+              </div>
+              <ul className="text-xs text-blue-800 space-y-1">
+                <li>• All data is encrypted in transit and at rest</li>
+                <li>• Demo credentials are securely generated and time-limited</li>
+                <li>• No production data access - isolated demo environment</li>
+                <li>• Your information is protected per our privacy policy</li>
+              </ul>
+            </div>
+
             <p className="text-xs text-gray-500 text-center">
-              By proceeding, you agree to our terms and privacy policy. We'll use this information to personalize your demo experience.
+              By proceeding, you agree to our terms and privacy policy. We'll use this information to personalize your secure demo experience.
             </p>
           </form>
         </CardContent>

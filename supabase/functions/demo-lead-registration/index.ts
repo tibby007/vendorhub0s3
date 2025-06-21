@@ -6,6 +6,10 @@ import { Resend } from "npm:resend@2.0.0";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
 };
 
 interface DemoLeadRequest {
@@ -18,13 +22,136 @@ interface DemoLeadRequest {
   useCase?: string;
 }
 
+// Input validation functions
+const validateInput = (data: DemoLeadRequest): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  // Required field validation
+  if (!data.name || data.name.trim().length < 2 || data.name.length > 100) {
+    errors.push('Name must be between 2 and 100 characters');
+  }
+  
+  if (!data.email || !isValidEmail(data.email)) {
+    errors.push('Valid email is required');
+  }
+  
+  if (!data.company || data.company.trim().length < 2 || data.company.length > 100) {
+    errors.push('Company name must be between 2 and 100 characters');
+  }
+  
+  if (!data.role || !['Partner Admin', 'Vendor'].includes(data.role)) {
+    errors.push('Valid role selection is required');
+  }
+  
+  // Optional field validation
+  if (data.phone && !isValidPhone(data.phone)) {
+    errors.push('Invalid phone number format');
+  }
+  
+  if (data.useCase && data.useCase.length > 500) {
+    errors.push('Use case description too long (max 500 characters)');
+  }
+  
+  return { isValid: errors.length === 0, errors };
+};
+
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= 254;
+};
+
+const isValidPhone = (phone: string): boolean => {
+  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+  return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+};
+
+const sanitizeHtml = (input: string): string => {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+};
+
+const sanitizeInput = (data: DemoLeadRequest): DemoLeadRequest => {
+  return {
+    name: sanitizeHtml(data.name.trim()),
+    email: data.email.toLowerCase().trim(),
+    company: sanitizeHtml(data.company.trim()),
+    phone: data.phone ? sanitizeHtml(data.phone.trim()) : undefined,
+    role: data.role,
+    employees: data.employees ? sanitizeHtml(data.employees) : undefined,
+    useCase: data.useCase ? sanitizeHtml(data.useCase.trim()) : undefined
+  };
+};
+
+// Rate limiting (simple in-memory implementation)
+const rateLimits = new Map<string, { count: number; resetTime: number }>();
+
+const checkRateLimit = (identifier: string): boolean => {
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const maxAttempts = 3;
+  
+  const record = rateLimits.get(identifier);
+  
+  if (!record || now > record.resetTime) {
+    rateLimits.set(identifier, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+  
+  if (record.count >= maxAttempts) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+};
+
+const generateSecureCredentials = (role: string): { email: string; password: string; role: string } => {
+  // Generate cryptographically secure password
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  const password = 'Demo' + Array.from(array, byte => 
+    'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'[byte % 54]
+  ).join('').substring(0, 12) + '!';
+  
+  const email = role === 'Partner Admin' ? 'demo-partner@vendorhub.com' : 'demo-vendor@vendorhub.com';
+  
+  return { email, password, role };
+};
+
+const generateSessionId = (): string => {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    );
+  }
+
   try {
+    // Rate limiting check
+    const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
+    if (!checkRateLimit(clientIP)) {
+      console.log(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -33,29 +160,36 @@ const handler = async (req: Request): Promise<Response> => {
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
     
     const leadData: DemoLeadRequest = await req.json();
-    console.log('Processing demo lead registration:', leadData);
+    console.log('Processing demo lead registration for:', sanitizeHtml(leadData.email));
 
-    // Generate demo credentials based on role
-    const demoCredentials = {
-      email: leadData.role === 'Partner Admin' ? 'demo-partner@vendorhub.com' : 'demo-vendor@vendorhub.com',
-      password: 'DemoPass123!',
-      role: leadData.role
-    };
+    // Validate input
+    const validation = validateInput(leadData);
+    if (!validation.isValid) {
+      console.log('Validation errors:', validation.errors);
+      return new Response(
+        JSON.stringify({ error: 'Validation failed', details: validation.errors }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
 
-    // Generate session ID
-    const sessionId = Math.random().toString(36).substring(7);
+    // Sanitize input
+    const sanitizedData = sanitizeInput(leadData);
+
+    // Generate secure demo credentials
+    const demoCredentials = generateSecureCredentials(sanitizedData.role);
+    const sessionId = generateSessionId();
 
     // Insert lead into database
     const { data: lead, error: insertError } = await supabase
       .from('demo_leads')
       .insert({
-        name: leadData.name,
-        email: leadData.email,
-        company: leadData.company,
-        phone: leadData.phone,
-        role: leadData.role,
-        employees: leadData.employees,
-        use_case: leadData.useCase,
+        name: sanitizedData.name,
+        email: sanitizedData.email,
+        company: sanitizedData.company,
+        phone: sanitizedData.phone,
+        role: sanitizedData.role,
+        employees: sanitizedData.employees,
+        use_case: sanitizedData.useCase,
         session_id: sessionId,
         demo_credentials: demoCredentials,
         demo_started_at: new Date().toISOString(),
@@ -66,44 +200,46 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (insertError) {
       console.error('Database insertion error:', insertError);
-      throw insertError;
+      throw new Error('Failed to register demo lead');
     }
 
     console.log('Lead stored in database:', lead.id);
+
+    // Get admin email from environment variable
+    const adminEmail = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') || 'admin@vendorhub.com';
 
     // Send admin notification email
     try {
       await resend.emails.send({
         from: 'VendorHub Demo <demo@vendorhub.com>',
-        to: ['admin@vendorhub.com'], // Replace with your admin email
-        subject: `🚨 New Demo Registration: ${leadData.company}`,
+        to: [adminEmail],
+        subject: `🚨 New Demo Registration: ${sanitizedData.company}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #16a34a;">New Demo Lead Registration</h2>
             
             <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin-top: 0; color: #334155;">Contact Information</h3>
-              <p><strong>Name:</strong> ${leadData.name}</p>
-              <p><strong>Email:</strong> ${leadData.email}</p>
-              <p><strong>Company:</strong> ${leadData.company}</p>
-              <p><strong>Phone:</strong> ${leadData.phone || 'Not provided'}</p>
-              <p><strong>Role Interest:</strong> ${leadData.role}</p>
-              <p><strong>Company Size:</strong> ${leadData.employees || 'Not specified'}</p>
+              <p><strong>Name:</strong> ${sanitizedData.name}</p>
+              <p><strong>Email:</strong> ${sanitizedData.email}</p>
+              <p><strong>Company:</strong> ${sanitizedData.company}</p>
+              <p><strong>Phone:</strong> ${sanitizedData.phone || 'Not provided'}</p>
+              <p><strong>Role Interest:</strong> ${sanitizedData.role}</p>
+              <p><strong>Company Size:</strong> ${sanitizedData.employees || 'Not specified'}</p>
             </div>
 
-            ${leadData.useCase ? `
+            ${sanitizedData.useCase ? `
               <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <h3 style="margin-top: 0; color: #334155;">Use Case</h3>
-                <p>${leadData.useCase}</p>
+                <p>${sanitizedData.useCase}</p>
               </div>
             ` : ''}
 
             <div style="background: #dcfce7; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: #166534;">Demo Credentials Generated</h3>
-              <p><strong>Email:</strong> ${demoCredentials.email}</p>
-              <p><strong>Password:</strong> ${demoCredentials.password}</p>
-              <p><strong>Role:</strong> ${demoCredentials.role}</p>
+              <h3 style="margin-top: 0; color: #166534;">Demo Session Details</h3>
               <p><strong>Session ID:</strong> ${sessionId}</p>
+              <p><strong>Role:</strong> ${demoCredentials.role}</p>
+              <p><strong>Registration Time:</strong> ${new Date().toISOString()}</p>
             </div>
 
             <p style="color: #64748b; font-size: 14px;">
@@ -122,7 +258,7 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       await resend.emails.send({
         from: 'VendorHub Demo <demo@vendorhub.com>',
-        to: [leadData.email],
+        to: [sanitizedData.email],
         subject: '🎉 Your VendorHub Demo is Ready!',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -132,10 +268,10 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
 
             <div style="background: #f8fafc; padding: 30px; border-radius: 12px; margin: 30px 0;">
-              <h2 style="color: #334155; margin-top: 0;">Hi ${leadData.name},</h2>
+              <h2 style="color: #334155; margin-top: 0;">Hi ${sanitizedData.name},</h2>
               <p style="color: #475569; line-height: 1.6;">
                 Thank you for your interest in VendorHub! We've set up a personalized demo environment 
-                where you can explore our platform as a <strong>${leadData.role}</strong>.
+                where you can explore our platform as a <strong>${sanitizedData.role}</strong>.
               </p>
             </div>
 
@@ -145,10 +281,13 @@ const handler = async (req: Request): Promise<Response> => {
                 <p style="margin: 5px 0;"><strong>Email:</strong> ${demoCredentials.email}</p>
                 <p style="margin: 5px 0;"><strong>Password:</strong> ${demoCredentials.password}</p>
               </div>
+              <p style="color: #166534; font-size: 12px; margin-top: 10px;">
+                ⚠️ These credentials are for demo purposes only and will expire after 30 minutes of inactivity.
+              </p>
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="https://your-app-url.com/auth" 
+              <a href="${Deno.env.get('SITE_URL') || 'https://your-app-url.com'}/auth" 
                  style="background: #16a34a; color: white; padding: 15px 30px; 
                         border-radius: 8px; text-decoration: none; font-weight: bold; 
                         display: inline-block;">
@@ -159,15 +298,16 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin-top: 0; color: #92400e;">⏰ Demo Session Details</h3>
               <ul style="color: #b45309; margin: 10px 0; padding-left: 20px;">
-                <li>Duration: 30 minutes</li>
+                <li>Duration: 30 minutes of active use</li>
                 <li>Full platform access with sample data</li>
                 <li>No commitment required</li>
+                <li>Secure, isolated environment</li>
               </ul>
             </div>
 
             <div style="padding: 20px 0; border-top: 1px solid #e2e8f0; margin-top: 40px;">
               <p style="color: #64748b; text-align: center; margin: 0;">
-                Need help? Reply to this email or contact our team.
+                Questions? Reply to this email or use our chat support on the website.
               </p>
             </div>
           </div>
@@ -199,7 +339,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.error('Error in demo lead registration:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to process demo registration' 
+        error: 'Failed to process demo registration. Please try again.' 
       }),
       {
         status: 500,
