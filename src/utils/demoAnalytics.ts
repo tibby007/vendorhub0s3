@@ -11,6 +11,7 @@ export const DEMO_EVENTS = {
   REGISTRATION_SUCCESS: 'demo_registration_success',
   REGISTRATION_FAILED: 'demo_registration_failed',
   LOGIN_ATTEMPT: 'demo_login_attempt',
+  LOGIN_SUCCESS: 'demo_login_success',
   SESSION_WARNING: 'demo_session_warning'
 } as const;
 
