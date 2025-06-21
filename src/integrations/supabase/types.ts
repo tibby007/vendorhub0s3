@@ -63,6 +63,69 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_leads: {
+        Row: {
+          company: string
+          created_at: string
+          demo_completed_at: string | null
+          demo_credentials: Json | null
+          demo_started_at: string | null
+          email: string
+          employees: string | null
+          engagement_score: number | null
+          follow_up_status: string | null
+          id: string
+          last_activity_at: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string
+          session_id: string | null
+          updated_at: string
+          use_case: string | null
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          demo_completed_at?: string | null
+          demo_credentials?: Json | null
+          demo_started_at?: string | null
+          email: string
+          employees?: string | null
+          engagement_score?: number | null
+          follow_up_status?: string | null
+          id?: string
+          last_activity_at?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role: string
+          session_id?: string | null
+          updated_at?: string
+          use_case?: string | null
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          demo_completed_at?: string | null
+          demo_credentials?: Json | null
+          demo_started_at?: string | null
+          email?: string
+          employees?: string | null
+          engagement_score?: number | null
+          follow_up_status?: string | null
+          id?: string
+          last_activity_at?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          session_id?: string | null
+          updated_at?: string
+          use_case?: string | null
+        }
+        Relationships: []
+      }
       partners: {
         Row: {
           contact_email: string
