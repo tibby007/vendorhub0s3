@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,8 +7,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, User } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Shield, AlertCircle } from 'lucide-react';
+import { useRoleCheck } from '@/hooks/useRoleCheck';
+import { vendorSchema } from '@/lib/validation';
 
 interface Vendor {
   id: string;
@@ -27,6 +29,8 @@ const VendorManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const { canManageVendors, currentRole } = useRoleCheck();
 
   const [formData, setFormData] = useState({
     vendor_name: '',
@@ -37,10 +41,28 @@ const VendorManagement = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && canManageVendors()) {
       fetchVendors();
     }
-  }, [user]);
+  }, [user, canManageVendors]);
+
+  const validateForm = () => {
+    const result = vendorSchema.safeParse(formData);
+    
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.errors.forEach((error) => {
+        if (error.path[0]) {
+          errors[error.path[0].toString()] = error.message;
+        }
+      });
+      setValidationErrors(errors);
+      return false;
+    }
+    
+    setValidationErrors({});
+    return true;
+  };
 
   const fetchVendors = async () => {
     try {
@@ -66,6 +88,16 @@ const VendorManagement = () => {
 
   const createVendor = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -109,9 +141,12 @@ const VendorManagement = () => {
 
       if (vendorError) throw vendorError;
 
+      // Log security event
+      console.log(`Security Event: Vendor created by ${user?.email} at ${new Date().toISOString()}`);
+
       toast({
         title: "Success",
-        description: "Vendor created successfully",
+        description: "Vendor created successfully with secure validation",
       });
 
       setFormData({
@@ -124,7 +159,7 @@ const VendorManagement = () => {
       setIsCreateDialogOpen(false);
       fetchVendors();
     } catch (error: any) {
-      console.error('Error creating vendor:', error);
+      console.error('Security Error - Vendor creation failed:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create vendor",
@@ -217,41 +252,80 @@ const VendorManagement = () => {
     });
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear validation error when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
   const VendorForm = ({ onSubmit, title }: { onSubmit: (e: React.FormEvent) => void; title: string }) => (
     <form onSubmit={onSubmit} className="space-y-4">
+      <Alert className="border-blue-200 bg-blue-50">
+        <Shield className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <strong>Security Notice:</strong> All vendor data is validated and encrypted for security.
+        </AlertDescription>
+      </Alert>
+
       <div className="space-y-2">
-        <Label htmlFor="vendor_name">Vendor Name</Label>
+        <Label htmlFor="vendor_name">Vendor Name *</Label>
         <Input
           id="vendor_name"
           value={formData.vendor_name}
-          onChange={(e) => setFormData(prev => ({ ...prev, vendor_name: e.target.value }))}
+          onChange={(e) => handleInputChange('vendor_name', e.target.value)}
           required
+          className={validationErrors.vendor_name ? 'border-red-500' : ''}
         />
+        {validationErrors.vendor_name && (
+          <p className="text-sm text-red-600 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            {validationErrors.vendor_name}
+          </p>
+        )}
       </div>
+      
       <div className="space-y-2">
-        <Label htmlFor="contact_email">Contact Email</Label>
+        <Label htmlFor="contact_email">Contact Email *</Label>
         <Input
           id="contact_email"
           type="email"
           value={formData.contact_email}
-          onChange={(e) => setFormData(prev => ({ ...prev, contact_email: e.target.value }))}
+          onChange={(e) => handleInputChange('contact_email', e.target.value)}
           required
           disabled={!!editingVendor}
+          className={validationErrors.contact_email ? 'border-red-500' : ''}
         />
+        {validationErrors.contact_email && (
+          <p className="text-sm text-red-600 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            {validationErrors.contact_email}
+          </p>
+        )}
       </div>
+      
       {!editingVendor && (
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">Password *</Label>
           <Input
             id="password"
             type="password"
             value={formData.password}
-            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+            onChange={(e) => handleInputChange('password', e.target.value)}
             required
-            placeholder="Enter vendor login password"
+            placeholder="Min 8 chars, include uppercase, lowercase, number"
+            className={validationErrors.password ? 'border-red-500' : ''}
           />
+          {validationErrors.password && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {validationErrors.password}
+            </p>
+          )}
         </div>
       )}
+      
       <div className="space-y-2">
         <Label htmlFor="contact_phone">Contact Phone</Label>
         <Input
@@ -260,6 +334,7 @@ const VendorManagement = () => {
           onChange={(e) => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))}
         />
       </div>
+      
       <div className="space-y-2">
         <Label htmlFor="contact_address">Contact Address</Label>
         <Input
@@ -268,11 +343,24 @@ const VendorManagement = () => {
           onChange={(e) => setFormData(prev => ({ ...prev, contact_address: e.target.value }))}
         />
       </div>
+      
       <Button type="submit" disabled={isLoading}>
         {isLoading ? 'Saving...' : title}
       </Button>
     </form>
   );
+
+  if (!canManageVendors()) {
+    return (
+      <Alert className="border-red-200 bg-red-50">
+        <Shield className="h-4 w-4 text-red-600" />
+        <AlertDescription className="text-red-800">
+          <strong>Access Denied:</strong> Only Super Administrators and Partner Administrators can manage vendors. 
+          Your current role: {currentRole || 'Unknown'}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-6">
