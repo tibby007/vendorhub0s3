@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { Play, ArrowRight } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 const Hero = () => {
   return (
@@ -30,14 +30,9 @@ const Hero = () => {
                 Try Interactive Demo
               </Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-vendor-green-600 text-vendor-green-600 hover:bg-vendor-green-50">
-              <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
-                Book Personal Demo
-              </a>
-            </Button>
           </div>
           <div className="text-sm text-gray-500 mb-8">
-            ✓ Full feature access  ✓ Real data scenarios  ✓ 30-minute session  ✓ No credit card required
+            ✓ Full feature access  ✓ Real data scenarios  ✓ 30-minute session  ✓ No commitment required
           </div>
         </div>
 
@@ -56,8 +51,7 @@ const Hero = () => {
             <Button size="lg" asChild className="bg-white text-gray-900 hover:bg-gray-100 shadow-xl">
               <Link to="/demo-credentials" className="flex items-center gap-2">
                 <Play className="w-5 h-5" />
-                Try This Live
-                <ArrowRight className="w-4 h-4" />
+                Experience This Live
               </Link>
             </Button>
           </div>

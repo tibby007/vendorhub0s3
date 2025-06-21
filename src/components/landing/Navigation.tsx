@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Building2, Phone } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Navigation = () => {
@@ -19,21 +19,8 @@ const Navigation = () => {
             <Button variant="ghost" asChild>
               <Link to="/auth">Login</Link>
             </Button>
-            <Button 
-              variant="outline" 
-              className="hidden sm:flex border-vendor-gold-400 text-vendor-gold-700 hover:bg-vendor-gold-50"
-              asChild
-            >
-              <Link to="/affiliate-apply">
-                <Phone className="w-4 h-4 mr-2" />
-                Apply for Affiliate Program
-              </Link>
-            </Button>
-            <Button variant="ghost" asChild className="text-sm bg-vendor-green-50 text-vendor-green-700 hover:bg-vendor-green-100">
-              <Link to="/demo-credentials">Try Interactive Demo</Link>
-            </Button>
             <Button asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
-              <Link to="/auth">Start Free Trial</Link>
+              <Link to="/demo-credentials">Try Interactive Demo</Link>
             </Button>
           </div>
         </div>

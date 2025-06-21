@@ -199,26 +199,21 @@ const DemoCredentials = () => {
           </Card>
         </div>
 
-        {/* Upgrade Options */}
+        {/* Progressive Upgrade Option */}
         <Card className="bg-gradient-to-r from-vendor-green-50 to-vendor-gold-50 border-vendor-green-200">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                Ready for the Full Experience?
+                Ready to Scale Your Vendor Network?
               </h3>
               <p className="text-gray-600 max-w-2xl mx-auto">
-                This demo gives you a taste of VendorHub's capabilities. For unlimited access, 
-                custom setup, and dedicated support, let's schedule a personalized walkthrough.
+                Experience the full power of VendorHub with unlimited access, custom setup, and dedicated support.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
-                  <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
-                    Schedule Personalized Demo
-                  </a>
-                </Button>
-                <Button size="lg" variant="outline" asChild className="border-vendor-green-600 text-vendor-green-600 hover:bg-vendor-green-50">
                   <Link to="/auth">
-                    Start Free Trial
+                    Get Full Access
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
               </div>

@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Clock, ArrowRight, Phone, X } from 'lucide-react';
+import { Clock, ArrowRight, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface DemoSessionManagerProps {
@@ -95,14 +94,8 @@ const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSess
                 size="sm" 
                 className="w-full bg-vendor-green-600 hover:bg-vendor-green-700"
               >
-                <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
-                  <Phone className="w-3 h-3 mr-2" />
-                  Book Full Demo
-                </a>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="w-full">
                 <Link to="/auth">
-                  Start Free Trial
+                  Get Full Access
                   <ArrowRight className="w-3 h-3 ml-2" />
                 </Link>
               </Button>
@@ -125,13 +118,10 @@ const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSess
                   asChild 
                   className="w-full bg-vendor-green-600 hover:bg-vendor-green-700"
                 >
-                  <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Schedule Extended Demo
-                  </a>
-                </Button>
-                <Button asChild variant="outline" className="w-full">
-                  <Link to="/auth">Start Free Trial</Link>
+                  <Link to="/auth">
+                    Get Full Access
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -161,13 +151,10 @@ const DemoSessionManager = ({ sessionDuration = 30, onSessionExpired }: DemoSess
                   asChild 
                   className="w-full bg-vendor-green-600 hover:bg-vendor-green-700"
                 >
-                  <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Book Personalized Demo
-                  </a>
-                </Button>
-                <Button asChild variant="outline" className="w-full">
-                  <Link to="/auth">Start Free Trial</Link>
+                  <Link to="/auth">
+                    Get Full Access
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
                 </Button>
                 <Button asChild variant="ghost" size="sm" className="w-full">
                   <Link to="/">Back to Home</Link>
