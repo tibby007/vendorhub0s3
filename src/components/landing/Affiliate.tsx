@@ -5,7 +5,7 @@ import { ArrowRight } from 'lucide-react';
 
 const Affiliate = () => {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-vendor-green-600 to-vendor-green-700">
+    <section id="affiliate" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-vendor-green-600 to-vendor-green-700">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-3xl font-bold text-white mb-4">
           Join Our Affiliate Program
@@ -16,7 +16,7 @@ const Affiliate = () => {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button size="lg" variant="secondary" className="bg-white text-vendor-green-600 hover:bg-gray-100" asChild>
-            <a href="mailto:affiliates@vendorhub.com">
+            <a href="mailto:affiliates@vendorhub.com?subject=Affiliate Program Application">
               Apply for Affiliate Program
               <ArrowRight className="w-4 h-4 ml-2" />
             </a>
@@ -24,11 +24,11 @@ const Affiliate = () => {
           <Button 
             size="lg" 
             variant="outline" 
-            className="border-white text-white hover:bg-white hover:text-vendor-green-600"
+            className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-vendor-green-600 font-semibold"
             asChild
           >
             <a href="#pricing">
-              Learn More
+              View Pricing Plans
             </a>
           </Button>
         </div>
