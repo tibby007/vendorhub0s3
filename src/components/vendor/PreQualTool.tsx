@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Calculator } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { PreQualData, PreQualResult, PreQualToolProps } from '@/types/prequal';
 import { calculatePreQualification } from '@/utils/prequalCalculation';
 import PreQualForm from './PreQualForm';
-import PreQualResult from './PreQualResult';
+import PreQualResultDisplay from './PreQualResultDisplay';
 import PreQualDisclaimer from './PreQualDisclaimer';
 
 const PreQualTool = ({ onSubmitApplication }: PreQualToolProps) => {
@@ -121,7 +120,7 @@ const PreQualTool = ({ onSubmitApplication }: PreQualToolProps) => {
           isCalculating={isCalculating}
         />
 
-        <PreQualResult
+        <PreQualResultDisplay
           result={result}
           onSubmitApplication={handleSubmitApplication}
         />

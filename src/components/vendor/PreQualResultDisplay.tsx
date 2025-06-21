@@ -1,17 +1,17 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calculator, AlertCircle, CheckCircle, XCircle, FileText } from 'lucide-react';
-import { PreQualResult as PreQualResultType } from '@/types/prequal';
+import { PreQualResult } from '@/types/prequal';
 
-interface PreQualResultProps {
-  result: PreQualResultType | null;
+interface PreQualResultDisplayProps {
+  result: PreQualResult | null;
   onSubmitApplication: () => void;
 }
 
-const PreQualResult = ({ result, onSubmitApplication }: PreQualResultProps) => {
+const PreQualResultDisplay = ({ result, onSubmitApplication }: PreQualResultDisplayProps) => {
+  
   const getResultIcon = () => {
     if (!result) return null;
     
@@ -147,4 +147,4 @@ const PreQualResult = ({ result, onSubmitApplication }: PreQualResultProps) => {
   );
 };
 
-export default PreQualResult;
+export default PreQualResultDisplay;
