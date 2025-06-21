@@ -63,6 +63,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const fetchUserProfile = async (authUser: User) => {
+    try {
+      console.log('Fetching user profile for:', authUser.id);
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching user data:', error);
+        // If user doesn't exist, try to create the profile
+        if (error.code === 'PGRST116') { // No rows returned
+          console.log('User profile not found, creating one...');
+          const createdUserData = await createMissingUserProfile(authUser);
+          
+          if (createdUserData) {
+            return {
+              ...authUser,
+              role: createdUserData.role,
+              name: createdUserData.name,
+              partnerId: createdUserData.partner_id,
+            } as AuthUser;
+          }
+        }
+        // Fallback to basic auth user data
+        return authUser as AuthUser;
+      }
+
+      if (!userData) {
+        console.log('No user data found, creating profile...');
+        const createdUserData = await createMissingUserProfile(authUser);
+        
+        if (createdUserData) {
+          return {
+            ...authUser,
+            role: createdUserData.role,
+            name: createdUserData.name,
+            partnerId: createdUserData.partner_id,
+          } as AuthUser;
+        }
+        return authUser as AuthUser;
+      }
+
+      return {
+        ...authUser,
+        role: userData.role,
+        name: userData.name,
+        partnerId: userData.partner_id,
+      } as AuthUser;
+    } catch (err) {
+      console.error('Error in fetchUserProfile:', err);
+      return authUser as AuthUser;
+    }
+  };
+
   const refreshSubscription = async () => {
     if (!session) return;
     
@@ -93,46 +149,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         
         if (session?.user) {
-          // Defer user profile fetching to avoid blocking the auth state change
+          // Use setTimeout to defer the async operation and prevent blocking
           setTimeout(async () => {
             try {
-              const { data: userData, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-
-              if (error) {
-                console.error('Error fetching user data:', error);
-                
-                // If user doesn't exist in public.users, try to create the profile
-                if (error.code === 'PGRST116') { // No rows returned
-                  console.log('User profile not found, creating one...');
-                  const createdUserData = await createMissingUserProfile(session.user);
-                  
-                  if (createdUserData) {
-                    setUser({
-                      ...session.user,
-                      role: createdUserData.role,
-                      name: createdUserData.name,
-                      partnerId: createdUserData.partner_id,
-                    } as AuthUser);
-                  } else {
-                    // Fallback to basic auth user data
-                    setUser(session.user as AuthUser);
-                  }
-                } else {
-                  setUser(session.user as AuthUser);
-                }
-              } else {
-                setUser({
-                  ...session.user,
-                  role: userData.role,
-                  name: userData.name,
-                  partnerId: userData.partner_id,
-                } as AuthUser);
-              }
-
+              const enrichedUser = await fetchUserProfile(session.user);
+              setUser(enrichedUser);
+              console.log('User profile loaded:', enrichedUser);
+              
               // Check subscription status after setting user
               setTimeout(() => {
                 refreshSubscription();
