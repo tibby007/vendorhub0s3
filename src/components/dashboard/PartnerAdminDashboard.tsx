@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, FileText, Settings, TrendingUp, Plus, Eye, Palette, CreditCard } from 'lucide-react';
+import { Users, FileText, DollarSign, TrendingUp, UserPlus, Eye, Settings, FolderOpen } from 'lucide-react';
 import VendorManagement from '@/components/vendor/VendorManagement';
 import SubmissionsManager from '@/components/submissions/SubmissionsManager';
-import BrandingSettings from '@/components/branding/BrandingSettings';
-import SubscriptionPlans from '@/components/subscription/SubscriptionPlans';
+import ResourcesManagement from '@/components/resources/ResourcesManagement';
 
 const PartnerAdminDashboard = () => {
   const [activeSection, setActiveSection] = useState<string>('overview');
@@ -13,57 +11,39 @@ const PartnerAdminDashboard = () => {
   const dashboardCards = [
     {
       title: "Total Vendors",
-      value: "12",
-      description: "Active vendor accounts",
+      value: "24",
+      description: "Active vendor network",
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
       section: "vendors"
     },
     {
-      title: "Pending Applications",
-      value: "8",
-      description: "Awaiting review",
+      title: "Monthly Submissions",
+      value: "127",
+      description: "This month's applications",
       icon: FileText,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
       section: "submissions"
     },
     {
-      title: "This Month's Revenue",
-      value: "$24,500",
-      description: "+12% from last month",
-      icon: TrendingUp,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      section: "analytics"
-    },
-    {
-      title: "White-Label Branding",
-      value: "Customize",
-      description: "Portal appearance",
-      icon: Palette,
+      title: "Revenue",
+      value: "$45,890",
+      description: "Monthly commissions",
+      icon: DollarSign,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
-      section: "branding"
+      section: "overview"
     },
     {
-      title: "Subscription",
-      value: "Pro Plan",
-      description: "Manage billing",
-      icon: CreditCard,
-      color: "text-vendor-green-600",
-      bgColor: "bg-vendor-green-50",
-      section: "subscription"
-    },
-    {
-      title: "Settings",
-      value: "Configure",
-      description: "Platform settings",
-      icon: Settings,
-      color: "text-gray-600",
-      bgColor: "bg-gray-50",
-      section: "settings"
+      title: "Resources",
+      value: "12",
+      description: "Manage vendor resources",
+      icon: FolderOpen,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      section: "resources"
     }
   ];
 
@@ -73,41 +53,17 @@ const PartnerAdminDashboard = () => {
         return <VendorManagement />;
       case 'submissions':
         return <SubmissionsManager />;
-      case 'branding':
-        return <BrandingSettings />;
-      case 'subscription':
-        return <SubscriptionPlans />;
-      case 'analytics':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-gray-600">Analytics dashboard coming soon...</p>
-              </CardContent>
-            </Card>
-          </div>
-        );
-      case 'settings':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-gray-600">Settings panel coming soon...</p>
-              </CardContent>
-            </Card>
-          </div>
-        );
+      case 'resources':
+        return <ResourcesManagement />;
       default:
         return (
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Partner Admin Dashboard</h2>
-              <p className="text-gray-600">Manage your vendor network and monitor performance</p>
+              <p className="text-gray-600">Manage your vendor network and track performance</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {dashboardCards.map((card, index) => {
                 const Icon = card.icon;
                 return (
@@ -137,32 +93,32 @@ const PartnerAdminDashboard = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>Latest vendor and submission activity</CardDescription>
+                  <CardDescription>Latest vendor submissions and updates</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">New vendor registered</p>
-                        <p className="text-xs text-gray-600">ABC Solutions joined your network</p>
+                        <p className="text-sm font-medium">New submission from TechVendor Inc.</p>
+                        <p className="text-xs text-gray-600">Customer: ABC Corp - $50,000 loan</p>
                         <p className="text-xs text-gray-500">2 hours ago</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">Application submitted</p>
-                        <p className="text-xs text-gray-600">New customer application from Tech Corp</p>
-                        <p className="text-xs text-gray-500">4 hours ago</p>
+                        <p className="text-sm font-medium">Vendor approved: FastFinance LLC</p>
+                        <p className="text-xs text-gray-600">New vendor onboarded</p>
+                        <p className="text-xs text-gray-500">1 day ago</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">Application approved</p>
-                        <p className="text-xs text-gray-600">FastTrack Logistics application approved</p>
-                        <p className="text-xs text-gray-500">1 day ago</p>
+                        <p className="text-sm font-medium">Commission processed</p>
+                        <p className="text-xs text-gray-600">$2,450 for Q1 submissions</p>
+                        <p className="text-xs text-gray-500">3 days ago</p>
                       </div>
                     </div>
                   </div>
@@ -172,38 +128,96 @@ const PartnerAdminDashboard = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Quick Actions</CardTitle>
-                  <CardDescription>Common tasks and shortcuts</CardDescription>
+                  <CardDescription>Common partner management tasks</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3">
                     <button 
                       className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
                       onClick={() => setActiveSection('vendors')}
                     >
-                      <Plus className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm">Add Vendor</span>
+                      <UserPlus className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm">Add New Vendor</span>
                     </button>
                     <button 
                       className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
                       onClick={() => setActiveSection('submissions')}
                     >
                       <Eye className="w-4 h-4 text-green-600" />
-                      <span className="text-sm">View Submissions</span>
+                      <span className="text-sm">Review Submissions</span>
                     </button>
                     <button 
                       className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                      onClick={() => setActiveSection('branding')}
+                      onClick={() => setActiveSection('resources')}
                     >
-                      <Palette className="w-4 h-4 text-purple-600" />
-                      <span className="text-sm">Customize Brand</span>
+                      <FolderOpen className="w-4 h-4 text-orange-600" />
+                      <span className="text-sm">Manage Resources</span>
                     </button>
-                    <button 
-                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                      onClick={() => setActiveSection('subscription')}
-                    >
-                      <CreditCard className="w-4 h-4 text-vendor-green-600" />
-                      <span className="text-sm">Manage Plan</span>
+                    <button className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                      <Settings className="w-4 h-4 text-gray-600" />
+                      <span className="text-sm">Partner Settings</span>
                     </button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Performance Metrics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Approval Rate</span>
+                      <span className="text-sm font-medium">73%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Avg. Processing Time</span>
+                      <span className="text-sm font-medium">2.3 days</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Active Vendors</span>
+                      <span className="text-sm font-medium">24/27</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Performing Vendors</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm">TechVendor Inc.</span>
+                      <span className="text-sm font-medium">$12,450</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">FastFinance LLC</span>
+                      <span className="text-sm font-medium">$8,200</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Growth Capital</span>
+                      <span className="text-sm font-medium">$6,890</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monthly Trend</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-8 h-8 text-green-500" />
+                    <div>
+                      <p className="text-2xl font-bold text-green-600">+15%</p>
+                      <p className="text-xs text-gray-600">vs last month</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

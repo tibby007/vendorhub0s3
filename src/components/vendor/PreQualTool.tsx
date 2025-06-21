@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calculator, AlertCircle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Calculator, AlertCircle, CheckCircle, XCircle, RefreshCw, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface PreQualData {
@@ -27,7 +26,11 @@ interface PreQualResult {
   conditions?: string[];
 }
 
-const PreQualTool = () => {
+interface PreQualToolProps {
+  onSubmitApplication?: (customerData: any) => void;
+}
+
+const PreQualTool = ({ onSubmitApplication }: PreQualToolProps) => {
   const [formData, setFormData] = useState<PreQualData>({
     annualRevenue: '',
     monthsInBusiness: '',
@@ -220,6 +223,28 @@ const PreQualTool = () => {
     setResult(null);
   };
 
+  const handleSubmitApplication = () => {
+    if (!result?.approved) return;
+
+    // Prepare customer data from PreQual form
+    const customerData = {
+      // Business Information
+      businessName: '', // This would need to be added to the form
+      industry: formData.industry,
+      monthsInBusiness: formData.monthsInBusiness,
+      annualRevenue: formData.annualRevenue,
+      loanAmount: formData.loanAmount,
+      
+      // Pre-qualification results
+      preQualResult: result,
+      preQualData: formData
+    };
+
+    if (onSubmitApplication) {
+      onSubmitApplication(customerData);
+    }
+  };
+
   const getResultIcon = () => {
     if (!result) return null;
     
@@ -410,6 +435,25 @@ const PreQualTool = () => {
                   </div>
                 </div>
 
+                {/* Submit Application Button - Only show if approved */}
+                {result.approved && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium text-green-900">Ready to Submit Application</h4>
+                        <p className="text-sm text-green-700">Customer meets pre-qualification criteria</p>
+                      </div>
+                      <Button 
+                        onClick={handleSubmitApplication}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Submit Application
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Recommended Amount */}
                 {result.recommendedAmount && (
                   <div>
@@ -453,7 +497,7 @@ const PreQualTool = () => {
                   <h4 className="font-medium mb-2">Next Steps</h4>
                   {result.approved ? (
                     <p className="text-sm text-gray-600">
-                      Customer meets pre-qualification criteria. Proceed with full application.
+                      Customer meets pre-qualification criteria. Click "Submit Application" to proceed with full application.
                     </p>
                   ) : result.confidence >= 40 ? (
                     <p className="text-sm text-gray-600">

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Clock, CheckCircle, Plus, Eye, Calculator, BookOpen } from 'lucide-react';
@@ -8,6 +7,7 @@ import VendorResources from '@/components/vendor/VendorResources';
 
 const VendorDashboard = () => {
   const [activeSection, setActiveSection] = useState<string>('overview');
+  const [preQualData, setPreQualData] = useState<any>(null);
 
   const dashboardCards = [
     {
@@ -48,10 +48,16 @@ const VendorDashboard = () => {
     }
   ];
 
+  const handleSubmitApplication = (customerData: any) => {
+    console.log('PreQual data for application:', customerData);
+    setPreQualData(customerData);
+    setActiveSection('new-application');
+  };
+
   const renderContent = () => {
     switch (activeSection) {
       case 'new-application':
-        return <CustomerApplicationForm />;
+        return <CustomerApplicationForm preQualData={preQualData} />;
       case 'submissions':
         return (
           <div className="space-y-6">
@@ -64,7 +70,7 @@ const VendorDashboard = () => {
           </div>
         );
       case 'prequal':
-        return <PreQualTool />;
+        return <PreQualTool onSubmitApplication={handleSubmitApplication} />;
       case 'resources':
         return <VendorResources />;
       default:
@@ -185,7 +191,10 @@ const VendorDashboard = () => {
     <div className="p-6">
       {activeSection !== 'overview' && (
         <button
-          onClick={() => setActiveSection('overview')}
+          onClick={() => {
+            setActiveSection('overview');
+            setPreQualData(null); // Clear preQual data when going back
+          }}
           className="mb-6 text-blue-600 hover:text-blue-800 font-medium"
         >
           ← Back to Dashboard

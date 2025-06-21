@@ -1,195 +1,120 @@
 
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from '@/hooks/use-toast';
-import { FileText, CreditCard, AlertCircle, User, Building } from 'lucide-react';
-import { customerSchema } from '@/lib/validation';
-import SecureFileUpload from '@/components/security/SecureFileUpload';
+import { Badge } from '@/components/ui/badge';
+import { FileText, Upload, User, Building, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-const CustomerApplicationForm = () => {
-  const { user } = useAuth();
+interface CustomerApplicationFormProps {
+  preQualData?: any;
+}
+
+const CustomerApplicationForm = ({ preQualData }: CustomerApplicationFormProps) => {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [files, setFiles] = useState({
-    salesInvoice: null as File | null,
-    driversLicense: null as File | null,
-    miscDocuments: [] as File[]
-  });
-
-  const [customerData, setCustomerData] = useState({
-    customer_name: '',
+  const [formData, setFormData] = useState({
+    // Personal Information
+    customerName: '',
     email: '',
     phone: '',
     address: '',
-    ssn: '',
     dob: '',
-    biz_name: '',
+    ssn: '',
+    
+    // Business Information
+    businessName: '',
+    businessAddress: '',
+    businessPhone: '',
+    businessEmail: '',
     ein: '',
-    biz_start_date: '',
-    biz_address: '',
-    biz_phone: '',
-    credit_permission: false
+    industry: '',
+    monthsInBusiness: '',
+    annualRevenue: '',
+    
+    // Loan Information
+    loanAmount: '',
+    loanPurpose: '',
+    collateralDescription: '',
+    personalGuarantee: false,
+    
+    // Additional Information
+    creditPermission: false,
+    notes: ''
   });
 
-  const validateForm = () => {
-    const result = customerSchema.safeParse(customerData);
-    
-    if (!result.success) {
-      const errors: Record<string, string> = {};
-      result.error.errors.forEach((error) => {
-        if (error.path[0]) {
-          errors[error.path[0].toString()] = error.message;
-        }
-      });
-      setValidationErrors(errors);
-      return false;
+  // Pre-populate form with PreQual data if available
+  useEffect(() => {
+    if (preQualData?.preQualData) {
+      const { preQualData: pqData } = preQualData;
+      setFormData(prev => ({
+        ...prev,
+        industry: pqData.industry || '',
+        monthsInBusiness: pqData.monthsInBusiness || '',
+        annualRevenue: pqData.annualRevenue || '',
+        loanAmount: pqData.loanAmount || '',
+        personalGuarantee: pqData.personalGuarantee === 'yes',
+        collateralDescription: pqData.collateral === 'yes' ? 'Collateral available (details to be provided)' : ''
+      }));
     }
-    
-    setValidationErrors({});
-    return true;
-  };
+  }, [preQualData]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setCustomerData(prev => ({ ...prev, [field]: value }));
-    // Clear validation error when user starts typing
-    if (validationErrors[field]) {
-      setValidationErrors(prev => ({ ...prev, [field]: '' }));
-    }
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const uploadFile = async (file: File, path: string) => {
-    const { data, error } = await supabase.storage
-      .from('submissions')
-      .upload(path, file);
-
-    if (error) throw error;
-    return data.path;
-  };
-
-  const submitApplication = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-
-    if (!validateForm()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fix the errors in the form",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      // Get vendor data
-      const { data: vendorData, error: vendorError } = await supabase
-        .from('vendors')
-        .select('id, partner_admin_id')
-        .eq('user_id', user.id)
-        .single();
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      if (vendorError || !vendorData) {
-        throw new Error('Vendor not found');
-      }
-
-      // Create customer record
-      const { data: customer, error: customerError } = await supabase
-        .from('customers')
-        .insert(customerData)
-        .select()
-        .single();
-
-      if (customerError) throw customerError;
-
-      // Upload files with security validation
-      const submissionId = crypto.randomUUID();
-      let salesInvoiceUrl = null;
-      let driversLicenseUrl = null;
-      let miscDocumentsUrls: string[] = [];
-
-      if (files.salesInvoice) {
-        salesInvoiceUrl = await uploadFile(
-          files.salesInvoice,
-          `${user.id}/${submissionId}/sales_invoice_${files.salesInvoice.name}`
-        );
-      }
-
-      if (files.driversLicense) {
-        driversLicenseUrl = await uploadFile(
-          files.driversLicense,
-          `${user.id}/${submissionId}/drivers_license_${files.driversLicense.name}`
-        );
-      }
-
-      if (files.miscDocuments.length > 0) {
-        for (const file of files.miscDocuments) {
-          const path = await uploadFile(
-            file,
-            `${user.id}/${submissionId}/misc_${file.name}`
-          );
-          miscDocumentsUrls.push(path);
-        }
-      }
-
-      // Create submission record with proper partner_admin_id
-      const { error: submissionError } = await supabase
-        .from('submissions')
-        .insert({
-          id: submissionId,
-          vendor_id: vendorData.id,
-          customer_id: customer.id,
-          partner_admin_id: vendorData.partner_admin_id,
-          sales_invoice_url: salesInvoiceUrl,
-          drivers_license_url: driversLicenseUrl,
-          misc_documents_url: miscDocumentsUrls.length > 0 ? miscDocumentsUrls : null,
-          status: 'Pending'
-        });
-
-      if (submissionError) throw submissionError;
-
-      // Log security event
-      console.log(`Security Event: Customer application submitted by ${user.email} at ${new Date().toISOString()}`);
+      console.log('Submitting application:', { 
+        ...formData, 
+        preQualResult: preQualData?.preQualResult 
+      });
 
       toast({
-        title: "Application Submitted",
-        description: "Customer application has been submitted successfully with secure validation",
+        title: "Application Submitted Successfully!",
+        description: "Your customer application has been submitted for review. You'll receive updates via email.",
       });
 
       // Reset form
-      setCustomerData({
-        customer_name: '',
+      setFormData({
+        customerName: '',
         email: '',
         phone: '',
         address: '',
-        ssn: '',
         dob: '',
-        biz_name: '',
+        ssn: '',
+        businessName: '',
+        businessAddress: '',
+        businessPhone: '',
+        businessEmail: '',
         ein: '',
-        biz_start_date: '',
-        biz_address: '',
-        biz_phone: '',
-        credit_permission: false
-      });
-      setFiles({
-        salesInvoice: null,
-        driversLicense: null,
-        miscDocuments: []
+        industry: '',
+        monthsInBusiness: '',
+        annualRevenue: '',
+        loanAmount: '',
+        loanPurpose: '',
+        collateralDescription: '',
+        personalGuarantee: false,
+        creditPermission: false,
+        notes: ''
       });
 
-    } catch (error: any) {
-      console.error('Security Error - Application submission failed:', error);
+    } catch (error) {
+      console.error('Error submitting application:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to submit application",
+        title: "Submission Failed",
+        description: "There was an error submitting the application. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -199,20 +124,56 @@ const CustomerApplicationForm = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Submit New Customer Application</h2>
-        <p className="text-gray-600">Complete all customer information and upload required documents</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <FileText className="w-6 h-6" />
+            Customer Application Form
+          </h2>
+          <p className="text-gray-600">Submit a comprehensive financing application for your customer</p>
+        </div>
+        
+        {preQualData?.preQualResult && (
+          <Badge variant="secondary" className="bg-green-100 text-green-700 flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" />
+            Pre-Qualified
+          </Badge>
+        )}
       </div>
 
-      <Alert className="border-blue-200 bg-blue-50">
-        <AlertCircle className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800">
-          <strong>Security Notice:</strong> All form data is validated and encrypted. 
-          Files are scanned for security before upload (max 10MB per file).
-        </AlertDescription>
-      </Alert>
+      {/* PreQual Summary */}
+      {preQualData?.preQualResult && (
+        <Card className="bg-green-50 border-green-200">
+          <CardHeader>
+            <CardTitle className="text-green-900 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              Pre-Qualification Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-green-900">Status:</span>
+                <p className="text-green-700">
+                  {preQualData.preQualResult.approved ? 'Pre-Qualified' : 'Conditional'}
+                </p>
+              </div>
+              <div>
+                <span className="font-medium text-green-900">Confidence Score:</span>
+                <p className="text-green-700">{preQualData.preQualResult.confidence}%</p>
+              </div>
+              <div>
+                <span className="font-medium text-green-900">Recommended Amount:</span>
+                <p className="text-green-700">
+                  ${preQualData.preQualResult.recommendedAmount?.toLocaleString() || 'N/A'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      <form onSubmit={submitApplication} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Personal Information */}
         <Card>
           <CardHeader>
@@ -220,84 +181,63 @@ const CustomerApplicationForm = () => {
               <User className="w-5 h-5" />
               Personal Information
             </CardTitle>
-            <CardDescription>Customer's personal details and contact information</CardDescription>
+            <CardDescription>Customer's personal details</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="customer_name">Full Name *</Label>
+              <Label htmlFor="customerName">Full Name *</Label>
               <Input
-                id="customer_name"
-                value={customerData.customer_name}
-                onChange={(e) => handleInputChange('customer_name', e.target.value)}
+                id="customerName"
+                value={formData.customerName}
+                onChange={(e) => handleInputChange('customerName', e.target.value)}
                 required
-                className={validationErrors.customer_name ? 'border-red-500' : ''}
               />
-              {validationErrors.customer_name && (
-                <p className="text-sm text-red-600">{validationErrors.customer_name}</p>
-              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Email Address *</Label>
               <Input
                 id="email"
                 type="email"
-                value={customerData.email}
+                value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className={validationErrors.email ? 'border-red-500' : ''}
+                required
               />
-              {validationErrors.email && (
-                <p className="text-sm text-red-600">{validationErrors.email}</p>
-              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Personal Phone Number *</Label>
+              <Label htmlFor="phone">Phone Number *</Label>
               <Input
                 id="phone"
-                value={customerData.phone}
+                value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 required
-                placeholder="+1 (555) 123-4567"
-                className={validationErrors.phone ? 'border-red-500' : ''}
               />
-              {validationErrors.phone && (
-                <p className="text-sm text-red-600">{validationErrors.phone}</p>
-              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="dob">Date of Birth</Label>
               <Input
                 id="dob"
                 type="date"
-                value={customerData.dob}
+                value={formData.dob}
                 onChange={(e) => handleInputChange('dob', e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="ssn">SSN (Social Security Number)</Label>
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="address">Address *</Label>
               <Input
-                id="ssn"
-                value={customerData.ssn}
-                onChange={(e) => handleInputChange('ssn', e.target.value)}
-                placeholder="XXX-XX-XXXX"
-                className={validationErrors.ssn ? 'border-red-500' : ''}
-              />
-              {validationErrors.ssn && (
-                <p className="text-sm text-red-600">{validationErrors.ssn}</p>
-              )}
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address">Personal Address *</Label>
-              <Textarea
                 id="address"
-                value={customerData.address}
+                value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 required
-                placeholder="Street address, City, State, ZIP code"
-                className={validationErrors.address ? 'border-red-500' : ''}
               />
-              {validationErrors.address && (
-                <p className="text-sm text-red-600">{validationErrors.address}</p>
-              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ssn">SSN (Last 4 digits)</Label>
+              <Input
+                id="ssn"
+                maxLength={4}
+                value={formData.ssn}
+                onChange={(e) => handleInputChange('ssn', e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -309,113 +249,196 @@ const CustomerApplicationForm = () => {
               <Building className="w-5 h-5" />
               Business Information
             </CardTitle>
-            <CardDescription>Business details and operating information</CardDescription>
+            <CardDescription>Details about the customer's business</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="biz_name">Business Name</Label>
+              <Label htmlFor="businessName">Business Name *</Label>
               <Input
-                id="biz_name"
-                value={customerData.biz_name}
-                onChange={(e) => handleInputChange('biz_name', e.target.value)}
-                placeholder="Company or DBA name"
+                id="businessName"
+                value={formData.businessName}
+                onChange={(e) => handleInputChange('businessName', e.target.value)}
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ein">EIN (Employer Identification Number)</Label>
+              <Label htmlFor="ein">EIN</Label>
               <Input
                 id="ein"
-                value={customerData.ein}
+                value={formData.ein}
                 onChange={(e) => handleInputChange('ein', e.target.value)}
-                placeholder="XX-XXXXXXX"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="biz_phone">Business Phone Number</Label>
+              <Label htmlFor="industry">Industry *</Label>
+              <Select value={formData.industry} onValueChange={(value) => handleInputChange('industry', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="technology">Technology</SelectItem>
+                  <SelectItem value="healthcare">Healthcare</SelectItem>
+                  <SelectItem value="professional_services">Professional Services</SelectItem>
+                  <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                  <SelectItem value="retail">Retail</SelectItem>
+                  <SelectItem value="restaurant">Restaurant</SelectItem>
+                  <SelectItem value="construction">Construction</SelectItem>
+                  <SelectItem value="transportation">Transportation</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="monthsInBusiness">Months in Business *</Label>
               <Input
-                id="biz_phone"
-                value={customerData.biz_phone}
-                onChange={(e) => handleInputChange('biz_phone', e.target.value)}
-                placeholder="+1 (555) 123-4567"
+                id="monthsInBusiness"
+                type="number"
+                value={formData.monthsInBusiness}
+                onChange={(e) => handleInputChange('monthsInBusiness', e.target.value)}
+                required
+              />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="businessAddress">Business Address *</Label>
+              <Input
+                id="businessAddress"
+                value={formData.businessAddress}
+                onChange={(e) => handleInputChange('businessAddress', e.target.value)}
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="biz_start_date">Business Start Date</Label>
+              <Label htmlFor="businessPhone">Business Phone</Label>
               <Input
-                id="biz_start_date"
-                type="date"
-                value={customerData.biz_start_date}
-                onChange={(e) => handleInputChange('biz_start_date', e.target.value)}
+                id="businessPhone"
+                value={formData.businessPhone}
+                onChange={(e) => handleInputChange('businessPhone', e.target.value)}
               />
             </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="biz_address">Business Address</Label>
+            <div className="space-y-2">
+              <Label htmlFor="businessEmail">Business Email</Label>
+              <Input
+                id="businessEmail"
+                type="email"
+                value={formData.businessEmail}
+                onChange={(e) => handleInputChange('businessEmail', e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Loan Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Loan Information
+            </CardTitle>
+            <CardDescription>Financing details and requirements</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="loanAmount">Loan Amount Requested *</Label>
+                <Input
+                  id="loanAmount"
+                  type="number"
+                  value={formData.loanAmount}
+                  onChange={(e) => handleInputChange('loanAmount', e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="annualRevenue">Annual Revenue *</Label>
+                <Input
+                  id="annualRevenue"
+                  type="number"
+                  value={formData.annualRevenue}
+                  onChange={(e) => handleInputChange('annualRevenue', e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="loanPurpose">Loan Purpose</Label>
               <Textarea
-                id="biz_address"
-                value={customerData.biz_address}
-                onChange={(e) => handleInputChange('biz_address', e.target.value)}
-                placeholder="Business street address, City, State, ZIP code"
+                id="loanPurpose"
+                value={formData.loanPurpose}
+                onChange={(e) => handleInputChange('loanPurpose', e.target.value)}
+                placeholder="Describe how the loan will be used..."
               />
             </div>
-            <div className="flex items-center space-x-2 md:col-span-2">
-              <Checkbox
-                id="credit_permission"
-                checked={customerData.credit_permission}
-                onCheckedChange={(checked) => handleInputChange('credit_permission', checked === true)}
+            <div className="space-y-2">
+              <Label htmlFor="collateralDescription">Collateral Description</Label>
+              <Textarea
+                id="collateralDescription"
+                value={formData.collateralDescription}
+                onChange={(e) => handleInputChange('collateralDescription', e.target.value)}
+                placeholder="Describe any collateral being offered..."
               />
-              <Label htmlFor="credit_permission">
-                I authorize credit check and verification for this customer
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="personalGuarantee"
+                checked={formData.personalGuarantee}
+                onCheckedChange={(checked) => handleInputChange('personalGuarantee', checked)}
+              />
+              <Label htmlFor="personalGuarantee">Personal Guarantee Provided</Label>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Additional Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Additional Information</CardTitle>
+            <CardDescription>Optional details and permissions</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="notes">Additional Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Any additional information about the customer or application..."
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="creditPermission"
+                checked={formData.creditPermission}
+                onCheckedChange={(checked) => handleInputChange('creditPermission', checked)}
+                required
+              />
+              <Label htmlFor="creditPermission">
+                Customer authorizes credit check and agrees to terms *
               </Label>
             </div>
           </CardContent>
         </Card>
 
-        {/* Secure Document Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Required Document Upload
-            </CardTitle>
-            <CardDescription>
-              Upload customer documents with enhanced security validation (PDF, JPEG, PNG - Max 10MB per file)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-2">Required Documents:</h4>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Sales Invoice (showing purchase/transaction details)</li>
-                <li>• Driver's License (for identity verification)</li>
-                <li>• Additional supporting documents (optional, up to 5 files)</li>
-              </ul>
-            </div>
-            
-            <SecureFileUpload
-              id="sales_invoice"
-              label="Sales Invoice *"
-              onFileChange={(file) => setFiles(prev => ({ ...prev, salesInvoice: file as File }))}
-            />
-            
-            <SecureFileUpload
-              id="drivers_license"
-              label="Driver's License *"
-              onFileChange={(file) => setFiles(prev => ({ ...prev, driversLicense: file as File }))}
-            />
-            
-            <SecureFileUpload
-              id="misc_documents"
-              label="Additional Supporting Documents"
-              multiple={true}
-              maxFiles={5}
-              onFileChange={(files) => setFiles(prev => ({ ...prev, miscDocuments: files as File[] }))}
-            />
-          </CardContent>
-        </Card>
-
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Submitting Secure Application...' : 'Submit Customer Application'}
-        </Button>
+        {/* Submit Button */}
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            size="lg" 
+            disabled={isSubmitting}
+            className="bg-vendor-green-600 hover:bg-vendor-green-700"
+          >
+            {isSubmitting ? (
+              <>
+                <Upload className="w-4 h-4 mr-2 animate-spin" />
+                Submitting Application...
+              </>
+            ) : (
+              <>
+                <FileText className="w-4 h-4 mr-2" />
+                Submit Application
+              </>
+            )}
+          </Button>
+        </div>
       </form>
     </div>
   );
