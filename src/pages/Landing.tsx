@@ -156,7 +156,7 @@ const Landing = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
@@ -249,8 +249,9 @@ const Landing = () => {
                         : 'border-vendor-green-500 text-vendor-green-600 hover:bg-vendor-green-50'
                     }`}
                     variant={tier.popular ? 'default' : 'outline'}
+                    asChild
                   >
-                    {tier.buttonText}
+                    <Link to="/auth">{tier.buttonText}</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -322,7 +323,7 @@ const Landing = () => {
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
                 <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">API</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
               </ul>
             </div>
@@ -331,8 +332,6 @@ const Landing = () => {
               <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
               </ul>
             </div>
@@ -340,9 +339,9 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Status</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Chat Support</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Service Status</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Affiliate Program</a></li>
               </ul>
             </div>
