@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -32,8 +33,8 @@ const Hero = () => {
         <div className="relative max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl shadow-2xl p-1">
             <img 
-              src="/placeholder.svg" 
-              alt="VendorHub Dashboard Preview" 
+              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80" 
+              alt="VendorHub Partner Admin Dashboard - Comprehensive vendor management interface showing revenue analytics, vendor performance metrics, and deal submissions overview" 
               className="w-full rounded-xl"
             />
           </div>
