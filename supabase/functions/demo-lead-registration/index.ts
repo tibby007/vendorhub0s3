@@ -130,9 +130,36 @@ const generateSessionId = (): string => {
 
 const createDemoUser = async (credentials: { email: string; password: string; role: string }, sessionId: string, supabase: any) => {
   try {
-    console.log('Creating demo user:', credentials.email);
+    console.log(`[DEMO USER CREATION] Starting creation for: ${credentials.email}`);
+    console.log(`[DEMO USER CREATION] Session ID: ${sessionId}`);
+    console.log(`[DEMO USER CREATION] Role: ${credentials.role}`);
     
-    // Create user in Supabase Auth
+    // First, check if user already exists and delete if so
+    try {
+      const { data: existingUsers } = await supabase.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find(user => user.email === credentials.email);
+      
+      if (existingUser) {
+        console.log(`[DEMO USER CREATION] Found existing user ${credentials.email}, deleting...`);
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(existingUser.id);
+        if (deleteError) {
+          console.error(`[DEMO USER CREATION] Failed to delete existing user:`, deleteError);
+        } else {
+          console.log(`[DEMO USER CREATION] Successfully deleted existing user`);
+        }
+      }
+    } catch (listError) {
+      console.error(`[DEMO USER CREATION] Error checking for existing users:`, listError);
+    }
+
+    // Create user in Supabase Auth with enhanced logging
+    console.log(`[DEMO USER CREATION] Creating auth user with data:`, {
+      email: credentials.email,
+      role: credentials.role,
+      sessionId: sessionId,
+      passwordLength: credentials.password.length
+    });
+
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: credentials.email,
       password: credentials.password,
@@ -141,36 +168,65 @@ const createDemoUser = async (credentials: { email: string; password: string; ro
         name: `Demo ${credentials.role}`,
         role: credentials.role,
         demo_session_id: sessionId,
-        demo_expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes
+        demo_expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        is_demo_user: true
       }
     });
 
     if (authError) {
-      console.error('Auth user creation error:', authError);
-      throw authError;
-    }
-
-    console.log('Demo user created successfully:', authData.user?.id);
-    
-    // Create user profile
-    const { error: profileError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        name: `Demo ${credentials.role}`,
-        email: credentials.email,
-        role: credentials.role,
-        partner_id: credentials.role === 'Partner Admin' ? crypto.randomUUID() : null
+      console.error(`[DEMO USER CREATION] Auth user creation failed:`, {
+        error: authError,
+        message: authError.message,
+        status: authError.status
       });
-
-    if (profileError) {
-      console.error('Profile creation error:', profileError);
-      // Don't throw here, we can still proceed with the demo
+      throw new Error(`Failed to create demo user: ${authError.message}`);
     }
 
+    if (!authData?.user) {
+      console.error(`[DEMO USER CREATION] No user data returned from auth creation`);
+      throw new Error('No user data returned from auth creation');
+    }
+
+    console.log(`[DEMO USER CREATION] Auth user created successfully:`, {
+      userId: authData.user.id,
+      email: authData.user.email,
+      metadata: authData.user.user_metadata
+    });
+    
+    // Create user profile with enhanced error handling
+    try {
+      console.log(`[DEMO USER CREATION] Creating user profile for user ID: ${authData.user.id}`);
+      
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          name: `Demo ${credentials.role}`,
+          email: credentials.email,
+          role: credentials.role,
+          partner_id: credentials.role === 'Partner Admin' ? crypto.randomUUID() : null
+        });
+
+      if (profileError) {
+        console.error(`[DEMO USER CREATION] Profile creation error:`, profileError);
+        // Don't throw here, we can still proceed with the demo even without profile
+        console.log(`[DEMO USER CREATION] Continuing without profile creation`);
+      } else {
+        console.log(`[DEMO USER CREATION] Profile created successfully`);
+      }
+    } catch (profileError) {
+      console.error(`[DEMO USER CREATION] Profile creation exception:`, profileError);
+    }
+
+    console.log(`[DEMO USER CREATION] Demo user creation completed successfully`);
     return authData.user;
+    
   } catch (error) {
-    console.error('Demo user creation failed:', error);
+    console.error(`[DEMO USER CREATION] Fatal error in createDemoUser:`, {
+      error: error,
+      message: error.message,
+      stack: error.stack
+    });
     throw error;
   }
 };
@@ -189,31 +245,45 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    console.log(`[DEMO REGISTRATION] Processing new demo registration request`);
+    
     // Rate limiting check
     const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
     if (!checkRateLimit(clientIP)) {
-      console.log(`Rate limit exceeded for IP: ${clientIP}`);
+      console.log(`[DEMO REGISTRATION] Rate limit exceeded for IP: ${clientIP}`);
       return new Response(
         JSON.stringify({ error: 'Too many requests. Please try again later.' }),
         { status: 429, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    // Create Supabase client with service role for admin operations
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Verify environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
 
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+    console.log(`[DEMO REGISTRATION] Environment check:`, {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceRoleKey: !!serviceRoleKey,
+      hasResendKey: !!resendApiKey
+    });
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error(`[DEMO REGISTRATION] Missing required environment variables`);
+      throw new Error('Missing required environment configuration');
+    }
+
+    // Create Supabase client with service role for admin operations
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const resend = new Resend(resendApiKey);
     
     const leadData: DemoLeadRequest = await req.json();
-    console.log('Processing demo lead registration for:', sanitizeHtml(leadData.email));
+    console.log(`[DEMO REGISTRATION] Processing registration for email: ${leadData.email}`);
 
     // Validate input
     const validation = validateInput(leadData);
     if (!validation.isValid) {
-      console.log('Validation errors:', validation.errors);
+      console.log(`[DEMO REGISTRATION] Validation failed:`, validation.errors);
       return new Response(
         JSON.stringify({ error: 'Validation failed', details: validation.errors }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -222,22 +292,58 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Sanitize input
     const sanitizedData = sanitizeInput(leadData);
+    console.log(`[DEMO REGISTRATION] Data sanitized for: ${sanitizedData.email}`);
 
     // Generate secure demo credentials and session ID
     const demoCredentials = generateSecureCredentials(sanitizedData.role);
     const sessionId = generateSessionId();
 
-    // Create demo user in Supabase Auth
+    console.log(`[DEMO REGISTRATION] Generated credentials:`, {
+      email: demoCredentials.email,
+      role: demoCredentials.role,
+      sessionId: sessionId,
+      passwordLength: demoCredentials.password.length
+    });
+
+    // Create demo user in Supabase Auth - this is the critical step
     let demoUser = null;
+    let userCreationSuccess = false;
+    
     try {
+      console.log(`[DEMO REGISTRATION] Attempting to create demo user...`);
       demoUser = await createDemoUser(demoCredentials, sessionId, supabase);
-      console.log('Demo user created with ID:', demoUser?.id);
-    } catch (error) {
-      console.error('Failed to create demo user:', error);
-      // Continue with lead registration even if user creation fails
+      userCreationSuccess = true;
+      console.log(`[DEMO REGISTRATION] Demo user created successfully with ID: ${demoUser?.id}`);
+    } catch (userError) {
+      console.error(`[DEMO REGISTRATION] CRITICAL: Demo user creation failed:`, {
+        error: userError,
+        message: userError.message,
+        stack: userError.stack
+      });
+      
+      // Return error immediately if user creation fails
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to create demo user account. Please try again.',
+          details: userError.message
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    // Only proceed with lead registration if user creation was successful
+    if (!userCreationSuccess || !demoUser) {
+      console.error(`[DEMO REGISTRATION] User creation verification failed`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Demo user account creation could not be verified. Please try again.' 
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
     }
 
     // Insert lead into database
+    console.log(`[DEMO REGISTRATION] Inserting lead data into database...`);
     const { data: lead, error: insertError } = await supabase
       .from('demo_leads')
       .insert({
@@ -257,11 +363,11 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (insertError) {
-      console.error('Database insertion error:', insertError);
+      console.error(`[DEMO REGISTRATION] Database insertion error:`, insertError);
       throw new Error('Failed to register demo lead');
     }
 
-    console.log('Lead stored in database:', lead.id);
+    console.log(`[DEMO REGISTRATION] Lead stored in database with ID: ${lead.id}`);
 
     // Send emails (don't fail the request if emails fail)
     try {
@@ -298,14 +404,15 @@ const handler = async (req: Request): Promise<Response> => {
               <p><strong>Session ID:</strong> ${sessionId}</p>
               <p><strong>Role:</strong> ${demoCredentials.role}</p>
               <p><strong>Demo User Created:</strong> ${demoUser ? 'Yes' : 'No'}</p>
+              <p><strong>Demo User ID:</strong> ${demoUser?.id || 'N/A'}</p>
               <p><strong>Registration Time:</strong> ${new Date().toISOString()}</p>
             </div>
           </div>
         `,
       });
-      console.log('Admin notification sent successfully');
+      console.log(`[DEMO REGISTRATION] Admin notification sent successfully`);
     } catch (emailError) {
-      console.error('Failed to send admin notification:', emailError);
+      console.error(`[DEMO REGISTRATION] Failed to send admin notification:`, emailError);
     }
 
     try {
@@ -341,7 +448,7 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${Deno.env.get('SITE_URL') || window.location.origin}/auth" 
+              <a href="${Deno.env.get('SITE_URL') || 'https://your-app-url.com'}/auth" 
                  style="background: #16a34a; color: white; padding: 15px 30px; 
                         border-radius: 8px; text-decoration: none; font-weight: bold; 
                         display: inline-block;">
@@ -367,10 +474,12 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
         `,
       });
-      console.log('Welcome email sent successfully');
+      console.log(`[DEMO REGISTRATION] Welcome email sent successfully`);
     } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
+      console.error(`[DEMO REGISTRATION] Failed to send welcome email:`, emailError);
     }
+
+    console.log(`[DEMO REGISTRATION] Registration completed successfully for: ${sanitizedData.email}`);
 
     return new Response(
       JSON.stringify({ 
@@ -378,7 +487,8 @@ const handler = async (req: Request): Promise<Response> => {
         sessionId: sessionId,
         credentials: demoCredentials,
         leadId: lead.id,
-        demoUserCreated: !!demoUser
+        demoUserCreated: userCreationSuccess,
+        demoUserId: demoUser?.id
       }),
       {
         status: 200,
@@ -390,7 +500,12 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error('Error in demo lead registration:', error);
+    console.error(`[DEMO REGISTRATION] Fatal error in demo lead registration:`, {
+      error: error,
+      message: error.message,
+      stack: error.stack
+    });
+    
     return new Response(
       JSON.stringify({ 
         error: 'Failed to process demo registration. Please try again.',

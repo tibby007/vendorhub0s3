@@ -43,12 +43,15 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
       if (error) {
         console.error('Login error:', error);
         
-        // Provide more specific error messages
+        // Provide more specific error messages, especially for demo users
         let errorMessage = 'Login failed. Please check your credentials.';
         
         if (error.message.includes('Invalid login credentials')) {
           if (email.includes('demo-')) {
-            errorMessage = 'Demo credentials not found or expired. Please register for a new demo session.';
+            errorMessage = 'Demo credentials not found or expired. This could happen if:\n' +
+                         '• The demo registration failed to create your account\n' +
+                         '• The demo session has expired\n' +
+                         '• Please try registering for a new demo session';
           } else {
             errorMessage = 'Invalid email or password. Please check your credentials and try again.';
           }
@@ -60,6 +63,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
 
         toast.error('Login Failed', {
           description: errorMessage,
+          duration: 8000, // Longer duration for demo error messages
         });
 
         // Track failed demo login
@@ -68,6 +72,20 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
             error: error.message,
             email
           });
+          
+          // For demo users, suggest getting new credentials
+          if (email.includes('demo-')) {
+            setTimeout(() => {
+              toast.info('Need new demo credentials?', {
+                description: 'Click here to register for a fresh demo session',
+                action: {
+                  label: 'New Demo',
+                  onClick: () => navigate('/demo-credentials')
+                },
+                duration: 10000
+              });
+            }, 2000);
+          }
         }
         
         return;
@@ -79,7 +97,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
       const isDemoUser = email.includes('demo-') || data.user?.user_metadata?.demo_session_id;
       
       if (isDemoUser) {
-        console.log('Demo user logged in');
+        console.log('Demo user logged in successfully');
         
         // Track successful demo login
         DemoAnalytics.trackEvent(DEMO_EVENTS.LOGIN_SUCCESS, {
@@ -102,7 +120,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
         }
 
         toast.success('Demo Login Successful!', {
-          description: 'Welcome to your VendorHub demo experience.',
+          description: `Welcome to your VendorHub demo experience as ${data.user?.user_metadata?.role}.`,
         });
       } else {
         toast.success('Login Successful!', {
@@ -144,6 +162,10 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
               Use the demo credentials from your registration email or the credentials modal to login.
               Demo sessions are limited to 30 minutes.
             </p>
+            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+              <strong>Troubleshooting:</strong> If login fails, the demo account creation may have failed. 
+              Try registering for a new demo session.
+            </div>
           </div>
         )}
 
