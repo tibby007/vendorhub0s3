@@ -1,13 +1,28 @@
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 const RootRedirect = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    // Check for magic link authentication tokens in the URL
+    const access_token = searchParams.get('access_token');
+    const refresh_token = searchParams.get('refresh_token');
+    const type = searchParams.get('type');
+    const error = searchParams.get('error');
+
+    // If we have auth tokens or errors, redirect to /auth to handle them
+    if (access_token || refresh_token || type || error) {
+      console.log('Magic link tokens detected at root, redirecting to /auth for processing');
+      navigate(`/auth?${searchParams.toString()}`, { replace: true });
+      return;
+    }
+
+    // Only proceed with normal redirect logic if no auth tokens are present
     if (!isLoading) {
       if (user) {
         console.log('User found at root, redirecting to dashboard');
@@ -17,7 +32,7 @@ const RootRedirect = () => {
         navigate('/landing', { replace: true });
       }
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, searchParams]);
 
   // Show loading while checking auth status
   return (
