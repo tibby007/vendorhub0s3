@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Download, Search, Calendar, FileText, AlertCircle, Bell } from 'lucide-react';
+import { Download, Search, Calendar, FileText, Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -19,7 +18,7 @@ interface Resource {
   file_size?: number;
   mime_type?: string;
   created_at: string;
-  publication_date: string;
+  is_published: boolean;
 }
 
 const VendorResources = () => {
@@ -55,13 +54,28 @@ const VendorResources = () => {
       // Fetch resources from partner admin
       const { data, error } = await supabase
         .from('resources')
-        .select('*')
+        .select('id, title, content, type, category, file_url, file_size, mime_type, created_at, is_published')
         .eq('partner_admin_id', vendorData.partner_admin_id)
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setResources(data || []);
+      
+      // Transform data to ensure proper typing
+      const transformedData: Resource[] = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        type: item.type as 'file' | 'news',
+        category: item.category || 'general',
+        file_url: item.file_url,
+        file_size: item.file_size,
+        mime_type: item.mime_type,
+        created_at: item.created_at,
+        is_published: item.is_published !== null ? item.is_published : true
+      }));
+      
+      setResources(transformedData);
     } catch (error: any) {
       console.error('Error fetching resources:', error);
       toast({
