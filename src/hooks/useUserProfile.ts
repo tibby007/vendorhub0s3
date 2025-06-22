@@ -13,9 +13,9 @@ export const useUserProfile = () => {
     try {
       console.log('Upserting user profile for:', user.email);
       
-      // First, try to get existing profile
+      // First, try to get existing profile from users table
       const { data: existingProfile, error: fetchError } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
@@ -41,7 +41,7 @@ export const useUserProfile = () => {
         };
 
         const { data: insertedProfile, error: insertError } = await supabase
-          .from('profiles')
+          .from('users')
           .insert(newProfile)
           .select()
           .single();
