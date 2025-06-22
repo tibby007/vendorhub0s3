@@ -18,52 +18,60 @@ const Auth = () => {
 
     if (error) {
       console.error('Auth error from URL:', error, error_description);
+      
+      let errorMessage = error_description || error;
+      if (error.includes('token_expired')) {
+        errorMessage = 'The authentication link has expired. Please request a new one.';
+      } else if (error.includes('invalid_request')) {
+        errorMessage = 'Invalid authentication request. Please try again.';
+      }
+      
       toast({
         title: "Authentication Error",
-        description: error_description || error,
+        description: errorMessage,
         variant: "destructive",
       });
+      
       // Clean up URL
       navigate('/auth', { replace: true });
       return;
     }
 
-    // Handle successful magic link authentication
-    // Check if we have auth tokens in URL (indicates magic link was clicked)
+    // Check if this is a successful auth callback (magic link or password reset)
     const access_token = searchParams.get('access_token');
     const refresh_token = searchParams.get('refresh_token');
 
     if (access_token || refresh_token || type) {
-      console.log('Magic link tokens detected, cleaning up URL');
+      console.log('Auth callback detected, type:', type);
+      
       // Clean up the URL immediately - Supabase has already processed the tokens
       navigate('/auth', { replace: true });
       
-      // Show success message based on type
+      // Show appropriate success message
       if (type === 'recovery') {
         toast({
-          title: "Password Reset",
-          description: "You can now set a new password.",
+          title: "Password Reset Successful",
+          description: "You are now logged in. You can update your password in settings.",
         });
       } else if (type === 'signup') {
         toast({
           title: "Email Confirmed",
           description: "Your account has been confirmed. Welcome!",
         });
-      } else {
+      } else if (type === 'magiclink' || access_token) {
         toast({
-          title: "Login Successful",
-          description: "Welcome back!",
+          title: "Magic Link Success",
+          description: "You have been successfully logged in!",
         });
       }
     }
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    // If user is authenticated, redirect to dashboard
+    // Redirect authenticated users to dashboard
     if (!isLoading && user) {
-      console.log('User is authenticated, redirecting to dashboard');
+      console.log('User authenticated, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
-      return;
     }
   }, [user, isLoading, navigate]);
 
@@ -79,7 +87,7 @@ const Auth = () => {
     );
   }
 
-  // If user is logged in, don't render the login form (redirect will happen)
+  // If user is logged in, show redirecting message
   if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">

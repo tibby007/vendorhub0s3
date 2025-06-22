@@ -27,59 +27,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        
-        if (!mounted) return;
+    const handleAuthStateChange = async (event: string, session: Session | null) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+      
+      if (!mounted) return;
 
-        setSession(session);
-        
-        if (session?.user) {
-          try {
-            console.log('Processing auth state change for user:', session.user.email);
-            
-            // Set loading to false immediately when we have a session
-            setIsLoading(false);
-            
-            // Enrich user profile without blocking the UI
-            const enrichedUser = await upsertUserProfile(session.user);
-            if (mounted) {
-              setUser(enrichedUser);
-              console.log('User profile loaded:', enrichedUser);
-              
-              // Check subscription status in background without blocking
-              setTimeout(() => {
-                if (mounted && session) {
-                  refreshSubscription(session, false);
-                }
-              }, 100);
-            }
-          } catch (err) {
-            console.error('Error in auth state change:', err);
-            if (mounted) {
-              // Still set the user even if profile update fails
-              setUser(session.user as AuthUser);
-              setIsLoading(false);
-              
-              // Try subscription check anyway
-              setTimeout(() => {
-                if (mounted && session) {
-                  refreshSubscription(session, false);
-                }
-              }, 100);
-            }
-          }
-        } else {
+      setSession(session);
+      
+      if (session?.user) {
+        try {
+          console.log('Processing successful auth for user:', session.user.email);
+          
+          // Set loading to false immediately when we have a session
+          setIsLoading(false);
+          
+          // Enrich user profile in background
+          const enrichedUser = await upsertUserProfile(session.user);
           if (mounted) {
-            setUser(null);
+            setUser(enrichedUser);
+            console.log('User profile loaded:', enrichedUser);
+            
+            // Refresh subscription data in background
+            setTimeout(() => {
+              if (mounted && session) {
+                refreshSubscription(session, false);
+              }
+            }, 100);
+          }
+        } catch (err) {
+          console.error('Error in auth state change:', err);
+          if (mounted) {
+            // Still set the user even if profile update fails
+            setUser(session.user as AuthUser);
             setIsLoading(false);
-            clearCache();
           }
         }
+      } else {
+        if (mounted) {
+          setUser(null);
+          setIsLoading(false);
+          clearCache();
+        }
       }
-    );
+    };
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -93,8 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (mounted) {
         if (session) {
-          setSession(session);
-          // User data will be fetched by the auth state change handler
+          handleAuthStateChange('INITIAL_SESSION', session);
         } else {
           setIsLoading(false);
         }
@@ -147,12 +139,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Login successful for:', data.user?.email);
       
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      
-      // Don't set loading to false here - let the auth state change handler do it
+      // Don't show success toast here - let the auth state change handle it
+      // Auth state change handler will set isLoading to false
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);
