@@ -17,33 +17,6 @@ const SignupTab = () => {
     role: 'Partner Admin'
   });
 
-  const createUserProfile = async (userId: string, email: string, name: string, role: string) => {
-    try {
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: userId,
-          email: email,
-          name: name,
-          role: role
-        });
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        toast({
-          title: "Profile Creation Failed",
-          description: profileError.message,
-          variant: "destructive",
-        });
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error('Error creating user profile:', error);
-      return false;
-    }
-  };
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -56,9 +29,20 @@ const SignupTab = () => {
       return;
     }
 
+    if (signupData.password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      console.log('Starting signup process for:', signupData.email);
+      
       const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { data, error } = await supabase.auth.signUp({
@@ -74,31 +58,39 @@ const SignupTab = () => {
       });
 
       if (error) {
+        console.error('Signup error:', error);
+        
+        let errorMessage = "An error occurred during signup";
+        
+        if (error.message.includes('User already registered')) {
+          errorMessage = "An account with this email already exists. Please try logging in instead.";
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = "Please check your email and confirm your account before logging in.";
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = "Please enter a valid email address.";
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = "Password must be at least 6 characters long.";
+        } else {
+          errorMessage = error.message;
+        }
+        
         toast({
           title: "Signup Failed",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
         return;
       }
 
       if (data.user) {
-        const profileCreated = await createUserProfile(
-          data.user.id,
-          signupData.email,
-          signupData.name,
-          signupData.role
-        );
-
-        if (!profileCreated) {
-          return;
-        }
-
+        console.log('Signup successful, user created:', data.user.id);
+        
         toast({
           title: "Account Created Successfully",
-          description: "You can now log in with your credentials. Email verification is optional.",
+          description: "You can now log in with your credentials. The AuthContext will handle profile creation automatically.",
         });
 
+        // Clear form
         setSignupData({
           email: '',
           password: '',
@@ -108,10 +100,10 @@ const SignupTab = () => {
         });
       }
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('Unexpected signup error:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -136,6 +128,8 @@ const SignupTab = () => {
               value={signupData.name}
               onChange={(e) => setSignupData(prev => ({ ...prev, name: e.target.value }))}
               required
+              disabled={isLoading}
+              minLength={2}
             />
           </div>
           <div className="space-y-2">
@@ -147,6 +141,7 @@ const SignupTab = () => {
               value={signupData.email}
               onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
               required
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -154,10 +149,12 @@ const SignupTab = () => {
             <Input
               id="signup-password"
               type="password"
-              placeholder="Create a password"
+              placeholder="Create a password (min 6 characters)"
               value={signupData.password}
               onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
               required
+              disabled={isLoading}
+              minLength={6}
             />
           </div>
           <div className="space-y-2">
@@ -169,6 +166,8 @@ const SignupTab = () => {
               value={signupData.confirmPassword}
               onChange={(e) => setSignupData(prev => ({ ...prev, confirmPassword: e.target.value }))}
               required
+              disabled={isLoading}
+              minLength={6}
             />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
