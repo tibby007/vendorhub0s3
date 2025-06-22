@@ -1,153 +1,26 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
-interface AuthUser extends User {
-  role?: string;
-  name?: string;
-  partnerId?: string;
-}
-
-interface SubscriptionData {
-  subscribed: boolean;
-  subscription_tier?: string;
-  subscription_end?: string;
-}
-
-interface AuthContextType {
-  user: AuthUser | null;
-  session: Session | null;
-  subscriptionData: SubscriptionData | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  refreshSubscription: () => Promise<void>;
-  checkSubscriptionAccess: (requiredTier?: string) => boolean;
-  isLoading: boolean;
-}
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useSubscription } from '@/hooks/useSubscription';
+import { AuthUser, AuthContextType } from '@/types/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const upsertUserProfile = async (authUser: User) => {
-    try {
-      console.log('Upserting user profile for:', authUser.id);
-      
-      // First check if user exists
-      const { data: existingUser, error: selectError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .maybeSingle();
-
-      if (selectError && selectError.code !== 'PGRST116') {
-        console.error('Error checking existing user:', selectError);
-      }
-
-      let userData;
-      
-      if (existingUser) {
-        console.log('User profile already exists, using existing data:', existingUser);
-        userData = existingUser;
-      } else {
-        // Create new profile with proper defaults
-        const defaultRole = authUser.user_metadata?.role || 'Partner Admin';
-        const defaultName = authUser.user_metadata?.name || 
-                           authUser.email?.split('@')[0] || 
-                           'User';
-
-        console.log('Creating new user profile with:', { defaultRole, defaultName });
-        
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: authUser.id,
-            email: authUser.email || '',
-            name: defaultName,
-            role: defaultRole,
-            partner_id: defaultRole === 'Partner Admin' ? crypto.randomUUID() : null
-          })
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error('Error creating user profile:', insertError);
-          // If insert fails due to conflict, try to fetch existing user again
-          if (insertError.code === '23505') {
-            console.log('Conflict detected, fetching existing user...');
-            const { data: conflictUser } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', authUser.id)
-              .single();
-            userData = conflictUser;
-          } else {
-            throw insertError;
-          }
-        } else {
-          userData = newUser;
-        }
-      }
-
-      // Return enriched user data
-      return {
-        ...authUser,
-        role: userData?.role || authUser.user_metadata?.role || 'Partner Admin',
-        name: userData?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-        partnerId: userData?.partner_id,
-      } as AuthUser;
-
-    } catch (err) {
-      console.error('Error in upsertUserProfile:', err);
-      // Fallback to user metadata if available
-      return {
-        ...authUser,
-        role: authUser.user_metadata?.role || 'Partner Admin',
-        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-        partnerId: null,
-      } as AuthUser;
-    }
-  };
-
-  const refreshSubscription = async () => {
-    if (!session) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) {
-        console.error('Error checking subscription:', error);
-        return;
-      }
-
-      setSubscriptionData(data);
-      console.log('Subscription data refreshed:', data);
-    } catch (error) {
-      console.error('Error refreshing subscription:', error);
-    }
-  };
-
-  const checkSubscriptionAccess = (requiredTier?: string) => {
-    if (!subscriptionData?.subscribed) return false;
-    
-    if (!requiredTier) return true;
-    
-    const tierLevels = { 'Basic': 1, 'Pro': 2, 'Premium': 3 };
-    const userTierLevel = tierLevels[subscriptionData.subscription_tier as keyof typeof tierLevels] || 0;
-    const requiredTierLevel = tierLevels[requiredTier as keyof typeof tierLevels] || 0;
-    
-    return userTierLevel >= requiredTierLevel;
-  };
+  const { upsertUserProfile } = useUserProfile();
+  const { 
+    subscriptionData, 
+    setSubscriptionData, 
+    refreshSubscription, 
+    checkSubscriptionAccess 
+  } = useSubscription();
 
   useEffect(() => {
     // Set up auth state listener
@@ -166,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               
               // Check subscription status after setting user
               setTimeout(() => {
-                refreshSubscription();
+                refreshSubscription(session);
               }, 500);
             } catch (err) {
               console.error('Error in auth state change:', err);
@@ -192,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [upsertUserProfile, refreshSubscription, setSubscriptionData]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -235,13 +108,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const handleRefreshSubscription = async () => {
+    await refreshSubscription(session);
+  };
+
   const value = {
     user,
     session,
     subscriptionData,
     login,
     logout,
-    refreshSubscription,
+    refreshSubscription: handleRefreshSubscription,
     checkSubscriptionAccess,
     isLoading
   };
