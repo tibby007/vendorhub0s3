@@ -14,10 +14,9 @@ const Auth = () => {
     // Handle auth errors from URL
     const error = searchParams.get('error');
     const error_description = searchParams.get('error_description');
-    const type = searchParams.get('type');
 
     if (error) {
-      console.error('Auth error from URL:', error, error_description);
+      console.error('🚨 Auth error from URL:', error, error_description);
       
       let errorMessage = error_description || error;
       if (error.includes('token_expired')) {
@@ -37,28 +36,21 @@ const Auth = () => {
       return;
     }
 
-    // Check if this is a successful auth callback (magic link or password reset)
-    const access_token = searchParams.get('access_token');
-    const refresh_token = searchParams.get('refresh_token');
-
-    if (access_token || refresh_token || type) {
-      console.log('Auth callback detected, type:', type);
+    // Show success message for magic link/password reset (Supabase handles the actual auth)
+    const type = searchParams.get('type');
+    if (type && !error) {
+      console.log('✅ Auth success callback detected, type:', type);
       
-      // Clean up the URL immediately - Supabase has already processed the tokens
+      // Clean up the URL
       navigate('/auth', { replace: true });
       
-      // Show appropriate success message
+      // Show success message
       if (type === 'recovery') {
         toast({
           title: "Password Reset Successful",
           description: "You are now logged in. You can update your password in settings.",
         });
-      } else if (type === 'signup') {
-        toast({
-          title: "Email Confirmed",
-          description: "Your account has been confirmed. Welcome!",
-        });
-      } else if (type === 'magiclink' || access_token) {
+      } else if (type === 'magiclink') {
         toast({
           title: "Magic Link Success",
           description: "You have been successfully logged in!",
@@ -70,7 +62,7 @@ const Auth = () => {
   useEffect(() => {
     // Redirect authenticated users to dashboard
     if (!isLoading && user) {
-      console.log('User authenticated, redirecting to dashboard');
+      console.log('🏠 User authenticated, redirecting to dashboard from Auth page');
       navigate('/dashboard', { replace: true });
     }
   }, [user, isLoading, navigate]);
@@ -87,7 +79,7 @@ const Auth = () => {
     );
   }
 
-  // If user is logged in, show redirecting message
+  // If user is logged in, show redirecting message (shouldn't happen with proper loading state)
   if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
