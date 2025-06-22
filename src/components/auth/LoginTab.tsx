@@ -44,6 +44,61 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
     }
   }, [location]);
 
+  const handleSubscriptionCheckout = async () => {
+    const selectedPlan = sessionStorage.getItem('selectedPlan');
+    if (!selectedPlan) {
+      toast.error('No plan selected', {
+        description: 'Please select a plan from the pricing page.',
+      });
+      return;
+    }
+
+    try {
+      const planData = JSON.parse(selectedPlan);
+      setIsLoading(true);
+
+      // Get current session to pass to checkout
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('Authentication Required', {
+          description: 'Please log in or sign up to continue with your subscription.',
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          priceId: planData.priceId,
+          tier: planData.tier,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      // Open Stripe checkout in a new tab
+      window.open(data.url, '_blank');
+      
+      // Clear the selected plan from storage
+      sessionStorage.removeItem('selectedPlan');
+      
+      toast.success('Redirecting to Stripe Checkout', {
+        description: 'Complete your subscription setup in the new tab.',
+      });
+
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast.error('Checkout Error', {
+        description: 'Failed to start checkout process. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -149,14 +204,26 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
         toast.success('Demo Login Successful!', {
           description: `Welcome to your VendorHub demo experience as ${data.user?.user_metadata?.role}.`,
         });
+        
+        // Navigate to dashboard for demo users
+        navigate('/dashboard');
       } else {
         toast.success('Login Successful!', {
           description: 'Welcome back to VendorHub.',
         });
-      }
 
-      // Navigate to dashboard
-      navigate('/dashboard');
+        // Check if user was trying to subscribe
+        const urlParams = new URLSearchParams(location.search);
+        const shouldSubscribe = urlParams.get('subscribe') === 'true';
+        
+        if (shouldSubscribe) {
+          // Trigger subscription checkout
+          await handleSubscriptionCheckout();
+        } else {
+          // Navigate to dashboard
+          navigate('/dashboard');
+        }
+      }
       
     } catch (error: any) {
       console.error('Unexpected login error:', error);
@@ -173,20 +240,37 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
                        new URLSearchParams(location.search).get('demo') === 'true' ||
                        sessionStorage.getItem('demoSessionActive') === 'true';
 
+  // Check if user is trying to subscribe
+  const urlParams = new URLSearchParams(location.search);
+  const shouldSubscribe = urlParams.get('subscribe') === 'true';
+  const selectedPlan = sessionStorage.getItem('selectedPlan');
+
   return (
     <Card>
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">
-          {isInDemoMode ? 'Demo Login' : 'Sign in to your account'}
+          {isInDemoMode ? 'Demo Login' : (shouldSubscribe ? 'Complete Your Subscription' : 'Sign in to your account')}
         </CardTitle>
         <CardDescription>
           {isInDemoMode 
             ? 'Use the demo credentials provided to access your demo session'
-            : 'Enter your email and password to sign in'
+            : (shouldSubscribe 
+              ? 'Sign in or create an account to complete your subscription setup'
+              : 'Enter your email and password to sign in'
+            )
           }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {shouldSubscribe && selectedPlan && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h4 className="text-sm font-medium text-blue-900 mb-2">Selected Plan</h4>
+            <p className="text-xs text-blue-700">
+              {JSON.parse(selectedPlan).tier} Plan - You'll be redirected to Stripe checkout after signing in.
+            </p>
+          </div>
+        )}
+
         {isInDemoMode && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Access</h4>
@@ -235,7 +319,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
             className="w-full" 
             disabled={isLoading}
           >
-            {isLoading ? 'Signing in...' : (isInDemoMode ? 'Access Demo' : 'Sign in')}
+            {isLoading ? 'Processing...' : (isInDemoMode ? 'Access Demo' : 'Sign in')}
           </Button>
         </form>
 

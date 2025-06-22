@@ -2,13 +2,21 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/auth/LoginForm';
+import SubscriptionGuard from '@/components/subscription/SubscriptionGuard';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
+  requiresSubscription?: boolean;
+  requiredTier?: 'Basic' | 'Pro' | 'Premium';
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  allowedRoles, 
+  requiresSubscription = false,
+  requiredTier = 'Basic'
+}) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -31,6 +39,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
           <p className="text-gray-600">You don't have permission to access this page.</p>
         </div>
       </div>
+    );
+  }
+
+  // Check if user is a demo user (bypass subscription checks)
+  const isDemoUser = user.email?.includes('demo-') || user.user_metadata?.demo_session_id;
+
+  if (requiresSubscription && !isDemoUser) {
+    return (
+      <SubscriptionGuard requiredTier={requiredTier}>
+        {children}
+      </SubscriptionGuard>
     );
   }
 

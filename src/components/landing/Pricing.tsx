@@ -21,7 +21,8 @@ const Pricing = () => {
         "Standard document storage"
       ],
       popular: false,
-      buttonText: "Start 3-Day Free Trial"
+      buttonText: "Start 3-Day Free Trial",
+      priceId: "price_1Rc1dbB1YJBVEg8wlVQbLAIR" // Basic monthly
     },
     {
       name: "VendorHub Pro",
@@ -38,7 +39,8 @@ const Pricing = () => {
         "PreQual tool"
       ],
       popular: true,
-      buttonText: "Start 3-Day Free Trial"
+      buttonText: "Start 3-Day Free Trial",
+      priceId: "price_1Rc1eXB1YJBVEg8wXyhCVw7X" // Pro monthly
     },
     {
       name: "VendorHub Premium",
@@ -55,9 +57,21 @@ const Pricing = () => {
         "Training & onboarding"
       ],
       popular: false,
-      buttonText: "Start 3-Day Free Trial"
+      buttonText: "Start 3-Day Free Trial",
+      priceId: "price_1Rc1fkB1YJBVEg8wqjcXMzEK" // Premium monthly
     }
   ];
+
+  const handleSubscribeClick = (priceId: string, tierName: string) => {
+    // Store the selected plan info for the checkout process
+    sessionStorage.setItem('selectedPlan', JSON.stringify({
+      priceId,
+      tier: tierName.replace('VendorHub ', '')
+    }));
+    
+    // Redirect to auth page which will handle the subscription flow
+    window.location.href = '/auth?subscribe=true';
+  };
 
   return (
     <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-vendor-gold-25">
@@ -120,9 +134,9 @@ const Pricing = () => {
                       : 'border-vendor-green-500 text-vendor-green-600 hover:bg-vendor-green-50'
                   }`}
                   variant={tier.popular ? 'default' : 'outline'}
-                  asChild
+                  onClick={() => handleSubscribeClick(tier.priceId, tier.name)}
                 >
-                  <Link to="/auth">{tier.buttonText}</Link>
+                  {tier.buttonText}
                 </Button>
               </CardContent>
             </Card>

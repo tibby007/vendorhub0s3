@@ -23,6 +23,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshSubscription: () => Promise<void>;
+  checkSubscriptionAccess: (requiredTier?: string) => boolean;
   isLoading: boolean;
 }
 
@@ -136,6 +137,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkSubscriptionAccess = (requiredTier?: string) => {
+    if (!subscriptionData?.subscribed) return false;
+    
+    if (!requiredTier) return true;
+    
+    const tierLevels = { 'Basic': 1, 'Pro': 2, 'Premium': 3 };
+    const userTierLevel = tierLevels[subscriptionData.subscription_tier as keyof typeof tierLevels] || 0;
+    const requiredTierLevel = tierLevels[requiredTier as keyof typeof tierLevels] || 0;
+    
+    return userTierLevel >= requiredTierLevel;
+  };
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -229,6 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     refreshSubscription,
+    checkSubscriptionAccess,
     isLoading
   };
 

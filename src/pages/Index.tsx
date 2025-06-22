@@ -6,9 +6,10 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import SuperAdminDashboard from '@/components/dashboard/SuperAdminDashboard';
 import PartnerAdminDashboard from '@/components/dashboard/PartnerAdminDashboard';
 import VendorDashboard from '@/components/dashboard/VendorDashboard';
+import SubscriptionGuard from '@/components/subscription/SubscriptionGuard';
 
 const Index = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, subscriptionData } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,14 +33,39 @@ const Index = () => {
     return null; // Will redirect to auth page
   }
 
+  // Check if user is a demo user (bypass subscription checks)
+  const isDemoUser = user.email?.includes('demo-') || user.user_metadata?.demo_session_id;
+
   const renderDashboard = () => {
     switch (user.role) {
       case 'Super Admin':
         return <SuperAdminDashboard />;
       case 'Partner Admin':
-        return <PartnerAdminDashboard />;
+        // Partner Admin features require subscription (unless demo)
+        if (isDemoUser) {
+          return <PartnerAdminDashboard />;
+        }
+        return (
+          <SubscriptionGuard 
+            requiredTier="Basic"
+            fallbackMessage="Partner Admin features require an active subscription. Start your free trial to access the full partner management dashboard."
+          >
+            <PartnerAdminDashboard />
+          </SubscriptionGuard>
+        );
       case 'Vendor':
-        return <VendorDashboard />;
+        // Vendor features require subscription (unless demo)
+        if (isDemoUser) {
+          return <VendorDashboard />;
+        }
+        return (
+          <SubscriptionGuard 
+            requiredTier="Basic"
+            fallbackMessage="Vendor features require your partner to have an active subscription. Please contact your partner administrator."
+          >
+            <VendorDashboard />
+          </SubscriptionGuard>
+        );
       default:
         return (
           <div className="min-h-screen flex items-center justify-center">
