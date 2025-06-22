@@ -155,9 +155,14 @@ export type Database = {
       }
       resources: {
         Row: {
+          category: string | null
           content: string
           created_at: string
+          file_size: number | null
+          file_url: string | null
           id: string
+          is_published: boolean | null
+          mime_type: string | null
           partner_admin_id: string
           publication_date: string
           title: string
@@ -165,9 +170,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
           content: string
           created_at?: string
+          file_size?: number | null
+          file_url?: string | null
           id?: string
+          is_published?: boolean | null
+          mime_type?: string | null
           partner_admin_id: string
           publication_date?: string
           title: string
@@ -175,9 +185,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
           content?: string
           created_at?: string
+          file_size?: number | null
+          file_url?: string | null
           id?: string
+          is_published?: boolean | null
+          mime_type?: string | null
           partner_admin_id?: string
           publication_date?: string
           title?: string
