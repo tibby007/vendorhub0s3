@@ -14,7 +14,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession: authState.setSession,
     clearCache: authState.clearCache,
     clearProfileCache: authState.clearProfileCache,
-    refreshSubscription: authState.refreshSubscription,
+    refreshSubscription: async (session, forceRefresh) => {
+      await authState.refreshSubscription(session, forceRefresh);
+    },
     session: authState.session
   });
 
