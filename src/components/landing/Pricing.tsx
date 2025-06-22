@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Star, Calendar } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Pricing = () => {
+  const navigate = useNavigate();
+
   const pricingTiers = [
     {
       name: "VendorHub Basic",
@@ -69,8 +71,8 @@ const Pricing = () => {
       tier: tierName.replace('VendorHub ', '')
     }));
     
-    // Redirect to auth page which will handle the subscription flow
-    window.location.href = '/auth?subscribe=true';
+    // Navigate to auth page with subscription intent
+    navigate('/auth?subscribe=true');
   };
 
   return (

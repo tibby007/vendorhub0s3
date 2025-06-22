@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Users, Zap, Star } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -11,6 +12,7 @@ import AdditionalFeatures from './AdditionalFeatures';
 
 const SubscriptionPlans = () => {
   const { session } = useAuth();
+  const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
@@ -93,6 +95,7 @@ const SubscriptionPlans = () => {
         description: "Please log in to subscribe to a plan",
         variant: "destructive",
       });
+      navigate('/auth');
       return;
     }
 
@@ -114,11 +117,16 @@ const SubscriptionPlans = () => {
 
       // Open Stripe checkout in a new tab
       window.open(data.url, '_blank');
+      
+      toast({
+        title: "Redirecting to Checkout",
+        description: "Opening Stripe checkout in a new tab...",
+      });
     } catch (error) {
       console.error('Error creating checkout:', error);
       toast({
         title: "Error",
-        description: "Failed to start checkout process",
+        description: "Failed to start checkout process. Please try again.",
         variant: "destructive",
       });
     } finally {

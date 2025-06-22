@@ -6,40 +6,35 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { RefreshCw, ExternalLink, CreditCard } from 'lucide-react';
-
-interface SubscriptionData {
-  subscribed: boolean;
-  subscription_tier?: string;
-  subscription_end?: string;
-  price_id?: string;
-}
+import { RefreshCw, ExternalLink, CreditCard, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const SubscriptionManager = () => {
-  const { user, session } = useAuth();
-  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const { user, session, subscriptionData, refreshSubscription } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
-  const checkSubscription = async () => {
+  const checkSubscription = async (forceRefresh = false) => {
     if (!session) return;
     
     setIsCheckingSubscription(true);
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) throw error;
-      setSubscriptionData(data);
-      console.log('Subscription data updated:', data);
+      await refreshSubscription(forceRefresh);
+      setRetryCount(0); // Reset retry count on success
+      if (forceRefresh) {
+        toast({
+          title: "Subscription Status Refreshed",
+          description: "Your subscription information has been updated.",
+        });
+      }
     } catch (error) {
       console.error('Error checking subscription:', error);
+      setRetryCount(prev => prev + 1);
+      
       toast({
         title: "Error",
-        description: "Failed to check subscription status",
+        description: "Failed to check subscription status. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -64,7 +59,7 @@ const SubscriptionManager = () => {
       console.error('Error opening customer portal:', error);
       toast({
         title: "Error",
-        description: "Failed to open customer portal",
+        description: "Failed to open customer portal. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -73,14 +68,21 @@ const SubscriptionManager = () => {
   };
 
   useEffect(() => {
-    if (session) {
-      checkSubscription();
+    if (session && !subscriptionData && retryCount < 3) {
+      // Auto-retry with exponential backoff
+      const timeout = setTimeout(() => {
+        checkSubscription(false);
+      }, Math.pow(2, retryCount) * 1000);
+
+      return () => clearTimeout(timeout);
     }
-  }, [session]);
+  }, [session, subscriptionData, retryCount]);
 
   if (!user) {
     return null;
   }
+
+  const showRetryOption = retryCount >= 2 && !subscriptionData;
 
   return (
     <Card>
@@ -90,7 +92,7 @@ const SubscriptionManager = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={checkSubscription}
+            onClick={() => checkSubscription(true)}
             disabled={isCheckingSubscription}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isCheckingSubscription ? 'animate-spin' : ''}`} />
@@ -99,6 +101,25 @@ const SubscriptionManager = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {showRetryOption && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              We're having trouble loading your subscription information. 
+              <Button 
+                variant="link" 
+                className="p-0 ml-1 h-auto"
+                onClick={() => {
+                  setRetryCount(0);
+                  checkSubscription(true);
+                }}
+              >
+                Try again
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {subscriptionData ? (
           <>
             <div className="flex items-center justify-between">
@@ -141,7 +162,14 @@ const SubscriptionManager = () => {
           </>
         ) : (
           <div className="text-center py-4">
-            <p className="text-gray-600">Loading subscription information...</p>
+            <p className="text-gray-600">
+              {isCheckingSubscription ? "Checking subscription..." : "Loading subscription information..."}
+            </p>
+            {isCheckingSubscription && (
+              <div className="mt-2">
+                <RefreshCw className="w-4 h-4 animate-spin mx-auto" />
+              </div>
+            )}
           </div>
         )}
       </CardContent>

@@ -4,7 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscriptionWithCache } from '@/hooks/useSubscriptionWithCache';
 import { AuthUser, AuthContextType } from '@/types/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,99 +17,139 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { upsertUserProfile } = useUserProfile();
   const { 
     subscriptionData, 
-    setSubscriptionData, 
+    isLoading: subscriptionLoading,
+    error: subscriptionError,
     refreshSubscription, 
-    checkSubscriptionAccess 
-  } = useSubscription();
+    checkSubscriptionAccess,
+    clearCache
+  } = useSubscriptionWithCache();
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session);
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
+        if (!mounted) return;
+
         setSession(session);
         
         if (session?.user) {
-          // Use setTimeout to defer the async operation and prevent blocking
-          setTimeout(async () => {
-            try {
-              const enrichedUser = await upsertUserProfile(session.user);
+          try {
+            // Enrich user profile
+            const enrichedUser = await upsertUserProfile(session.user);
+            if (mounted) {
               setUser(enrichedUser);
               console.log('User profile loaded:', enrichedUser);
               
-              // Check subscription status after setting user
-              setTimeout(() => {
-                refreshSubscription(session);
-              }, 500);
-            } catch (err) {
-              console.error('Error in auth state change:', err);
-              setUser(session.user as AuthUser);
+              // Check subscription status with debouncing
+              refreshSubscription(session, false);
             }
-          }, 0);
+          } catch (err) {
+            console.error('Error in auth state change:', err);
+            if (mounted) {
+              setUser(session.user as AuthUser);
+              // Still try to refresh subscription even if profile update fails
+              refreshSubscription(session, false);
+            }
+          }
         } else {
-          setUser(null);
-          setSubscriptionData(null);
+          if (mounted) {
+            setUser(null);
+            clearCache(); // Clear subscription cache on logout
+          }
         }
-        setIsLoading(false);
+        
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(session);
-        // User data will be fetched by the auth state change handler
-      } else {
-        setIsLoading(false);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+      }
+      
+      if (mounted) {
+        if (session) {
+          setSession(session);
+          // User data will be fetched by the auth state change handler
+        } else {
+          setIsLoading(false);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [upsertUserProfile, refreshSubscription, setSubscriptionData]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [upsertUserProfile, refreshSubscription, clearCache]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      toast({
-        title: "Login Failed",
-        description: error.message,
-        variant: "destructive",
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
+      
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
+      
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+    } catch (error) {
+      console.error('Login error:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
-    
-    toast({
-      title: "Login Successful",
-      description: "Welcome back!",
-    });
-    
-    setIsLoading(false);
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        throw error;
+      }
+      
+      setUser(null);
+      setSession(null);
+      clearCache();
+      
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out",
+      });
+    } catch (error) {
       console.error('Logout error:', error);
+      toast({
+        title: "Logout Error",
+        description: "There was an error logging out. Please try again.",
+        variant: "destructive",
+      });
     }
-    
-    setUser(null);
-    setSession(null);
-    setSubscriptionData(null);
-    
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out",
-    });
   };
 
-  const handleRefreshSubscription = async () => {
-    await refreshSubscription(session);
+  const handleRefreshSubscription = async (forceRefresh = false) => {
+    if (session) {
+      await refreshSubscription(session, forceRefresh);
+    }
   };
 
   const value = {
@@ -120,7 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     refreshSubscription: handleRefreshSubscription,
     checkSubscriptionAccess,
-    isLoading
+    isLoading: isLoading || subscriptionLoading
   };
 
   return (
