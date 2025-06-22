@@ -1,215 +1,29 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { DemoAnalytics, DEMO_EVENTS } from '@/utils/demoAnalytics';
+import { Link, useLocation } from 'react-router-dom';
+import { useLoginForm } from '@/hooks/useLoginForm';
+import DemoInfoPanel from './DemoInfoPanel';
+import PasswordActions from './PasswordActions';
 
 interface LoginTabProps {
   isDemoSession?: boolean;
 }
 
 const LoginTab = ({ isDemoSession }: LoginTabProps) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
-  const [isSendingPasswordReset, setIsSendingPasswordReset] = useState(false);
-  const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
-
-  // Check for demo mode and auto-populate credentials
-  useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const isDemoMode = urlParams.get('demo') === 'true';
-    
-    if (isDemoMode) {
-      const storedCredentials = sessionStorage.getItem('demoCredentials');
-      if (storedCredentials) {
-        try {
-          const credentials = JSON.parse(storedCredentials);
-          setEmail(credentials.email);
-          setPassword(credentials.password);
-          
-          toast.info('Demo Credentials Loaded', {
-            description: 'Your demo credentials have been automatically filled in.',
-          });
-        } catch (error) {
-          console.error('Error parsing stored demo credentials:', error);
-        }
-      }
-    }
-  }, [location]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error('Please enter both email and password');
-      return;
-    }
-    
-    setIsLoading(true);
-
-    try {
-      console.log('Starting login process for:', email);
-      
-      // Track demo login attempt if it's a demo session
-      if (isDemoSession || email.includes('demo-')) {
-        DemoAnalytics.trackEvent(DEMO_EVENTS.LOGIN_ATTEMPT, {
-          email,
-          isDemoUser: true
-        });
-      }
-
-      await login(email, password);
-      
-      // If we get here, login was successful
-      console.log('Login completed successfully');
-      
-      // Check if this is a demo user
-      const isDemoUser = email.includes('demo-');
-      
-      if (isDemoUser) {
-        console.log('Demo user logged in successfully');
-        
-        // Track successful demo login
-        DemoAnalytics.trackEvent(DEMO_EVENTS.LOGIN_SUCCESS, {
-          email,
-          isDemoUser: true
-        });
-
-        // Clear stored credentials after successful login
-        sessionStorage.removeItem('demoCredentials');
-
-        toast.success('Demo Login Successful!', {
-          description: `Welcome to your VendorHub demo experience.`,
-        });
-      } else {
-        toast.success('Login Successful!', {
-          description: 'Welcome back to VendorHub.',
-        });
-      }
-      
-      // Navigate to dashboard
-      navigate('/dashboard');
-      
-    } catch (error: any) {
-      console.error('Login failed:', error);
-      
-      // Track failed demo login
-      if (isDemoSession || email.includes('demo-')) {
-        DemoAnalytics.trackEvent(DEMO_EVENTS.REGISTRATION_FAILED, {
-          error: error.message,
-          email
-        });
-        
-        // For demo users, suggest getting new credentials
-        if (email.includes('demo-')) {
-          setTimeout(() => {
-            toast.info('Need new demo credentials?', {
-              description: 'Click here to register for a fresh demo session',
-              action: {
-                label: 'New Demo',
-                onClick: () => navigate('/demo-credentials')
-              },
-              duration: 10000
-            });
-          }, 2000);
-        }
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSendMagicLink = async () => {
-    if (!email) {
-      toast.error('Please enter your email address first');
-      return;
-    }
-
-    setIsSendingMagicLink(true);
-
-    try {
-      const redirectUrl = window.location.hostname === 'localhost' 
-        ? `${window.location.origin}/auth`
-        : 'https://vendorhubos.com/auth';
-
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
-      });
-
-      if (error) {
-        console.error('Magic link error:', error);
-        toast.error('Failed to send magic link', {
-          description: error.message
-        });
-        return;
-      }
-
-      toast.success('Magic Link Sent!', {
-        description: 'Check your email for a magic link to sign in.'
-      });
-
-    } catch (error: any) {
-      console.error('Magic link error:', error);
-      toast.error('Failed to send magic link', {
-        description: 'Please try again later.'
-      });
-    } finally {
-      setIsSendingMagicLink(false);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!email) {
-      toast.error('Please enter your email address first');
-      return;
-    }
-
-    setIsSendingPasswordReset(true);
-
-    try {
-      const redirectUrl = window.location.hostname === 'localhost' 
-        ? `${window.location.origin}/auth`
-        : 'https://vendorhubos.com/auth';
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl
-      });
-
-      if (error) {
-        console.error('Password reset error:', error);
-        toast.error('Failed to send password reset email', {
-          description: error.message
-        });
-        return;
-      }
-
-      toast.success('Password Reset Email Sent!', {
-        description: 'Check your email for instructions to reset your password.'
-      });
-
-    } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast.error('Failed to send password reset email', {
-        description: 'Please try again later.'
-      });
-    } finally {
-      setIsSendingPasswordReset(false);
-    }
-  };
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    isLoading,
+    handleLogin
+  } = useLoginForm(isDemoSession);
 
   // Check if we're in demo mode from URL or session storage
   const isInDemoMode = isDemoSession || 
@@ -231,21 +45,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {isInDemoMode && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Access</h4>
-            <p className="text-xs text-blue-700">
-              {email && password ? 
-                'Demo credentials have been automatically filled in. Click "Access Demo" to continue.' :
-                'Use the demo credentials from your registration email or the credentials modal to login.'
-              }
-              Demo sessions are limited to 30 minutes.
-            </p>
-            {email && password && (
-              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
-                <strong>Ready to go!</strong> Your demo credentials are loaded and ready to use.
-              </div>
-            )}
-          </div>
+          <DemoInfoPanel email={email} password={password} />
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -258,7 +58,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={isLoading || isSendingMagicLink || isSendingPasswordReset}
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -270,13 +70,13 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              disabled={isLoading || isSendingMagicLink || isSendingPasswordReset}
+              disabled={isLoading}
             />
           </div>
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isLoading || !email || !password || isSendingMagicLink || isSendingPasswordReset}
+            disabled={isLoading || !email || !password}
           >
             {isLoading ? 'Signing in...' : (isInDemoMode ? 'Access Demo' : 'Sign in')}
           </Button>
@@ -284,27 +84,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
 
         {!isInDemoMode && (
           <>
-            <div className="space-y-2">
-              <Button 
-                type="button"
-                variant="outline" 
-                className="w-full" 
-                disabled={!email || isSendingMagicLink || isLoading || isSendingPasswordReset}
-                onClick={handleSendMagicLink}
-              >
-                {isSendingMagicLink ? 'Sending Magic Link...' : 'Send Magic Link'}
-              </Button>
-              
-              <Button 
-                type="button"
-                variant="ghost" 
-                className="w-full text-sm" 
-                disabled={!email || isSendingPasswordReset || isLoading || isSendingMagicLink}
-                onClick={handleForgotPassword}
-              >
-                {isSendingPasswordReset ? 'Sending Reset Email...' : 'Forgot Password?'}
-              </Button>
-            </div>
+            <PasswordActions email={email} isLoading={isLoading} />
 
             <Separator />
             <div className="text-center">
