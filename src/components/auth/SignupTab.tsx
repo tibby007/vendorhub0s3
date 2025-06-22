@@ -43,7 +43,10 @@ const SignupTab = () => {
     try {
       console.log('Starting signup process for:', signupData.email);
       
-      const redirectUrl = `${window.location.origin}/auth`;
+      // Use the production domain for email confirmation
+      const redirectUrl = window.location.hostname === 'localhost' 
+        ? `${window.location.origin}/auth`
+        : 'https://vendorhubos.com/auth';
       
       const { data, error } = await supabase.auth.signUp({
         email: signupData.email,
