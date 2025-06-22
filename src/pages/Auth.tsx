@@ -100,12 +100,24 @@ const Auth = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    // If user is already logged in and no auth processing is happening, redirect to dashboard
-    if (!isLoading && user && !isProcessingAuth) {
-      console.log('User is authenticated, redirecting to dashboard');
-      navigate('/dashboard');
+    // Handle magic link sessions that don't have URL tokens
+    // This happens when user clicks magic link and gets redirected to root, then to /auth
+    if (!isLoading && user && !isProcessingAuth && !searchParams.get('access_token')) {
+      console.log('User authenticated via magic link (no URL tokens), redirecting to dashboard');
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+      navigate('/dashboard', { replace: true });
+      return;
     }
-  }, [user, isLoading, navigate, isProcessingAuth]);
+
+    // If user is already logged in with URL tokens being processed, let the token handler manage it
+    if (!isLoading && user && !isProcessingAuth && searchParams.get('access_token')) {
+      console.log('User is authenticated with URL tokens, letting token handler manage redirect');
+      return;
+    }
+  }, [user, isLoading, navigate, isProcessingAuth, searchParams]);
 
   // Show loading while checking auth status or processing auth callback
   if (isLoading || isProcessingAuth) {

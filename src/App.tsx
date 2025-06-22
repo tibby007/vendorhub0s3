@@ -19,6 +19,7 @@ import ResourcesManagement from "./components/resources/ResourcesManagement";
 import SubmissionsManager from "./components/submissions/SubmissionsManager";
 import PartnerSettings from "./components/settings/PartnerSettings";
 import ResellerManagement from "./components/resellers/ResellerManagement";
+import RootRedirect from "./components/RootRedirect";
 
 const queryClient = new QueryClient();
 
@@ -71,7 +72,7 @@ function App() {
                   <Index />
                 </ProtectedRoute>
               } />
-              <Route path="/" element={<Navigate to="/landing" replace />} />
+              <Route path="/" element={<RootRedirect />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
