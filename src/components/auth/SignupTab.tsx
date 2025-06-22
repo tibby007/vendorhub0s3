@@ -43,7 +43,7 @@ const SignupTab = () => {
     try {
       console.log('Starting signup process for:', signupData.email);
       
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      const redirectUrl = `${window.location.origin}/auth`;
       
       const { data, error } = await supabase.auth.signUp({
         email: signupData.email,
@@ -87,7 +87,7 @@ const SignupTab = () => {
         
         toast({
           title: "Account Created Successfully",
-          description: "You can now log in with your credentials. The AuthContext will handle profile creation automatically.",
+          description: "Please check your email to confirm your account before logging in.",
         });
 
         // Clear form
