@@ -1,72 +1,65 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Eye, Edit, FileText, Download, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Eye, Download, CheckCircle, XCircle, Clock, Filter, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface Submission {
   id: string;
-  status: string;
-  submission_date: string;
   customer_id: string;
   vendor_id: string;
-  sales_invoice_url: string | null;
-  drivers_license_url: string | null;
-  misc_documents_url: string[] | null;
-  approval_terms: string | null;
-  customer: {
+  status: string;
+  submission_date: string;
+  approval_terms?: string;
+  sales_invoice_url?: string;
+  drivers_license_url?: string;
+  misc_documents_url?: string[];
+  customers?: {
     customer_name: string;
-    email: string;
-    phone: string;
-    biz_name: string | null;
+    email?: string;
   };
-  vendor: {
+  vendors?: {
     vendor_name: string;
   };
 }
 
 const SubmissionsManager = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [filteredSubmissions, setFilteredSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [approvalTerms, setApprovalTerms] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchSubmissions();
-      setupRealtimeSubscription();
     }
   }, [user]);
 
-  useEffect(() => {
-    filterSubmissions();
-  }, [submissions, statusFilter, searchTerm]);
-
   const fetchSubmissions = async () => {
+    if (!user?.id) return;
+
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('submissions')
         .select(`
           *,
-          customer:customers(*),
-          vendor:vendors(vendor_name)
+          customers (customer_name, email),
+          vendors (vendor_name)
         `)
-        .eq('partner_admin_id', user?.id)
+        .eq('partner_admin_id', user.id)
         .order('submission_date', { ascending: false });
 
       if (error) throw error;
@@ -75,76 +68,34 @@ const SubmissionsManager = () => {
       console.error('Error fetching submissions:', error);
       toast({
         title: "Error",
-        description: "Failed to load submissions",
+        description: "Failed to fetch submissions",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const setupRealtimeSubscription = () => {
-    const channel = supabase
-      .channel('submissions-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'submissions',
-          filter: `partner_admin_id=eq.${user?.id}`
-        },
-        () => {
-          fetchSubmissions();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  };
-
-  const filterSubmissions = () => {
-    let filtered = submissions;
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(sub => sub.status.toLowerCase() === statusFilter);
-    }
-
-    if (searchTerm) {
-      filtered = filtered.filter(sub => 
-        sub.customer.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.vendor.vendor_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (sub.customer.biz_name && sub.customer.biz_name.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    setFilteredSubmissions(filtered);
-  };
-
-  const updateSubmissionStatus = async (submissionId: string, newStatus: string, terms?: string) => {
+  const updateSubmissionStatus = async (submissionId: string, status: string, approvalTerms?: string) => {
     try {
-      const updateData: any = { status: newStatus };
-      if (terms) {
-        updateData.approval_terms = terms;
-      }
-
       const { error } = await supabase
         .from('submissions')
-        .update(updateData)
+        .update({
+          status,
+          approval_terms: approvalTerms || null,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', submissionId);
 
       if (error) throw error;
 
       toast({
-        title: "Status Updated",
-        description: `Submission ${newStatus.toLowerCase()} successfully`,
+        title: "Success",
+        description: `Submission ${status.toLowerCase()} successfully`,
       });
 
-      setApprovalTerms('');
-      setSelectedSubmission(null);
       fetchSubmissions();
+      setSelectedSubmission(null);
     } catch (error: any) {
       console.error('Error updating submission:', error);
       toast({
@@ -155,320 +106,235 @@ const SubmissionsManager = () => {
     }
   };
 
-  const downloadDocument = async (url: string, filename: string) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('submissions')
-        .download(url);
-
-      if (error) throw error;
-
-      const blob = new Blob([data]);
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      link.click();
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error: any) {
-      console.error('Error downloading document:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download document",
-        variant: "destructive",
-      });
-    }
-  };
-
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      'Pending': 'secondary',
-      'Approved': 'default',
-      'Rejected': 'destructive',
-      'Manual Review': 'secondary'
-    };
-
-    return (
-      <Badge variant={variants[status] || 'secondary'}>
-        {status}
-      </Badge>
-    );
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Approved':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'Rejected':
-        return <XCircle className="w-4 h-4 text-red-600" />;
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-700"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+      case 'pending':
       default:
-        return <Clock className="w-4 h-4 text-yellow-600" />;
+        return <Badge className="bg-yellow-100 text-yellow-700"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
     }
   };
 
-  if (loading) {
+  const filteredSubmissions = submissions.filter(submission => 
+    statusFilter === 'all' || submission.status.toLowerCase() === statusFilter
+  );
+
+  const StatusUpdateDialog = ({ submission }: { submission: Submission }) => {
+    const [newStatus, setNewStatus] = useState(submission.status);
+    const [approvalTerms, setApprovalTerms] = useState(submission.approval_terms || '');
+
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Deal Submissions</h2>
-        <p className="text-gray-600">Review and manage vendor customer applications</p>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="status-filter">Status Filter</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline">
+            <Edit className="w-3 h-3 mr-1" />
+            Update
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Submission Status</DialogTitle>
+            <DialogDescription>
+              Update the status for {submission.customers?.customer_name}'s submission
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select value={newStatus} onValueChange={setNewStatus}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="manual review">Manual Review</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Approved">Approved</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="search">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            {newStatus === 'Approved' && (
+              <div>
+                <Label htmlFor="approval-terms">Approval Terms (Optional)</Label>
                 <Input
-                  id="search"
-                  placeholder="Search by customer or vendor name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  id="approval-terms"
+                  value={approvalTerms}
+                  onChange={(e) => setApprovalTerms(e.target.value)}
+                  placeholder="Enter approval terms or conditions"
                 />
               </div>
-            </div>
-            <div className="flex items-end">
+            )}
+            <div className="flex justify-end gap-2">
               <Button
-                variant="outline"
-                onClick={() => {
-                  setStatusFilter('all');
-                  setSearchTerm('');
-                }}
-                className="w-full"
+                onClick={() => updateSubmissionStatus(submission.id, newStatus, approvalTerms)}
               >
-                <Filter className="w-4 h-4 mr-2" />
-                Clear Filters
+                Update Status
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </Button>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Submissions Management</h2>
+          <p className="text-gray-600">Review and manage customer applications from your vendors</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-4">
+        <Label htmlFor="status-filter">Filter by Status:</Label>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Submissions</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Submissions Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Submissions ({filteredSubmissions.length})</CardTitle>
+          <CardTitle>Customer Submissions</CardTitle>
+          <CardDescription>
+            {filteredSubmissions.length} submission{filteredSubmissions.length !== 1 ? 's' : ''} 
+            {statusFilter !== 'all' && ` with status: ${statusFilter}`}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Business</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSubmissions.map((submission) => (
-                <TableRow key={submission.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{submission.customer.customer_name}</div>
-                      <div className="text-sm text-gray-600">{submission.customer.email}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{submission.vendor.vendor_name}</TableCell>
-                  <TableCell>{submission.customer.biz_name || 'Individual'}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(submission.status)}
-                      {getStatusBadge(submission.status)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(submission.submission_date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedSubmission(submission)}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Review
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Review Submission</DialogTitle>
-                          <DialogDescription>
-                            Customer: {submission.customer.customer_name} | Vendor: {submission.vendor.vendor_name}
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        {selectedSubmission && (
-                          <Tabs defaultValue="details" className="w-full">
-                            <TabsList>
-                              <TabsTrigger value="details">Customer Details</TabsTrigger>
-                              <TabsTrigger value="documents">Documents</TabsTrigger>
-                              <TabsTrigger value="actions">Actions</TabsTrigger>
-                            </TabsList>
-                            
-                            <TabsContent value="details" className="space-y-4">
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vendor-green-500 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading submissions...</p>
+            </div>
+          ) : filteredSubmissions.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">
+                {statusFilter === 'all' 
+                  ? 'No submissions yet. Submissions will appear here when vendors submit customer applications.'
+                  : `No ${statusFilter} submissions found.`
+                }
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Vendor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSubmissions.map((submission) => (
+                  <TableRow key={submission.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{submission.customers?.customer_name}</div>
+                        {submission.customers?.email && (
+                          <div className="text-sm text-gray-600">{submission.customers.email}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{submission.vendors?.vendor_name}</TableCell>
+                    <TableCell>{getStatusBadge(submission.status)}</TableCell>
+                    <TableCell>{new Date(submission.submission_date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>Submission Details</DialogTitle>
+                              <DialogDescription>
+                                Customer: {submission.customers?.customer_name} | 
+                                Vendor: {submission.vendors?.vendor_name}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <Label>Customer Name</Label>
-                                  <p className="text-sm">{selectedSubmission.customer.customer_name}</p>
+                                  <Label>Status</Label>
+                                  <div className="mt-1">{getStatusBadge(submission.status)}</div>
                                 </div>
                                 <div>
-                                  <Label>Email</Label>
-                                  <p className="text-sm">{selectedSubmission.customer.email}</p>
-                                </div>
-                                <div>
-                                  <Label>Phone</Label>
-                                  <p className="text-sm">{selectedSubmission.customer.phone}</p>
-                                </div>
-                                <div>
-                                  <Label>Business Name</Label>
-                                  <p className="text-sm">{selectedSubmission.customer.biz_name || 'N/A'}</p>
+                                  <Label>Submission Date</Label>
+                                  <div className="mt-1">{new Date(submission.submission_date).toLocaleDateString()}</div>
                                 </div>
                               </div>
-                            </TabsContent>
-                            
-                            <TabsContent value="documents" className="space-y-4">
-                              <div className="space-y-3">
-                                {selectedSubmission.sales_invoice_url && (
-                                  <div className="flex items-center justify-between p-3 border rounded">
-                                    <span>Sales Invoice</span>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => downloadDocument(selectedSubmission.sales_invoice_url!, 'sales_invoice.pdf')}
-                                    >
-                                      <Download className="w-4 h-4 mr-1" />
-                                      Download
-                                    </Button>
-                                  </div>
-                                )}
-                                {selectedSubmission.drivers_license_url && (
-                                  <div className="flex items-center justify-between p-3 border rounded">
-                                    <span>Driver's License</span>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => downloadDocument(selectedSubmission.drivers_license_url!, 'drivers_license.pdf')}
-                                    >
-                                      <Download className="w-4 h-4 mr-1" />
-                                      Download
-                                    </Button>
-                                  </div>
-                                )}
-                                {selectedSubmission.misc_documents_url?.map((url, index) => (
-                                  <div key={index} className="flex items-center justify-between p-3 border rounded">
-                                    <span>Document {index + 1}</span>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => downloadDocument(url, `document_${index + 1}.pdf`)}
-                                    >
-                                      <Download className="w-4 h-4 mr-1" />
-                                      Download
-                                    </Button>
-                                  </div>
-                                ))}
-                              </div>
-                            </TabsContent>
-                            
-                            <TabsContent value="actions" className="space-y-4">
-                              <div className="space-y-4">
+                              
+                              {submission.approval_terms && (
                                 <div>
-                                  <Label>Current Status</Label>
-                                  <div className="mt-1">
-                                    {getStatusBadge(selectedSubmission.status)}
-                                  </div>
+                                  <Label>Approval Terms</Label>
+                                  <div className="mt-1 p-2 bg-gray-50 rounded">{submission.approval_terms}</div>
                                 </div>
-                                
-                                {selectedSubmission.status === 'Pending' && (
-                                  <>
-                                    <div className="space-y-2">
-                                      <Label htmlFor="approval-terms">Approval Terms (Optional)</Label>
-                                      <Textarea
-                                        id="approval-terms"
-                                        value={approvalTerms}
-                                        onChange={(e) => setApprovalTerms(e.target.value)}
-                                        placeholder="Enter any specific terms or conditions for approval..."
-                                      />
-                                    </div>
-                                    
-                                    <div className="flex gap-2">
-                                      <Button
-                                        onClick={() => updateSubmissionStatus(selectedSubmission.id, 'Approved', approvalTerms)}
-                                        className="bg-green-600 hover:bg-green-700"
-                                      >
-                                        <CheckCircle className="w-4 h-4 mr-1" />
-                                        Approve
+                              )}
+
+                              <div className="space-y-2">
+                                <Label>Documents</Label>
+                                <div className="space-y-1">
+                                  {submission.sales_invoice_url && (
+                                    <Button variant="outline" size="sm" className="w-full justify-start">
+                                      <Download className="w-3 h-3 mr-2" />
+                                      Sales Invoice
+                                    </Button>
+                                  )}
+                                  {submission.drivers_license_url && (
+                                    <Button variant="outline" size="sm" className="w-full justify-start">
+                                      <Download className="w-3 h-3 mr-2" />
+                                      Driver's License
+                                    </Button>
+                                  )}
+                                  {submission.misc_documents_url && submission.misc_documents_url.length > 0 && (
+                                    submission.misc_documents_url.map((doc, index) => (
+                                      <Button key={index} variant="outline" size="sm" className="w-full justify-start">
+                                        <Download className="w-3 h-3 mr-2" />
+                                        Additional Document {index + 1}
                                       </Button>
-                                      <Button
-                                        variant="destructive"
-                                        onClick={() => updateSubmissionStatus(selectedSubmission.id, 'Rejected')}
-                                      >
-                                        <XCircle className="w-4 h-4 mr-1" />
-                                        Reject
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        onClick={() => updateSubmissionStatus(selectedSubmission.id, 'Manual Review')}
-                                      >
-                                        <Clock className="w-4 h-4 mr-1" />
-                                        Manual Review
-                                      </Button>
-                                    </div>
-                                  </>
-                                )}
-                                
-                                {selectedSubmission.approval_terms && (
-                                  <div>
-                                    <Label>Approval Terms</Label>
-                                    <p className="text-sm mt-1 p-3 bg-gray-50 rounded">{selectedSubmission.approval_terms}</p>
-                                  </div>
-                                )}
+                                    ))
+                                  )}
+                                </div>
                               </div>
-                            </TabsContent>
-                          </Tabs>
-                        )}
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          
-          {filteredSubmissions.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No submissions found matching your criteria.
-            </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <StatusUpdateDialog submission={submission} />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

@@ -1,38 +1,76 @@
 
-import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
-import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
 import Subscription from "./pages/Subscription";
 import AffiliateApplication from "./pages/AffiliateApplication";
 import DemoCredentials from "./pages/DemoCredentials";
 import DemoSetup from "./pages/DemoSetup";
-import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
+import VendorManagement from "./components/vendor/VendorManagement";
+import ResourcesManagement from "./components/resources/ResourcesManagement";
+import SubmissionsManager from "./components/submissions/SubmissionsManager";
+import PartnerSettings from "./components/settings/PartnerSettings";
+import ResellerManagement from "./components/resellers/ResellerManagement";
 
 const queryClient = new QueryClient();
 
-const App = () => {
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
         <AuthProvider>
+          <Toaster />
+          <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Landing />} />
+              <Route path="/landing" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Index />} />
-              <Route path="/subscription" element={<Subscription />} />
-              <Route path="/affiliate-apply" element={<AffiliateApplication />} />
+              <Route path="/affiliate-application" element={<AffiliateApplication />} />
               <Route path="/demo-credentials" element={<DemoCredentials />} />
               <Route path="/demo-setup" element={<DemoSetup />} />
+              <Route path="/subscription" element={
+                <ProtectedRoute>
+                  <Subscription />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendors" element={
+                <ProtectedRoute allowedRoles={['Super Admin', 'Partner Admin']}>
+                  <VendorManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/resources" element={
+                <ProtectedRoute allowedRoles={['Super Admin', 'Partner Admin']}>
+                  <ResourcesManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/submissions" element={
+                <ProtectedRoute allowedRoles={['Super Admin', 'Partner Admin']}>
+                  <SubmissionsManager />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute allowedRoles={['Super Admin', 'Partner Admin']}>
+                  <PartnerSettings />
+                </ProtectedRoute>
+              } />
+              <Route path="/resellers" element={
+                <ProtectedRoute allowedRoles={['Super Admin']}>
+                  <ResellerManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
@@ -40,6 +78,6 @@ const App = () => {
       </TooltipProvider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;

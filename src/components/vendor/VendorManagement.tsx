@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +12,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Edit2, Trash2, User, Shield, AlertCircle } from 'lucide-react';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
-import { vendorSchema } from '@/lib/validation';
 
 interface Vendor {
   id: string;
@@ -26,10 +26,10 @@ interface Vendor {
 const VendorManagement = () => {
   const { user } = useAuth();
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { canManageVendors, currentRole } = useRoleCheck();
 
   const [formData, setFormData] = useState({
@@ -46,35 +46,20 @@ const VendorManagement = () => {
     }
   }, [user, canManageVendors]);
 
-  const validateForm = () => {
-    const result = vendorSchema.safeParse(formData);
-    
-    if (!result.success) {
-      const errors: Record<string, string> = {};
-      result.error.errors.forEach((error) => {
-        if (error.path[0]) {
-          errors[error.path[0].toString()] = error.message;
-        }
-      });
-      setValidationErrors(errors);
-      return false;
-    }
-    
-    setValidationErrors({});
-    return true;
-  };
-
   const fetchVendors = async () => {
+    if (!user?.id) return;
+    
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('vendors')
         .select('*')
-        .eq('partner_admin_id', user?.id)
+        .eq('partner_admin_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setVendors(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching vendors:', error);
       toast({
         title: "Error",
@@ -84,6 +69,29 @@ const VendorManagement = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.vendor_name.trim()) {
+      newErrors.vendor_name = 'Vendor name is required';
+    }
+
+    if (!formData.contact_email.trim()) {
+      newErrors.contact_email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.contact_email)) {
+      newErrors.contact_email = 'Email is invalid';
+    }
+
+    if (!editingVendor && !formData.password) {
+      newErrors.password = 'Password is required for new vendors';
+    } else if (!editingVendor && formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const createVendor = async (e: React.FormEvent) => {
@@ -97,6 +105,8 @@ const VendorManagement = () => {
       });
       return;
     }
+
+    if (!user?.id) return;
 
     setIsLoading(true);
 
@@ -122,7 +132,7 @@ const VendorManagement = () => {
           email: formData.contact_email,
           name: formData.vendor_name,
           role: 'Vendor',
-          partner_id: user?.partnerId
+          partner_id: user.partnerId
         });
 
       if (userError) throw userError;
@@ -135,31 +145,22 @@ const VendorManagement = () => {
           contact_email: formData.contact_email,
           contact_phone: formData.contact_phone,
           contact_address: formData.contact_address,
-          partner_admin_id: user?.id,
+          partner_admin_id: user.id,
           user_id: authData.user.id
         });
 
       if (vendorError) throw vendorError;
 
-      // Log security event
-      console.log(`Security Event: Vendor created by ${user?.email} at ${new Date().toISOString()}`);
-
       toast({
         title: "Success",
-        description: "Vendor created successfully with secure validation",
+        description: "Vendor created successfully",
       });
 
-      setFormData({
-        vendor_name: '',
-        contact_email: '',
-        contact_phone: '',
-        contact_address: '',
-        password: ''
-      });
+      resetForm();
       setIsCreateDialogOpen(false);
       fetchVendors();
     } catch (error: any) {
-      console.error('Security Error - Vendor creation failed:', error);
+      console.error('Error creating vendor:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create vendor",
@@ -172,7 +173,7 @@ const VendorManagement = () => {
 
   const updateVendor = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingVendor) return;
+    if (!editingVendor || !validateForm()) return;
 
     setIsLoading(true);
     try {
@@ -194,13 +195,7 @@ const VendorManagement = () => {
       });
 
       setEditingVendor(null);
-      setFormData({
-        vendor_name: '',
-        contact_email: '',
-        contact_phone: '',
-        contact_address: '',
-        password: ''
-      });
+      resetForm();
       fetchVendors();
     } catch (error: any) {
       console.error('Error updating vendor:', error);
@@ -217,6 +212,7 @@ const VendorManagement = () => {
   const deleteVendor = async (vendorId: string) => {
     if (!confirm('Are you sure you want to delete this vendor?')) return;
 
+    setIsLoading(true);
     try {
       const { error } = await supabase
         .from('vendors')
@@ -238,6 +234,8 @@ const VendorManagement = () => {
         description: error.message || "Failed to delete vendor",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -250,13 +248,25 @@ const VendorManagement = () => {
       contact_address: vendor.contact_address || '',
       password: ''
     });
+    setErrors({});
+  };
+
+  const resetForm = () => {
+    setFormData({
+      vendor_name: '',
+      contact_email: '',
+      contact_phone: '',
+      contact_address: '',
+      password: ''
+    });
+    setErrors({});
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear validation error when user starts typing
-    if (validationErrors[field]) {
-      setValidationErrors(prev => ({ ...prev, [field]: '' }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -275,13 +285,13 @@ const VendorManagement = () => {
           id="vendor_name"
           value={formData.vendor_name}
           onChange={(e) => handleInputChange('vendor_name', e.target.value)}
-          required
-          className={validationErrors.vendor_name ? 'border-red-500' : ''}
+          className={errors.vendor_name ? 'border-red-500' : ''}
+          placeholder="Enter vendor name"
         />
-        {validationErrors.vendor_name && (
+        {errors.vendor_name && (
           <p className="text-sm text-red-600 flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
-            {validationErrors.vendor_name}
+            {errors.vendor_name}
           </p>
         )}
       </div>
@@ -293,14 +303,14 @@ const VendorManagement = () => {
           type="email"
           value={formData.contact_email}
           onChange={(e) => handleInputChange('contact_email', e.target.value)}
-          required
           disabled={!!editingVendor}
-          className={validationErrors.contact_email ? 'border-red-500' : ''}
+          className={errors.contact_email ? 'border-red-500' : ''}
+          placeholder="vendor@example.com"
         />
-        {validationErrors.contact_email && (
+        {errors.contact_email && (
           <p className="text-sm text-red-600 flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
-            {validationErrors.contact_email}
+            {errors.contact_email}
           </p>
         )}
       </div>
@@ -313,14 +323,13 @@ const VendorManagement = () => {
             type="password"
             value={formData.password}
             onChange={(e) => handleInputChange('password', e.target.value)}
-            required
-            placeholder="Min 8 chars, include uppercase, lowercase, number"
-            className={validationErrors.password ? 'border-red-500' : ''}
+            className={errors.password ? 'border-red-500' : ''}
+            placeholder="Minimum 8 characters"
           />
-          {validationErrors.password && (
+          {errors.password && (
             <p className="text-sm text-red-600 flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />
-              {validationErrors.password}
+              {errors.password}
             </p>
           )}
         </div>
@@ -331,7 +340,8 @@ const VendorManagement = () => {
         <Input
           id="contact_phone"
           value={formData.contact_phone}
-          onChange={(e) => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))}
+          onChange={(e) => handleInputChange('contact_phone', e.target.value)}
+          placeholder="(555) 123-4567"
         />
       </div>
       
@@ -340,13 +350,30 @@ const VendorManagement = () => {
         <Input
           id="contact_address"
           value={formData.contact_address}
-          onChange={(e) => setFormData(prev => ({ ...prev, contact_address: e.target.value }))}
+          onChange={(e) => handleInputChange('contact_address', e.target.value)}
+          placeholder="123 Main St, City, State 12345"
         />
       </div>
       
-      <Button type="submit" disabled={isLoading}>
-        {isLoading ? 'Saving...' : title}
-      </Button>
+      <div className="flex justify-end gap-2">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => {
+            if (editingVendor) {
+              setEditingVendor(null);
+            } else {
+              setIsCreateDialogOpen(false);
+            }
+            resetForm();
+          }}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? 'Saving...' : title}
+        </Button>
+      </div>
     </form>
   );
 
@@ -369,14 +396,17 @@ const VendorManagement = () => {
           <h2 className="text-2xl font-bold text-gray-900">Vendor Management</h2>
           <p className="text-gray-600">Manage your vendors and their access</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="bg-vendor-green-600 hover:bg-vendor-green-700">
               <Plus className="w-4 h-4 mr-2" />
               Add Vendor
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Create New Vendor</DialogTitle>
               <DialogDescription>
@@ -397,7 +427,10 @@ const VendorManagement = () => {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-4">Loading vendors...</div>
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vendor-green-500 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading vendors...</p>
+            </div>
           ) : vendors.length === 0 ? (
             <div className="text-center py-8">
               <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -434,6 +467,7 @@ const VendorManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => deleteVendor(vendor.id)}
+                          className="text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -447,9 +481,15 @@ const VendorManagement = () => {
         </CardContent>
       </Card>
 
+      {/* Edit Dialog */}
       {editingVendor && (
-        <Dialog open={!!editingVendor} onOpenChange={() => setEditingVendor(null)}>
-          <DialogContent>
+        <Dialog open={!!editingVendor} onOpenChange={(open) => {
+          if (!open) {
+            setEditingVendor(null);
+            resetForm();
+          }
+        }}>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Edit Vendor</DialogTitle>
               <DialogDescription>
