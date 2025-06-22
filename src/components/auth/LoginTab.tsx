@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DemoAnalytics, DEMO_EVENTS } from '@/utils/demoAnalytics';
 
@@ -18,6 +19,8 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
+  const [isSendingPasswordReset, setIsSendingPasswordReset] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
@@ -127,6 +130,87 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
     }
   };
 
+  const handleSendMagicLink = async () => {
+    if (!email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+
+    setIsSendingMagicLink(true);
+
+    try {
+      const redirectUrl = window.location.hostname === 'localhost' 
+        ? `${window.location.origin}/auth`
+        : 'https://vendorhubos.com/auth';
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        console.error('Magic link error:', error);
+        toast.error('Failed to send magic link', {
+          description: error.message
+        });
+        return;
+      }
+
+      toast.success('Magic Link Sent!', {
+        description: 'Check your email for a magic link to sign in.'
+      });
+
+    } catch (error: any) {
+      console.error('Magic link error:', error);
+      toast.error('Failed to send magic link', {
+        description: 'Please try again later.'
+      });
+    } finally {
+      setIsSendingMagicLink(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+
+    setIsSendingPasswordReset(true);
+
+    try {
+      const redirectUrl = window.location.hostname === 'localhost' 
+        ? `${window.location.origin}/auth`
+        : 'https://vendorhubos.com/auth';
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
+
+      if (error) {
+        console.error('Password reset error:', error);
+        toast.error('Failed to send password reset email', {
+          description: error.message
+        });
+        return;
+      }
+
+      toast.success('Password Reset Email Sent!', {
+        description: 'Check your email for instructions to reset your password.'
+      });
+
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      toast.error('Failed to send password reset email', {
+        description: 'Please try again later.'
+      });
+    } finally {
+      setIsSendingPasswordReset(false);
+    }
+  };
+
   // Check if we're in demo mode from URL or session storage
   const isInDemoMode = isDemoSession || 
                        new URLSearchParams(location.search).get('demo') === 'true' ||
@@ -174,7 +258,7 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={isLoading}
+              disabled={isLoading || isSendingMagicLink || isSendingPasswordReset}
             />
           </div>
           <div className="space-y-2">
@@ -186,13 +270,13 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              disabled={isLoading}
+              disabled={isLoading || isSendingMagicLink || isSendingPasswordReset}
             />
           </div>
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isLoading || !email || !password}
+            disabled={isLoading || !email || !password || isSendingMagicLink || isSendingPasswordReset}
           >
             {isLoading ? 'Signing in...' : (isInDemoMode ? 'Access Demo' : 'Sign in')}
           </Button>
@@ -200,6 +284,28 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
 
         {!isInDemoMode && (
           <>
+            <div className="space-y-2">
+              <Button 
+                type="button"
+                variant="outline" 
+                className="w-full" 
+                disabled={!email || isSendingMagicLink || isLoading || isSendingPasswordReset}
+                onClick={handleSendMagicLink}
+              >
+                {isSendingMagicLink ? 'Sending Magic Link...' : 'Send Magic Link'}
+              </Button>
+              
+              <Button 
+                type="button"
+                variant="ghost" 
+                className="w-full text-sm" 
+                disabled={!email || isSendingPasswordReset || isLoading || isSendingMagicLink}
+                onClick={handleForgotPassword}
+              >
+                {isSendingPasswordReset ? 'Sending Reset Email...' : 'Forgot Password?'}
+              </Button>
+            </div>
+
             <Separator />
             <div className="text-center">
               <p className="text-sm text-gray-600">
