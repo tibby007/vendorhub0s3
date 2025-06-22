@@ -15,19 +15,17 @@ const SubscriptionManager = () => {
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  const checkSubscription = async (forceRefresh = false) => {
+  const checkSubscription = async () => {
     if (!session) return;
     
     setIsCheckingSubscription(true);
     try {
-      await refreshSubscription(forceRefresh);
+      await refreshSubscription();
       setRetryCount(0); // Reset retry count on success
-      if (forceRefresh) {
-        toast({
-          title: "Subscription Status Refreshed",
-          description: "Your subscription information has been updated.",
-        });
-      }
+      toast({
+        title: "Subscription Status Refreshed",
+        description: "Your subscription information has been updated.",
+      });
     } catch (error) {
       console.error('Error checking subscription:', error);
       setRetryCount(prev => prev + 1);
@@ -71,7 +69,7 @@ const SubscriptionManager = () => {
     if (session && !subscriptionData && retryCount < 3) {
       // Auto-retry with exponential backoff
       const timeout = setTimeout(() => {
-        checkSubscription(false);
+        checkSubscription();
       }, Math.pow(2, retryCount) * 1000);
 
       return () => clearTimeout(timeout);
@@ -92,7 +90,7 @@ const SubscriptionManager = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => checkSubscription(true)}
+            onClick={checkSubscription}
             disabled={isCheckingSubscription}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isCheckingSubscription ? 'animate-spin' : ''}`} />
@@ -111,7 +109,7 @@ const SubscriptionManager = () => {
                 className="p-0 ml-1 h-auto"
                 onClick={() => {
                   setRetryCount(0);
-                  checkSubscription(true);
+                  checkSubscription();
                 }}
               >
                 Try again

@@ -65,7 +65,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
 
             <div className="space-y-2 pt-4">
               <Button 
-                onClick={() => refreshSubscription(true)}
+                onClick={() => refreshSubscription()}
                 className="w-full"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
