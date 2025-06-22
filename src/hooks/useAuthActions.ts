@@ -100,7 +100,7 @@ export const useAuthActions = ({
     }
   };
 
-  const handleRefreshSubscription = async (forceRefresh = false) => {
+  const handleRefreshSubscription = async (forceRefresh = false): Promise<void> => {
     if (session) {
       await refreshSubscription(session, forceRefresh);
     }
