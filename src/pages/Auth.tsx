@@ -29,7 +29,7 @@ const Auth = () => {
           description: error_description || error,
           variant: "destructive",
         });
-        // Clean up URL
+        // Clean up URL and show login form
         navigate('/auth', { replace: true });
         return;
       }
@@ -65,7 +65,6 @@ const Auth = () => {
                 title: "Password Reset",
                 description: "You can now set a new password.",
               });
-              // You might want to redirect to a password change page here
               navigate('/dashboard', { replace: true });
             } else if (type === 'signup') {
               toast({
@@ -100,21 +99,10 @@ const Auth = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    // Handle magic link sessions that don't have URL tokens
-    // This happens when user clicks magic link and gets redirected to root, then to /auth
+    // If user is already logged in and no tokens are being processed, redirect to dashboard
     if (!isLoading && user && !isProcessingAuth && !searchParams.get('access_token')) {
-      console.log('User authenticated via magic link (no URL tokens), redirecting to dashboard');
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
+      console.log('User already authenticated, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
-      return;
-    }
-
-    // If user is already logged in with URL tokens being processed, let the token handler manage it
-    if (!isLoading && user && !isProcessingAuth && searchParams.get('access_token')) {
-      console.log('User is authenticated with URL tokens, letting token handler manage redirect');
       return;
     }
   }, [user, isLoading, navigate, isProcessingAuth, searchParams]);
@@ -126,7 +114,7 @@ const Auth = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-vendor-green-500 mx-auto mb-4"></div>
           <p className="text-gray-600">
-            {isProcessingAuth ? 'Processing authentication...' : 'Checking authentication status...'}
+            {isProcessingAuth ? 'Processing magic link authentication...' : 'Checking authentication status...'}
           </p>
         </div>
       </div>
