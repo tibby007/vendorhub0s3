@@ -1,93 +1,90 @@
 
+import { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-
-interface AuthUser extends User {
-  role?: string;
-  name?: string;
-  partnerId?: string;
-}
+import { AuthUser } from '@/types/auth';
 
 export const useUserProfile = () => {
-  const upsertUserProfile = async (authUser: User): Promise<AuthUser> => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const upsertUserProfile = async (user: User): Promise<AuthUser> => {
+    setIsLoading(true);
+    
     try {
-      console.log('Upserting user profile for:', authUser.id);
+      console.log('Upserting user profile for:', user.email);
       
-      // First check if user exists
-      const { data: existingUser, error: selectError } = await supabase
-        .from('users')
+      // First, try to get existing profile
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
         .select('*')
-        .eq('id', authUser.id)
+        .eq('id', user.id)
         .maybeSingle();
 
-      if (selectError && selectError.code !== 'PGRST116') {
-        console.error('Error checking existing user:', selectError);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching profile:', fetchError);
       }
 
-      let userData;
-      
-      if (existingUser) {
-        console.log('User profile already exists, using existing data:', existingUser);
-        userData = existingUser;
-      } else {
-        // Create new profile with proper defaults
-        const defaultRole = authUser.user_metadata?.role || 'Partner Admin';
-        const defaultName = authUser.user_metadata?.name || 
-                           authUser.email?.split('@')[0] || 
-                           'User';
+      let profile = existingProfile;
 
-        console.log('Creating new user profile with:', { defaultRole, defaultName });
+      // If no profile exists, create one
+      if (!profile) {
+        console.log('Creating new profile for user:', user.id);
         
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: authUser.id,
-            email: authUser.email || '',
-            name: defaultName,
-            role: defaultRole,
-            partner_id: defaultRole === 'Partner Admin' ? crypto.randomUUID() : null
-          })
+        const newProfile = {
+          id: user.id,
+          email: user.email || '',
+          name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+          role: 'Vendor', // Default role
+          partner_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        const { data: insertedProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert(newProfile)
           .select()
           .single();
 
         if (insertError) {
-          console.error('Error creating user profile:', insertError);
-          // If insert fails due to conflict, try to fetch existing user again
-          if (insertError.code === '23505') {
-            console.log('Conflict detected, fetching existing user...');
-            const { data: conflictUser } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', authUser.id)
-              .single();
-            userData = conflictUser;
-          } else {
-            throw insertError;
-          }
-        } else {
-          userData = newUser;
+          console.error('Error creating profile:', insertError);
+          // Don't throw error, just use basic user data
+          return {
+            ...user,
+            role: 'Vendor',
+            name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+          } as AuthUser;
         }
+
+        profile = insertedProfile;
       }
 
-      // Return enriched user data
-      return {
-        ...authUser,
-        role: userData?.role || authUser.user_metadata?.role || 'Partner Admin',
-        name: userData?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-        partnerId: userData?.partner_id,
-      } as AuthUser;
+      // Return enriched user object
+      const enrichedUser: AuthUser = {
+        ...user,
+        role: profile?.role || 'Vendor',
+        name: profile?.name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+        partnerId: profile?.partner_id,
+      };
 
-    } catch (err) {
-      console.error('Error in upsertUserProfile:', err);
-      // Fallback to user metadata if available
+      console.log('User profile enriched:', enrichedUser);
+      return enrichedUser;
+      
+    } catch (error) {
+      console.error('Unexpected error in upsertUserProfile:', error);
+      // Return basic user data as fallback
       return {
-        ...authUser,
-        role: authUser.user_metadata?.role || 'Partner Admin',
-        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-        partnerId: null,
+        ...user,
+        role: 'Vendor',
+        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
       } as AuthUser;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return { upsertUserProfile };
+  return {
+    upsertUserProfile,
+    isLoading,
+  };
 };

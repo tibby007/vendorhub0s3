@@ -38,32 +38,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           try {
-            // Enrich user profile
+            // Set loading to false immediately when we have a session
+            setIsLoading(false);
+            
+            // Enrich user profile without blocking the UI
             const enrichedUser = await upsertUserProfile(session.user);
             if (mounted) {
               setUser(enrichedUser);
               console.log('User profile loaded:', enrichedUser);
               
-              // Check subscription status with debouncing
-              refreshSubscription(session, false);
+              // Check subscription status in background without blocking
+              setTimeout(() => {
+                if (mounted && session) {
+                  refreshSubscription(session, false);
+                }
+              }, 100);
             }
           } catch (err) {
             console.error('Error in auth state change:', err);
             if (mounted) {
+              // Still set the user even if profile update fails
               setUser(session.user as AuthUser);
-              // Still try to refresh subscription even if profile update fails
-              refreshSubscription(session, false);
+              setIsLoading(false);
+              
+              // Try subscription check anyway
+              setTimeout(() => {
+                if (mounted && session) {
+                  refreshSubscription(session, false);
+                }
+              }, 100);
             }
           }
         } else {
           if (mounted) {
             setUser(null);
-            clearCache(); // Clear subscription cache on logout
+            setIsLoading(false);
+            clearCache();
           }
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
         }
       }
     );
@@ -72,6 +83,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('Error getting session:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+        return;
       }
       
       if (mounted) {
@@ -114,9 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch (error) {
       console.error('Login error:', error);
-      throw error;
-    } finally {
       setIsLoading(false);
+      throw error;
     }
   };
 
@@ -160,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     refreshSubscription: handleRefreshSubscription,
     checkSubscriptionAccess,
-    isLoading: isLoading || subscriptionLoading
+    isLoading
   };
 
   return (
