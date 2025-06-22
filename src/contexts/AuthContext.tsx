@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +13,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
   const { upsertUserProfile } = useUserProfile();
   const { 
@@ -38,19 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           console.log('👤 Processing successful auth for user:', session.user.email);
           
-          // Keep loading true while processing user profile
-          setIsLoading(true);
-          setIsProfileLoaded(false);
-          
           // Enrich user profile
           const enrichedUser = await upsertUserProfile(session.user);
           if (mounted) {
             setUser(enrichedUser);
-            setIsProfileLoaded(true);
             console.log('✅ User profile loaded:', enrichedUser);
-            
-            // Only set loading to false after both session and profile are ready
-            setIsLoading(false);
             
             // Refresh subscription data in background
             setTimeout(() => {
@@ -64,8 +56,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (mounted) {
             // Still set the user even if profile update fails
             setUser(session.user as AuthUser);
-            setIsProfileLoaded(true);
-            setIsLoading(false);
             console.log('⚠️ Using fallback user data due to profile error');
           }
         }
@@ -73,10 +63,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           console.log('🚪 User logged out or no session');
           setUser(null);
-          setIsProfileLoaded(false);
-          setIsLoading(false);
           clearCache();
         }
+      }
+      
+      // Always set loading to false after processing
+      if (mounted) {
+        setIsLoading(false);
       }
     };
 
@@ -151,7 +144,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('✅ Login successful for:', data.user?.email);
       
       // Don't set isLoading to false here - let the auth state change handler do it
-      // after the profile is loaded
     } catch (error) {
       console.error('❌ Login error:', error);
       setIsLoading(false);
@@ -170,7 +162,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setUser(null);
       setSession(null);
-      setIsProfileLoaded(false);
       clearCache();
       
       toast({
@@ -201,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     refreshSubscription: handleRefreshSubscription,
     checkSubscriptionAccess,
-    isLoading: isLoading || !isProfileLoaded // Keep loading until both session and profile are ready
+    isLoading
   };
 
   return (
