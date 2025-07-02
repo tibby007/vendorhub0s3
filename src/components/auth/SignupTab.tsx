@@ -90,7 +90,7 @@ const SignupTab = () => {
         
         toast({
           title: "Account Created Successfully",
-          description: "Please check your email to confirm your account before logging in.",
+          description: "Please check your email to confirm your account. After confirming, you'll be redirected to set up your subscription.",
         });
 
         // Clear form

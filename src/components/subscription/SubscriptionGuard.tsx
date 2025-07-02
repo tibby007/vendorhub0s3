@@ -11,12 +11,14 @@ interface SubscriptionGuardProps {
   children: React.ReactNode;
   requiredTier?: 'Basic' | 'Pro' | 'Premium';
   fallbackMessage?: string;
+  showTrialAccess?: boolean;
 }
 
 const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ 
   children, 
   requiredTier = 'Basic',
-  fallbackMessage 
+  fallbackMessage,
+  showTrialAccess = false
 }) => {
   const { user, subscriptionData, isLoading, refreshSubscription, session } = useAuth();
 
@@ -95,6 +97,24 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   }
 
   if (!hasAccess) {
+    if (showTrialAccess) {
+      return (
+        <div className="space-y-4">
+          <div className="bg-vendor-green-50 border border-vendor-green-200 rounded-lg p-4">
+            <h3 className="text-lg font-medium text-vendor-green-900 mb-2">Welcome to VendorHub!</h3>
+            <p className="text-vendor-green-700 mb-3">You're using trial access. Start your subscription to unlock all features.</p>
+            <Button asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
+              <Link to="/subscription">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Start Subscription
+              </Link>
+            </Button>
+          </div>
+          {children}
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">

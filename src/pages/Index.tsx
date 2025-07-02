@@ -56,10 +56,12 @@ const Index = () => {
         if (isDemoUser) {
           return <PartnerAdminDashboard />;
         }
+        // For new Partner Admins, show trial access with prominent subscription prompt
         return (
           <SubscriptionGuard 
             requiredTier="Basic"
-            fallbackMessage="Partner Admin features require an active subscription. Start your free trial to access the full partner management dashboard."
+            fallbackMessage="Welcome to VendorHub! Start your free trial to access the full partner management dashboard and begin adding vendors."
+            showTrialAccess={true}
           >
             <PartnerAdminDashboard />
           </SubscriptionGuard>

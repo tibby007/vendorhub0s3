@@ -93,7 +93,7 @@ export const useUserProfile = () => {
         id: user.id,
         email: user.email || '',
         name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-        role: 'Vendor',
+        role: 'Partner Admin',
         partner_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -158,7 +158,7 @@ export const useUserProfile = () => {
       // Return basic user data as fallback
       return {
         ...user,
-        role: 'Vendor',
+        role: 'Partner Admin',
         name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
       } as AuthUser;
     }

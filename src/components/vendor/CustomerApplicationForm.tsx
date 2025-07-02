@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Upload, User, Building, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import DocumentUpload from './DocumentUpload';
 
 interface CustomerApplicationFormProps {
   preQualData?: any;
@@ -43,6 +44,11 @@ const CustomerApplicationForm = ({ preQualData }: CustomerApplicationFormProps) 
     collateralDescription: '',
     personalGuarantee: false,
     
+    // Document URLs
+    salesInvoiceUrl: '',
+    driversLicenseUrl: '',
+    additionalDocuments: [] as string[],
+    
     // Additional Information
     creditPermission: false,
     notes: ''
@@ -64,7 +70,7 @@ const CustomerApplicationForm = ({ preQualData }: CustomerApplicationFormProps) 
     }
   }, [preQualData]);
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = (field: string, value: string | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -106,6 +112,9 @@ const CustomerApplicationForm = ({ preQualData }: CustomerApplicationFormProps) 
         loanPurpose: '',
         collateralDescription: '',
         personalGuarantee: false,
+        salesInvoiceUrl: '',
+        driversLicenseUrl: '',
+        additionalDocuments: [],
         creditPermission: false,
         notes: ''
       });
@@ -388,6 +397,13 @@ const CustomerApplicationForm = ({ preQualData }: CustomerApplicationFormProps) 
             </div>
           </CardContent>
         </Card>
+
+        {/* Document Upload Section */}
+        <DocumentUpload
+          onSalesInvoiceUpload={(url) => handleInputChange('salesInvoiceUrl', url)}
+          onDriversLicenseUpload={(url) => handleInputChange('driversLicenseUrl', url)}
+          onAdditionalDocsUpload={(urls) => handleInputChange('additionalDocuments', urls)}
+        />
 
         {/* Additional Information */}
         <Card>
