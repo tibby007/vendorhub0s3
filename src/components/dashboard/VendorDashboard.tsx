@@ -1,18 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Clock, CheckCircle, Plus, Eye, Calculator, BookOpen } from 'lucide-react';
 import CustomerApplicationForm from '@/components/vendor/CustomerApplicationForm';
 import PreQualTool from '@/components/vendor/PreQualTool';
 import VendorResources from '@/components/vendor/VendorResources';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const VendorDashboard = () => {
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<string>('overview');
   const [preQualData, setPreQualData] = useState<any>(null);
+  const [submissionStats, setSubmissionStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0
+  });
+
+  // Fetch submission statistics
+  useEffect(() => {
+    const fetchSubmissionStats = async () => {
+      if (!user?.id) return;
+      
+      try {
+        // Get vendor record to find submissions
+        const { data: vendorData, error: vendorError } = await supabase
+          .from('vendors')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (vendorError || !vendorData) {
+          console.log('No vendor record found for user');
+          return;
+        }
+
+        // Get submission statistics
+        const { data: submissions, error: submissionsError } = await supabase
+          .from('submissions')
+          .select('status')
+          .eq('vendor_id', vendorData.id);
+
+        if (submissionsError) {
+          console.error('Error fetching submissions:', submissionsError);
+          return;
+        }
+
+        const total = submissions?.length || 0;
+        const pending = submissions?.filter(s => s.status.toLowerCase() === 'pending').length || 0;
+        const approved = submissions?.filter(s => s.status.toLowerCase() === 'approved').length || 0;
+
+        setSubmissionStats({ total, pending, approved });
+      } catch (error) {
+        console.error('Error fetching submission stats:', error);
+      }
+    };
+
+    fetchSubmissionStats();
+  }, [user]);
 
   const dashboardCards = [
     {
       title: "Total Submissions",
-      value: "15",
+      value: submissionStats.total.toString(),
       description: "All time submissions",
       icon: FileText,
       color: "text-blue-600",
@@ -21,7 +71,7 @@ const VendorDashboard = () => {
     },
     {
       title: "Pending Review",
-      value: "3",
+      value: submissionStats.pending.toString(),
       description: "Awaiting partner review",
       icon: Clock,
       color: "text-orange-600",
@@ -30,7 +80,7 @@ const VendorDashboard = () => {
     },
     {
       title: "Approved",
-      value: "11",
+      value: submissionStats.approved.toString(),
       description: "Successfully approved",
       icon: CheckCircle,
       color: "text-green-600",
@@ -64,7 +114,19 @@ const VendorDashboard = () => {
             <h2 className="text-2xl font-bold text-gray-900">My Submissions</h2>
             <Card>
               <CardContent className="pt-6">
-                <p className="text-gray-600">Submissions list coming soon...</p>
+                <div className="text-center">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Submissions Yet</h3>
+                  <p className="text-gray-600 mb-4">
+                    You haven't submitted any customer applications yet. Use the Pre-Qual tool to get started.
+                  </p>
+                  <button 
+                    className="text-blue-600 hover:text-blue-800 font-medium"
+                    onClick={() => setActiveSection('prequal')}
+                  >
+                    → Start with Pre-Qualification
+                  </button>
+                </div>
               </CardContent>
             </Card>
           </div>

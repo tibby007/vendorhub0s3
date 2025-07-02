@@ -231,12 +231,13 @@ const CustomerApplicationForm = ({ preQualData }: CustomerApplicationFormProps) 
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ssn">SSN (Last 4 digits)</Label>
+              <Label htmlFor="ssn">SSN *</Label>
               <Input
                 id="ssn"
-                maxLength={4}
                 value={formData.ssn}
                 onChange={(e) => handleInputChange('ssn', e.target.value)}
+                placeholder="123-45-6789"
+                required
               />
             </div>
           </CardContent>
