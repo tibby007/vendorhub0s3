@@ -113,27 +113,13 @@ export const useLoginForm = (isDemoSession?: boolean) => {
     } catch (error: any) {
       console.error('Login failed:', error);
       
-      // Track failed demo login
-      if (isDemoSession || email.includes('demo-')) {
-        DemoAnalytics.trackEvent(DEMO_EVENTS.REGISTRATION_FAILED, {
-          error: error.message,
-          email
-        });
-        
-        // For demo users, suggest getting new credentials
-        if (email.includes('demo-')) {
-          setTimeout(() => {
-            toast.info('Need new demo credentials?', {
-              description: 'Click here to register for a fresh demo session',
-              action: {
-                label: 'New Demo',
-                onClick: () => navigate('/demo-credentials')
-              },
-              duration: 10000
-            });
-          }, 2000);
+        // Track failed demo login
+        if (isDemoSession || email.includes('demo-')) {
+          DemoAnalytics.trackEvent(DEMO_EVENTS.REGISTRATION_FAILED, {
+            error: error.message,
+            email
+          });
         }
-      }
     } finally {
       setIsLoading(false);
     }
