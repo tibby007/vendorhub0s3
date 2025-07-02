@@ -20,7 +20,7 @@ const SubscriptionManager = () => {
     
     setIsCheckingSubscription(true);
     try {
-      await refreshSubscription();
+      await refreshSubscription(true); // Force refresh
       setRetryCount(0); // Reset retry count on success
       toast({
         title: "Subscription Status Refreshed",

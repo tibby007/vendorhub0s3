@@ -79,21 +79,43 @@ serve(async (req) => {
       logStep("Found Stripe customer via email lookup", { customerId });
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:3000";
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: `${origin}/dashboard`,
-    });
-    
-    logStep("Customer portal session created", { 
-      sessionId: portalSession.id, 
-      url: portalSession.url 
-    });
+    // Verify the customer exists and is valid before creating portal session
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      if (!customer || customer.deleted) {
+        throw new Error(`Customer ${customerId} is deleted or invalid`);
+      }
+      logStep("Verified customer exists", { customerId: customer.id, email: customer.email });
+    } catch (error) {
+      throw new Error(`Failed to verify customer: ${error.message}`);
+    }
 
-    return new Response(JSON.stringify({ url: portalSession.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    const origin = req.headers.get("origin") || "https://vendorhubos.com";
+    
+    try {
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${origin}/dashboard`,
+      });
+      
+      logStep("Customer portal session created successfully", { 
+        sessionId: portalSession.id, 
+        url: portalSession.url,
+        customerId: customerId
+      });
+
+      return new Response(JSON.stringify({ url: portalSession.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    } catch (stripeError) {
+      logStep("ERROR creating Stripe portal session", { 
+        error: stripeError.message, 
+        customerId: customerId,
+        stripeErrorType: stripeError.type
+      });
+      throw new Error(`Failed to create customer portal session: ${stripeError.message}`);
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in customer-portal", { message: errorMessage });

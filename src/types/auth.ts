@@ -19,7 +19,7 @@ export interface AuthContextType {
   subscriptionData: SubscriptionData | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  refreshSubscription: () => Promise<void>;
+  refreshSubscription: (forceRefresh?: boolean) => Promise<void>;
   checkSubscriptionAccess: (requiredTier?: string) => boolean;
   isLoading: boolean;
 }

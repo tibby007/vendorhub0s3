@@ -28,13 +28,20 @@ export const useAuthState = () => {
     let authProcessingTimer: NodeJS.Timeout | null = null;
     let lastProcessedEvent = '';
     let lastProcessedTime = 0;
+    let isInitialized = false;
 
     const handleAuthStateChange = async (event: string, session: Session | null) => {
-      // Prevent rapid successive identical events
+      // Prevent rapid successive identical events with stricter checking
       const now = Date.now();
       const eventKey = `${event}-${session?.user?.id || 'null'}`;
       
-      if (eventKey === lastProcessedEvent && now - lastProcessedTime < 1000) {
+      // For INITIAL_SESSION, only process once per session
+      if (event === 'INITIAL_SESSION' && isInitialized) {
+        console.log('⏭️ Skipping duplicate INITIAL_SESSION - already initialized');
+        return;
+      }
+      
+      if (eventKey === lastProcessedEvent && now - lastProcessedTime < 2000) {
         console.log('⏭️ Skipping duplicate auth event:', event);
         return;
       }
@@ -59,6 +66,7 @@ export const useAuthState = () => {
         
         if (session?.user && !profileProcessing) {
           profileProcessing = true;
+          isInitialized = true;
           
           try {
             console.log('👤 Processing successful auth for user:', session.user.email);
@@ -67,14 +75,14 @@ export const useAuthState = () => {
             const enrichedUser = await upsertUserProfile(session.user);
             if (mounted) {
               setUser(enrichedUser);
-              console.log('✅ User profile loaded:', enrichedUser);
+              console.log('✅ User profile loaded');
               
               // Refresh subscription data in background with longer delay
               setTimeout(() => {
                 if (mounted && session) {
                   refreshSubscription(session, false);
                 }
-              }, 1000);
+              }, 1500);
             }
           } catch (err: any) {
             console.error('❌ Error in auth state change:', err);
@@ -95,12 +103,13 @@ export const useAuthState = () => {
           } finally {
             profileProcessing = false;
           }
-        } else {
+        } else if (!session) {
           if (mounted) {
             console.log('🚪 User logged out or no session');
             setUser(null);
             clearCache();
             clearProfileCache();
+            isInitialized = false;
           }
         }
         
@@ -108,7 +117,7 @@ export const useAuthState = () => {
         if (mounted) {
           setIsLoading(false);
         }
-      }, 100); // 100ms debounce
+      }, 200); // Increased debounce to 200ms
     };
 
     // Set up auth state listener
@@ -129,7 +138,10 @@ export const useAuthState = () => {
         if (mounted) {
           if (session) {
             console.log('🔄 Initial session found:', session.user?.email);
-            handleAuthStateChange('INITIAL_SESSION', session);
+            // Only process if not already initialized
+            if (!isInitialized) {
+              handleAuthStateChange('INITIAL_SESSION', session);
+            }
           } else {
             console.log('❌ No initial session found');
             setIsLoading(false);
@@ -144,7 +156,7 @@ export const useAuthState = () => {
     };
 
     // Add a small delay before initializing to prevent race conditions
-    setTimeout(initializeAuth, 50);
+    setTimeout(initializeAuth, 100);
 
     return () => {
       mounted = false;

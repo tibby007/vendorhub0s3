@@ -18,7 +18,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   requiredTier = 'Basic',
   fallbackMessage 
 }) => {
-  const { user, subscriptionData, isLoading, refreshSubscription } = useAuth();
+  const { user, subscriptionData, isLoading, refreshSubscription, session } = useAuth();
 
   if (isLoading) {
     return (
@@ -65,7 +65,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
 
             <div className="space-y-2 pt-4">
               <Button 
-                onClick={() => refreshSubscription()}
+                onClick={() => refreshSubscription(true)}
                 className="w-full"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />

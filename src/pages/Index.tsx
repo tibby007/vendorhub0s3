@@ -14,7 +14,8 @@ const Index = () => {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      navigate('/auth');
+      console.log('🚫 No user on dashboard, redirecting to auth');
+      navigate('/auth', { replace: true });
     }
   }, [user, isLoading, navigate]);
 
