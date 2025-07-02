@@ -41,13 +41,43 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // First, try to get the stored stripe_customer_id from our database
+    const { data: subscriberData, error: subscriberError } = await supabaseClient
+      .from('subscribers')
+      .select('stripe_customer_id')
+      .eq('email', user.email)
+      .maybeSingle();
+
+    logStep("Database lookup for subscriber", { subscriberData, subscriberError });
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found for this user");
+    let customerId = null;
+
+    // Use stored customer ID if available
+    if (subscriberData?.stripe_customer_id) {
+      try {
+        const customer = await stripe.customers.retrieve(subscriberData.stripe_customer_id);
+        if (customer && !customer.deleted) {
+          customerId = customer.id;
+          logStep("Found Stripe customer using stored ID", { customerId });
+        } else {
+          logStep("Stored customer ID is invalid or deleted", { storedId: subscriberData.stripe_customer_id });
+        }
+      } catch (error) {
+        logStep("Error retrieving customer by stored ID", { error: error.message, storedId: subscriberData.stripe_customer_id });
+      }
     }
-    const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
+
+    // Fall back to email lookup if stored ID didn't work
+    if (!customerId) {
+      logStep("Falling back to email-based customer lookup");
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (customers.data.length === 0) {
+        throw new Error(`No Stripe customer found for ${user.email}. Please ensure you have an active subscription.`);
+      }
+      customerId = customers.data[0].id;
+      logStep("Found Stripe customer via email lookup", { customerId });
+    }
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
     const portalSession = await stripe.billingPortal.sessions.create({
