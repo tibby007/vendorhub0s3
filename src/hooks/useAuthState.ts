@@ -33,7 +33,7 @@ export const useAuthState = () => {
     const handleAuthStateChange = async (event: string, session: Session | null) => {
       // Prevent rapid successive identical events with stricter checking
       const now = Date.now();
-      const eventKey = `${event}-${session?.user?.id || 'null'}`;
+      const eventKey = `${event}-${session?.user?.id || 'null'}-${session?.access_token?.slice(-8) || 'null'}`;
       
       // For INITIAL_SESSION, only process once per session
       if (event === 'INITIAL_SESSION' && isInitialized) {
@@ -41,7 +41,7 @@ export const useAuthState = () => {
         return;
       }
       
-      if (eventKey === lastProcessedEvent && now - lastProcessedTime < 2000) {
+      if (eventKey === lastProcessedEvent && now - lastProcessedTime < 1000) {
         console.log('⏭️ Skipping duplicate auth event:', event);
         return;
       }
@@ -58,72 +58,74 @@ export const useAuthState = () => {
         clearTimeout(authProcessingTimer);
       }
 
-      // Debounce auth processing to prevent loops
-      authProcessingTimer = setTimeout(async () => {
-        if (!mounted) return;
-
-        setSession(session);
+      // Process auth changes immediately for better UX
+      setSession(session);
+      
+      if (session?.user && !profileProcessing) {
+        profileProcessing = true;
+        isInitialized = true;
         
-        if (session?.user && !profileProcessing) {
-          profileProcessing = true;
-          isInitialized = true;
+        try {
+          console.log('👤 Processing successful auth for user:', session.user.email);
           
-          try {
-            console.log('👤 Processing successful auth for user:', session.user.email);
-            
-            // Clear cache for demo users to ensure fresh profile data
-            if (session.user.email?.includes('demo-')) {
-              console.log('🧹 Clearing cached profile for demo user');
-              clearProfileCache();
-            }
-            
-            // Enrich user profile with error handling
-            const enrichedUser = await upsertUserProfile(session.user);
-            if (mounted) {
-              setUser(enrichedUser);
-              console.log('✅ User profile loaded');
-              
-              // Refresh subscription data in background with longer delay
-              setTimeout(() => {
-                if (mounted && session) {
-                  refreshSubscription(session, false);
-                }
-              }, 1500);
-            }
-          } catch (err: any) {
-            console.error('❌ Error in auth state change:', err);
-            if (mounted) {
-              // Still set the user even if profile update fails
-              setUser(session.user as AuthUser);
-              console.log('⚠️ Using fallback user data due to profile error');
-              
-              // Show a toast for persistent errors only
-              if (!err.message?.includes('Failed to fetch')) {
-                toast({
-                  title: "Profile Loading Issue",
-                  description: "Using basic profile data. Some features may be limited.",
-                  variant: "destructive",
-                });
-              }
-            }
-          } finally {
-            profileProcessing = false;
-          }
-        } else if (!session) {
-          if (mounted) {
-            console.log('🚪 User logged out or no session');
-            setUser(null);
-            clearCache();
+          // Clear cache for demo users to ensure fresh profile data
+          if (session.user.email?.includes('demo-')) {
+            console.log('🧹 Clearing cached profile for demo user');
             clearProfileCache();
-            isInitialized = false;
           }
+          
+          // Enrich user profile with error handling
+          const enrichedUser = await upsertUserProfile(session.user);
+          if (mounted) {
+            setUser(enrichedUser);
+            console.log('✅ User profile loaded successfully');
+            
+            // Refresh subscription data in background
+            setTimeout(() => {
+              if (mounted && session) {
+                refreshSubscription(session, false);
+              }
+            }, 1000);
+          }
+        } catch (err: any) {
+          console.error('❌ Error in auth state change:', err);
+          if (mounted) {
+            // For demo users, use fallback data to ensure login works
+            const fallbackUser = {
+              ...session.user,
+              role: session.user.email?.includes('demo-') ? 'Vendor' : 'Partner Admin',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            } as AuthUser;
+            
+            setUser(fallbackUser);
+            console.log('⚠️ Using fallback user data for demo user');
+            
+            // Only show toast for non-demo users or critical errors
+            if (!session.user.email?.includes('demo-') && !err.message?.includes('Failed to fetch')) {
+              toast({
+                title: "Profile Loading Issue",
+                description: "Using basic profile data. Some features may be limited.",
+                variant: "destructive",
+              });
+            }
+          }
+        } finally {
+          profileProcessing = false;
         }
-        
-        // Always set loading to false after processing
+      } else if (!session) {
         if (mounted) {
-          setIsLoading(false);
+          console.log('🚪 User logged out or no session');
+          setUser(null);
+          clearCache();
+          clearProfileCache();
+          isInitialized = false;
         }
-      }, 200); // Increased debounce to 200ms
+      }
+      
+      // Always set loading to false after processing
+      if (mounted) {
+        setIsLoading(false);
+      }
     };
 
     // Set up auth state listener

@@ -43,46 +43,25 @@ export const useUserProfile = () => {
     try {
       console.log('Upserting user profile for:', user.email);
       
-      // First, try to get existing profile with retry logic
-      let profile = null;
-      let retryCount = 0;
-      const maxRetries = 3;
+      // First, try to get existing profile
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
 
-      while (retryCount < maxRetries) {
-        try {
-          const { data: existingProfile, error: fetchError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          if (fetchError && fetchError.code !== 'PGRST116') {
-            throw fetchError;
-          }
-
-          profile = existingProfile;
-          break;
-        } catch (error: any) {
-          retryCount++;
-          if (error.message?.includes('Failed to fetch') || error.message?.includes('INSUFFICIENT_RESOURCES')) {
-            if (retryCount < maxRetries) {
-              console.log(`🔄 Retrying profile fetch (attempt ${retryCount}/${maxRetries}) for:`, user.email);
-              await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000)); // Exponential backoff
-              continue;
-            }
-          }
-          throw error;
-        }
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching existing profile:', fetchError);
       }
 
       // If profile exists, return enriched user
-      if (profile) {
-        console.log('✅ Found existing profile for:', user.email, 'with role:', profile.role);
+      if (existingProfile) {
+        console.log('✅ Found existing profile for:', user.email, 'with role:', existingProfile.role);
         return {
           ...user,
-          role: profile.role || 'Vendor',
-          name: profile.name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-          partnerId: profile.partner_id,
+          role: existingProfile.role || 'Vendor',
+          name: existingProfile.name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+          partnerId: existingProfile.partner_id,
         } as AuthUser;
       }
 
@@ -105,66 +84,53 @@ export const useUserProfile = () => {
         updated_at: new Date().toISOString(),
       };
 
-      retryCount = 0;
-      while (retryCount < maxRetries) {
-        try {
-          const { data: insertedProfile, error: insertError } = await supabase
-            .from('users')
-            .insert(newProfile)
-            .select()
-            .single();
+      // Use upsert to handle race conditions
+      const { data: upsertedProfile, error: upsertError } = await supabase
+        .from('users')
+        .upsert(newProfile, { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        })
+        .select()
+        .single();
 
-          if (insertError) {
-            // If user already exists, fetch it instead
-            if (insertError.code === '23505') {
-              console.log('👤 Profile already exists, fetching existing profile');
-              const { data: existingProfile } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-              
-              if (existingProfile) {
-                return {
-                  ...user,
-                  role: existingProfile.role || 'Vendor',
-                  name: existingProfile.name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-                  partnerId: existingProfile.partner_id,
-                } as AuthUser;
-              }
-            }
-            throw insertError;
-          }
-
-          console.log('✅ Created new profile for:', user.email);
+      if (upsertError) {
+        console.error('Error upserting profile:', upsertError);
+        
+        // Try one more time to fetch if upsert failed
+        const { data: fallbackProfile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        if (fallbackProfile) {
+          console.log('✅ Using fallback profile for:', user.email);
           return {
             ...user,
-            role: insertedProfile.role || 'Vendor',
-            name: insertedProfile.name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-            partnerId: insertedProfile.partner_id,
+            role: fallbackProfile.role || 'Vendor',
+            name: fallbackProfile.name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+            partnerId: fallbackProfile.partner_id,
           } as AuthUser;
-        } catch (error: any) {
-          retryCount++;
-          if (error.message?.includes('Failed to fetch') || error.message?.includes('INSUFFICIENT_RESOURCES')) {
-            if (retryCount < maxRetries) {
-              console.log(`🔄 Retrying profile creation (attempt ${retryCount}/${maxRetries}) for:`, user.email);
-              await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-              continue;
-            }
-          }
-          throw error;
         }
+        
+        throw upsertError;
       }
 
-      // Fallback if all retries failed
-      throw new Error('Failed to create profile after retries');
+      console.log('✅ Upserted profile for:', user.email);
+      return {
+        ...user,
+        role: upsertedProfile.role || 'Vendor',
+        name: upsertedProfile.name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+        partnerId: upsertedProfile.partner_id,
+      } as AuthUser;
       
     } catch (error) {
       console.error('Error in profile upsert:', error);
       // Return basic user data as fallback
       return {
         ...user,
-        role: 'Partner Admin',
+        role: user.email?.includes('demo-') ? 'Vendor' : 'Partner Admin',
         name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
       } as AuthUser;
     }
