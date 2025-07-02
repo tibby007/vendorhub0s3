@@ -71,6 +71,12 @@ export const useAuthState = () => {
           try {
             console.log('👤 Processing successful auth for user:', session.user.email);
             
+            // Clear cache for demo users to ensure fresh profile data
+            if (session.user.email?.includes('demo-')) {
+              console.log('🧹 Clearing cached profile for demo user');
+              clearProfileCache();
+            }
+            
             // Enrich user profile with error handling
             const enrichedUser = await upsertUserProfile(session.user);
             if (mounted) {

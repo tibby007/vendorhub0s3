@@ -77,7 +77,7 @@ export const useUserProfile = () => {
 
       // If profile exists, return enriched user
       if (profile) {
-        console.log('✅ Found existing profile for:', user.email);
+        console.log('✅ Found existing profile for:', user.email, 'with role:', profile.role);
         return {
           ...user,
           role: profile.role || 'Vendor',
@@ -89,11 +89,17 @@ export const useUserProfile = () => {
       // Only create new profile if none exists
       console.log('Creating new profile for user:', user.id);
       
+      // Determine role for new users
+      const isDemoUser = user.email?.includes('demo-');
+      const userRole = isDemoUser ? 
+        (user.user_metadata?.role || 'Vendor') : 
+        'Partner Admin'; // Default for regular new users
+      
       const newProfile = {
         id: user.id,
         email: user.email || '',
         name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-        role: 'Partner Admin',
+        role: userRole,
         partner_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -165,6 +171,7 @@ export const useUserProfile = () => {
   };
 
   const clearProfileCache = () => {
+    console.log('🧹 Clearing profile cache');
     profileCache.clear();
     profileData.clear();
   };
