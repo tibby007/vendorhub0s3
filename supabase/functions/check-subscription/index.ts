@@ -55,7 +55,36 @@ serve(async (req) => {
         .maybeSingle();
       
       if (existingSubscriber) {
-        // Return existing trial data
+        // Check if this is an existing customer who should be reset to trial
+        // If they have a stripe_customer_id but no active subscription, reset them to trial
+        if (existingSubscriber.stripe_customer_id && !existingSubscriber.subscribed) {
+          logStep("Resetting existing customer to trial status");
+          const trialEnd = new Date();
+          trialEnd.setDate(trialEnd.getDate() + 3);
+          
+          await supabaseClient.from("subscribers").upsert({
+            email: user.email,
+            user_id: user.id,
+            stripe_customer_id: existingSubscriber.stripe_customer_id,
+            subscribed: false, // Reset to trial status
+            subscription_tier: null,
+            subscription_end: trialEnd.toISOString(),
+            price_id: null,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'email' });
+          
+          return new Response(JSON.stringify({ 
+            subscribed: false, 
+            subscription_tier: null,
+            subscription_end: trialEnd.toISOString(),
+            price_id: null
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        }
+        
+        // Return existing trial data for users without stripe customer
         logStep("Found existing trial user", { 
           subscribed: existingSubscriber.subscribed,
           subscription_end: existingSubscriber.subscription_end 
@@ -90,7 +119,9 @@ serve(async (req) => {
       
       return new Response(JSON.stringify({ 
         subscribed: false, 
-        subscription_end: trialEnd.toISOString() 
+        subscription_tier: null,
+        subscription_end: trialEnd.toISOString(),
+        price_id: null 
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
