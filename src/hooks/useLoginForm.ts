@@ -10,6 +10,7 @@ export const useLoginForm = (isDemoSession?: boolean) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [demoCredentials, setDemoCredentials] = useState<{ email: string; password: string; role: string } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
@@ -19,20 +20,24 @@ export const useLoginForm = (isDemoSession?: boolean) => {
     const urlParams = new URLSearchParams(location.search);
     const isDemoMode = urlParams.get('demo') === 'true';
     
-    if (isDemoMode) {
-      const storedCredentials = sessionStorage.getItem('demoCredentials');
-      if (storedCredentials) {
-        try {
-          const credentials = JSON.parse(storedCredentials);
+    // Always check for stored demo credentials, not just when URL param is present
+    const storedCredentials = sessionStorage.getItem('demoCredentials');
+    if (storedCredentials) {
+      try {
+        const credentials = JSON.parse(storedCredentials);
+        if (credentials.isDemoMode) {
+          setDemoCredentials(credentials);
           setEmail(credentials.email);
           setPassword(credentials.password);
           
-          toast.info('Demo Credentials Loaded', {
-            description: 'Your demo credentials have been automatically filled in.',
-          });
-        } catch (error) {
-          console.error('Error parsing stored demo credentials:', error);
+          if (isDemoMode) {
+            toast.info('Demo Credentials Loaded', {
+              description: 'Your demo credentials have been automatically filled in.',
+            });
+          }
         }
+      } catch (error) {
+        console.error('Error parsing stored demo credentials:', error);
       }
     }
   }, [location]);
@@ -77,6 +82,7 @@ export const useLoginForm = (isDemoSession?: boolean) => {
 
         // Clear stored credentials after successful login
         sessionStorage.removeItem('demoCredentials');
+        setDemoCredentials(null);
 
         toast.success('Demo Login Successful!', {
           description: `Welcome to your VendorHub demo experience.`,
@@ -128,6 +134,7 @@ export const useLoginForm = (isDemoSession?: boolean) => {
     password,
     setPassword,
     isLoading,
-    handleLogin
+    handleLogin,
+    demoCredentials
   };
 };

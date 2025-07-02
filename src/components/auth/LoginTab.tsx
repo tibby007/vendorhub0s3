@@ -22,13 +22,15 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
     password,
     setPassword,
     isLoading,
-    handleLogin
+    handleLogin,
+    demoCredentials
   } = useLoginForm(isDemoSession);
 
   // Check if we're in demo mode from URL or session storage
   const isInDemoMode = isDemoSession || 
                        new URLSearchParams(location.search).get('demo') === 'true' ||
-                       sessionStorage.getItem('demoSessionActive') === 'true';
+                       sessionStorage.getItem('demoSessionActive') === 'true' ||
+                       !!demoCredentials;
 
   return (
     <Card>
@@ -45,7 +47,11 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {isInDemoMode && (
-          <DemoInfoPanel email={email} password={password} />
+          <DemoInfoPanel 
+            email={email} 
+            password={password} 
+            role={demoCredentials?.role}
+          />
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">

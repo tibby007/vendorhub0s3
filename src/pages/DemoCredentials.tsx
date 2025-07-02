@@ -189,11 +189,27 @@ const DemoCredentials = () => {
               </div>
 
               {/* Login Button */}
-              <Button asChild className="w-full bg-vendor-green-600 hover:bg-vendor-green-700" size="lg">
-                <Link to="/auth" className="flex items-center justify-center gap-2">
+              <Button 
+                className="w-full bg-vendor-green-600 hover:bg-vendor-green-700" 
+                size="lg"
+                onClick={() => {
+                  // Store credentials with demo flag for the login page
+                  if (demoCredentials) {
+                    sessionStorage.setItem('demoCredentials', JSON.stringify({
+                      email: demoCredentials.email,
+                      password: demoCredentials.password,
+                      role: demoCredentials.role,
+                      isDemoMode: true
+                    }));
+                  }
+                  // Navigate to login with demo parameter
+                  window.location.href = '/auth?demo=true';
+                }}
+              >
+                <div className="flex items-center justify-center gap-2">
                   Start Demo as {demoCredentials?.role}
                   <ArrowRight className="w-4 h-4" />
-                </Link>
+                </div>
               </Button>
             </CardContent>
           </Card>
