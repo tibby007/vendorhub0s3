@@ -104,11 +104,7 @@ const VendorManagement = () => {
       newErrors.contact_email = 'Email is invalid';
     }
 
-    if (!editingVendor && !formData.password) {
-      newErrors.password = 'Password is required for new vendors';
-    } else if (!editingVendor && formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    }
+    // Password validation removed - vendors will register themselves
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -131,32 +127,6 @@ const VendorManagement = () => {
     setIsLoading(true);
 
     try {
-      // Create auth user for vendor
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.contact_email,
-        password: formData.password,
-        email_confirm: true,
-        user_metadata: {
-          name: formData.vendor_name,
-          role: 'Vendor'
-        }
-      });
-
-      if (authError) throw authError;
-
-      // Create user profile
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email: formData.contact_email,
-          name: formData.vendor_name,
-          role: 'Vendor',
-          partner_id: user.partnerId
-        });
-
-      if (userError) throw userError;
-
       // Create vendor record
       const { error: vendorError } = await supabase
         .from('vendors')
@@ -166,14 +136,14 @@ const VendorManagement = () => {
           contact_phone: formData.contact_phone,
           contact_address: formData.contact_address,
           partner_admin_id: user.id,
-          user_id: authData.user.id
+          user_id: null // Will be set when vendor registers
         });
 
       if (vendorError) throw vendorError;
 
       toast({
         title: "Success",
-        description: "Vendor created successfully",
+        description: "Vendor created successfully. They can now register at the login page using their email.",
       });
 
       resetForm();
@@ -336,22 +306,10 @@ const VendorManagement = () => {
       </div>
       
       {!editingVendor && (
-        <div className="space-y-2">
-          <Label htmlFor="password">Password *</Label>
-          <Input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => handleInputChange('password', e.target.value)}
-            className={errors.password ? 'border-red-500' : ''}
-            placeholder="Minimum 8 characters"
-          />
-          {errors.password && (
-            <p className="text-sm text-red-600 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" />
-              {errors.password}
-            </p>
-          )}
+        <div className="space-y-2 p-3 bg-blue-50 rounded-md border border-blue-200">
+          <div className="text-sm text-blue-800">
+            <strong>Note:</strong> The vendor will receive an email invitation to register their own account using this email address.
+          </div>
         </div>
       )}
       
