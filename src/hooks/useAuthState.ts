@@ -25,68 +25,90 @@ export const useAuthState = () => {
   useEffect(() => {
     let mounted = true;
     let profileProcessing = false;
+    let authProcessingTimer: NodeJS.Timeout | null = null;
+    let lastProcessedEvent = '';
+    let lastProcessedTime = 0;
 
     const handleAuthStateChange = async (event: string, session: Session | null) => {
+      // Prevent rapid successive identical events
+      const now = Date.now();
+      const eventKey = `${event}-${session?.user?.id || 'null'}`;
+      
+      if (eventKey === lastProcessedEvent && now - lastProcessedTime < 1000) {
+        console.log('⏭️ Skipping duplicate auth event:', event);
+        return;
+      }
+      
+      lastProcessedEvent = eventKey;
+      lastProcessedTime = now;
+      
       console.log('🔐 Auth state changed:', event, session?.user?.email);
       
       if (!mounted) return;
 
-      setSession(session);
-      
-      if (session?.user && !profileProcessing) {
-        profileProcessing = true;
+      // Clear any pending auth processing
+      if (authProcessingTimer) {
+        clearTimeout(authProcessingTimer);
+      }
+
+      // Debounce auth processing to prevent loops
+      authProcessingTimer = setTimeout(async () => {
+        if (!mounted) return;
+
+        setSession(session);
         
-        try {
-          console.log('👤 Processing successful auth for user:', session.user.email);
+        if (session?.user && !profileProcessing) {
+          profileProcessing = true;
           
-          // Add a small delay to prevent overwhelming the database
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Enrich user profile with error handling
-          const enrichedUser = await upsertUserProfile(session.user);
-          if (mounted) {
-            setUser(enrichedUser);
-            console.log('✅ User profile loaded:', enrichedUser);
+          try {
+            console.log('👤 Processing successful auth for user:', session.user.email);
             
-            // Refresh subscription data in background with delay
-            setTimeout(() => {
-              if (mounted && session) {
-                refreshSubscription(session, false);
-              }
-            }, 500);
-          }
-        } catch (err: any) {
-          console.error('❌ Error in auth state change:', err);
-          if (mounted) {
-            // Still set the user even if profile update fails
-            setUser(session.user as AuthUser);
-            console.log('⚠️ Using fallback user data due to profile error');
-            
-            // Show a toast for persistent errors only
-            if (!err.message?.includes('Failed to fetch')) {
-              toast({
-                title: "Profile Loading Issue",
-                description: "Using basic profile data. Some features may be limited.",
-                variant: "destructive",
-              });
+            // Enrich user profile with error handling
+            const enrichedUser = await upsertUserProfile(session.user);
+            if (mounted) {
+              setUser(enrichedUser);
+              console.log('✅ User profile loaded:', enrichedUser);
+              
+              // Refresh subscription data in background with longer delay
+              setTimeout(() => {
+                if (mounted && session) {
+                  refreshSubscription(session, false);
+                }
+              }, 1000);
             }
+          } catch (err: any) {
+            console.error('❌ Error in auth state change:', err);
+            if (mounted) {
+              // Still set the user even if profile update fails
+              setUser(session.user as AuthUser);
+              console.log('⚠️ Using fallback user data due to profile error');
+              
+              // Show a toast for persistent errors only
+              if (!err.message?.includes('Failed to fetch')) {
+                toast({
+                  title: "Profile Loading Issue",
+                  description: "Using basic profile data. Some features may be limited.",
+                  variant: "destructive",
+                });
+              }
+            }
+          } finally {
+            profileProcessing = false;
           }
-        } finally {
-          profileProcessing = false;
+        } else {
+          if (mounted) {
+            console.log('🚪 User logged out or no session');
+            setUser(null);
+            clearCache();
+            clearProfileCache();
+          }
         }
-      } else {
+        
+        // Always set loading to false after processing
         if (mounted) {
-          console.log('🚪 User logged out or no session');
-          setUser(null);
-          clearCache();
-          clearProfileCache();
+          setIsLoading(false);
         }
-      }
-      
-      // Always set loading to false after processing
-      if (mounted) {
-        setIsLoading(false);
-      }
+      }, 100); // 100ms debounce
     };
 
     // Set up auth state listener
@@ -126,6 +148,9 @@ export const useAuthState = () => {
 
     return () => {
       mounted = false;
+      if (authProcessingTimer) {
+        clearTimeout(authProcessingTimer);
+      }
       subscription.unsubscribe();
     };
   }, [upsertUserProfile, refreshSubscription, clearCache, clearProfileCache]);
