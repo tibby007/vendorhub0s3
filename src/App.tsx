@@ -11,8 +11,6 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Subscription from "./pages/Subscription";
 import AffiliateApplication from "./pages/AffiliateApplication";
-import DemoCredentials from "./pages/DemoCredentials";
-import DemoSetup from "./pages/DemoSetup";
 import DemoSelector from "./components/demo/DemoSelector";
 import ProtectedRoute from "./components/ProtectedRoute";
 import VendorManagement from "./components/vendor/VendorManagement";
@@ -36,8 +34,6 @@ function App() {
               <Route path="/landing" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/affiliate-application" element={<AffiliateApplication />} />
-              <Route path="/demo-credentials" element={<DemoCredentials />} />
-              <Route path="/demo-setup" element={<DemoSetup />} />
               <Route path="/demo" element={<DemoSelector />} />
               <Route path="/subscription" element={
                 <ProtectedRoute>
