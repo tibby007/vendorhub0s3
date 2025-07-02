@@ -10,6 +10,8 @@ const SubscriptionWidget = () => {
   const { subscriptionData } = useAuth();
   const navigate = useNavigate();
 
+  console.log('🔍 SubscriptionWidget render:', { subscriptionData });
+
   if (!subscriptionData) return null;
 
   const isTrialUser = !subscriptionData.subscribed && subscriptionData.subscription_end;
@@ -40,7 +42,7 @@ const SubscriptionWidget = () => {
           {isTrialUser && subscriptionData.subscription_end && (
             <div className="flex items-center justify-between">
               <span className="text-sm">Trial ends:</span>
-              <span className="text-sm text-orange-600">
+              <span className="text-sm text-orange-600 font-medium">
                 {new Date(subscriptionData.subscription_end).toLocaleDateString()}
               </span>
             </div>

@@ -94,7 +94,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
     );
   }
 
-  if (!hasAccess || (!hasRequiredTier && !isTrialUser)) {
+  if (!hasAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">
