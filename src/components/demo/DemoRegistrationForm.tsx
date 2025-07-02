@@ -98,12 +98,15 @@ const DemoRegistrationForm = ({ onSuccess }: DemoRegistrationFormProps) => {
         name: SecurityUtils.sanitizeText(formData.name.trim()),
         email: formData.email.toLowerCase().trim(),
         company: SecurityUtils.sanitizeText(formData.company.trim()),
-        phone: formData.phone ? SecurityUtils.sanitizeText(formData.phone.trim()) : undefined,
+        phone: formData.phone && formData.phone.trim() ? SecurityUtils.sanitizeText(formData.phone.trim()) : undefined,
         role: formData.role,
-        employees: formData.employees ? SecurityUtils.sanitizeText(formData.employees) : undefined,
-        useCase: formData.useCase ? SecurityUtils.sanitizeText(formData.useCase.trim()) : undefined,
+        employees: formData.employees && formData.employees.trim() ? SecurityUtils.sanitizeText(formData.employees) : undefined,
+        useCase: formData.useCase && formData.useCase.trim() ? SecurityUtils.sanitizeText(formData.useCase.trim()) : undefined,
         csrfToken
       };
+
+      // Validate payload before sending
+      console.log('Sanitized data before sending:', JSON.stringify(sanitizedData, null, 2));
 
       console.log('Invoking demo-lead-registration with data:', sanitizedData);
       
