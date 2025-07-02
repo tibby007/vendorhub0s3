@@ -27,7 +27,10 @@ const RootRedirect = () => {
     if (!isLoading) {
       if (user) {
         console.log('🏠 User authenticated at root, redirecting to dashboard');
-        navigate('/dashboard', { replace: true });
+        // Preserve any query parameters (like subscription=success)
+        const queryString = searchParams.toString();
+        const dashboardUrl = queryString ? `/dashboard?${queryString}` : '/dashboard';
+        navigate(dashboardUrl, { replace: true });
       } else {
         console.log('🏠 No user at root, redirecting to landing');
         navigate('/landing', { replace: true });
