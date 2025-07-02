@@ -95,9 +95,20 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       
       // Navigate to dashboard with more robust redirect
       console.log('🔄 Navigating to dashboard after successful login');
-      setTimeout(() => {
-        navigate('/dashboard', { replace: true });
-      }, 100);
+      
+      // For demo users, add emergency redirect in case profile loading hangs
+      if (isDemoUser) {
+        console.log('⚡ Setting emergency redirect for demo user');
+        // Immediate redirect
+        setTimeout(() => navigate('/dashboard', { replace: true }), 100);
+        // Emergency backup redirect
+        setTimeout(() => {
+          console.log('🚨 Emergency redirect triggered');
+          window.location.href = '/dashboard';
+        }, 3000);
+      } else {
+        setTimeout(() => navigate('/dashboard', { replace: true }), 100);
+      }
       
     } catch (error: any) {
       console.error('Login failed:', error);

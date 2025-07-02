@@ -74,18 +74,37 @@ export const useAuthState = () => {
             clearProfileCache();
           }
           
-          // Enrich user profile with error handling
-          const enrichedUser = await upsertUserProfile(session.user);
-          if (mounted) {
-            setUser(enrichedUser);
-            console.log('✅ User profile loaded successfully');
+          // Enrich user profile with error handling and timeout
+          const isDemoUser = session.user.email?.includes('demo-');
+          
+          try {
+            const enrichedUser = await upsertUserProfile(session.user);
+            if (mounted) {
+              setUser(enrichedUser);
+              console.log('✅ User profile loaded successfully');
+              
+              // Refresh subscription data in background
+              setTimeout(() => {
+                if (mounted && session) {
+                  refreshSubscription(session, false);
+                }
+              }, 1000);
+            }
+          } catch (profileError) {
+            console.error('⚠️ Profile upsert failed, using emergency fallback:', profileError);
             
-            // Refresh subscription data in background
-            setTimeout(() => {
-              if (mounted && session) {
-                refreshSubscription(session, false);
-              }
-            }, 1000);
+            if (mounted) {
+              // Create immediate fallback user to prevent login hanging
+              const emergencyUser = {
+                ...session.user,
+                role: isDemoUser ? (session.user.user_metadata?.role || 'Vendor') : 'Partner Admin',
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                partnerId: isDemoUser && session.user.user_metadata?.role === 'Partner Admin' ? 'demo-partner-id' : undefined,
+              } as AuthUser;
+              
+              setUser(emergencyUser);
+              console.log('🚨 Emergency user fallback activated');
+            }
           }
         } catch (err: any) {
           console.error('❌ Error in auth state change:', err);

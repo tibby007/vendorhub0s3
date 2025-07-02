@@ -40,15 +40,30 @@ export const useUserProfile = () => {
   };
 
   const performUpsertProfile = async (user: User): Promise<AuthUser> => {
+    // Add timeout wrapper for demo users to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Profile upsert timeout')), 5000);
+    });
+
     try {
       console.log('Upserting user profile for:', user.email);
       
-      // First, try to get existing profile
-      const { data: existingProfile, error: fetchError } = await supabase
+      // For demo users, add timeout protection
+      const isDemoUser = user.email?.includes('demo-');
+      if (isDemoUser) {
+        console.log('⏰ Adding timeout protection for demo user profile');
+      }
+      
+      // First, try to get existing profile with timeout
+      const profilePromise = supabase
         .from('users')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
+
+      const { data: existingProfile, error: fetchError } = isDemoUser 
+        ? await Promise.race([profilePromise, timeoutPromise])
+        : await profilePromise;
 
       if (fetchError && fetchError.code !== 'PGRST116') {
         console.error('Error fetching existing profile:', fetchError);
@@ -69,7 +84,6 @@ export const useUserProfile = () => {
       console.log('Creating new profile for user:', user.id);
       
       // Determine role for new users
-      const isDemoUser = user.email?.includes('demo-');
       const userRole = isDemoUser ? 
         (user.user_metadata?.role || 'Vendor') : 
         'Partner Admin'; // Default for regular new users
@@ -84,8 +98,8 @@ export const useUserProfile = () => {
         updated_at: new Date().toISOString(),
       };
 
-      // Use upsert to handle race conditions
-      const { data: upsertedProfile, error: upsertError } = await supabase
+      // Use upsert to handle race conditions with timeout for demo users
+      const upsertPromise = supabase
         .from('users')
         .upsert(newProfile, { 
           onConflict: 'id',
@@ -93,6 +107,10 @@ export const useUserProfile = () => {
         })
         .select()
         .single();
+
+      const { data: upsertedProfile, error: upsertError } = isDemoUser
+        ? await Promise.race([upsertPromise, timeoutPromise])
+        : await upsertPromise;
 
       if (upsertError) {
         console.error('Error upserting profile:', upsertError);
@@ -127,10 +145,22 @@ export const useUserProfile = () => {
       
     } catch (error) {
       console.error('Error in profile upsert:', error);
-      // Return basic user data as fallback
+      
+      // For demo users, provide immediate fallback to prevent login hanging
+      if (user.email?.includes('demo-')) {
+        console.log('⚡ Using emergency fallback for demo user');
+        return {
+          ...user,
+          role: user.user_metadata?.role || 'Vendor',
+          name: user.user_metadata?.name || `Demo ${user.user_metadata?.role || 'User'}`,
+          partnerId: user.user_metadata?.role === 'Partner Admin' ? 'demo-partner-id' : undefined,
+        } as AuthUser;
+      }
+      
+      // Return basic user data as fallback for regular users
       return {
         ...user,
-        role: user.email?.includes('demo-') ? 'Vendor' : 'Partner Admin',
+        role: 'Partner Admin',
         name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
       } as AuthUser;
     }
