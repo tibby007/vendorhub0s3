@@ -45,7 +45,7 @@ const Index = () => {
   const isDemoUser = user.email?.includes('demo-') || user.user_metadata?.demo_session_id;
 
   const renderDashboard = () => {
-    console.log('🎯 Rendering dashboard for role:', user.role);
+    console.log('🎯 Rendering dashboard for role:', user.role, 'User:', user.name, 'Email:', user.email);
     
     switch (user.role) {
       case 'Super Admin':

@@ -17,6 +17,13 @@ const TrialBanner = () => {
   });
 
   useEffect(() => {
+    console.log('🔄 TrialBanner useEffect:', { 
+      hasSubscriptionData: !!subscriptionData,
+      hasSubscriptionEnd: !!subscriptionData?.subscription_end,
+      subscribed: subscriptionData?.subscribed,
+      subscriptionEnd: subscriptionData?.subscription_end
+    });
+    
     if (!subscriptionData?.subscription_end || subscriptionData.subscribed) {
       console.log('❌ TrialBanner: Not showing banner', { 
         hasEnd: !!subscriptionData?.subscription_end, 
@@ -48,7 +55,17 @@ const TrialBanner = () => {
   }, [subscriptionData]);
 
   // Show banner for trial users (not subscribed but has subscription_end)
-  if (!subscriptionData?.subscription_end || subscriptionData.subscribed || !timeLeft || !isVisible) {
+  const shouldShowBanner = subscriptionData?.subscription_end && !subscriptionData.subscribed && timeLeft && isVisible;
+  
+  console.log('🔍 TrialBanner final check:', {
+    hasSubscriptionEnd: !!subscriptionData?.subscription_end,
+    notSubscribed: !subscriptionData?.subscribed,
+    hasTimeLeft: !!timeLeft,
+    isVisible,
+    shouldShowBanner
+  });
+  
+  if (!shouldShowBanner) {
     return null;
   }
 
