@@ -7,12 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Save, Settings, Bell, Shield, Palette, CreditCard } from 'lucide-react';
+import { ArrowLeft, Save, Settings, Bell, Shield, Palette, CreditCard, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import SubscriptionManager from '@/components/subscription/SubscriptionManager';
+import ResourcesManagement from '@/components/resources/ResourcesManagement';
 
 interface PartnerProfile {
   id: string;
@@ -188,7 +189,7 @@ const PartnerSettings = () => {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
             Profile
@@ -208,6 +209,10 @@ const PartnerSettings = () => {
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
             Security
+          </TabsTrigger>
+          <TabsTrigger value="resources" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Resources
           </TabsTrigger>
         </TabsList>
 
@@ -365,6 +370,10 @@ const PartnerSettings = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="resources">
+          <ResourcesManagement />
         </TabsContent>
       </Tabs>
     </div>
