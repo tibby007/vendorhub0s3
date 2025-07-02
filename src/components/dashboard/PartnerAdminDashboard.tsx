@@ -6,6 +6,7 @@ import { Users, FileText, TrendingUp, Settings, Plus, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import TrialBanner from '@/components/subscription/TrialBanner';
+import SubscriptionWidget from '@/components/dashboard/SubscriptionWidget';
 
 const PartnerAdminDashboard = () => {
   const { user } = useAuth();
@@ -73,7 +74,7 @@ const PartnerAdminDashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -86,6 +87,7 @@ const PartnerAdminDashboard = () => {
             </CardContent>
           </Card>
         ))}
+        <SubscriptionWidget />
       </div>
 
       {/* Quick Actions */}

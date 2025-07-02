@@ -37,7 +37,7 @@ const TrialBanner = () => {
     return () => clearInterval(timer);
   }, [subscriptionData]);
 
-  // Don't show banner if subscription is active or no trial end date
+  // Show banner for trial users (not subscribed but has subscription_end)
   if (!subscriptionData?.subscription_end || subscriptionData.subscribed || !timeLeft || !isVisible) {
     return null;
   }

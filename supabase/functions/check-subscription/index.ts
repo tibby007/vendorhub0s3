@@ -45,19 +45,26 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, updating unsubscribed state");
+      logStep("No customer found, creating trial user");
+      // Set 3-day trial for new users
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 3);
+      
       await supabaseClient.from("subscribers").upsert({
         email: user.email,
         user_id: user.id,
         stripe_customer_id: null,
-        subscribed: false,
+        subscribed: false, // Trial users are NOT subscribed
         subscription_tier: null,
-        subscription_end: null,
+        subscription_end: trialEnd.toISOString(),
         price_id: null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'email' });
       
-      return new Response(JSON.stringify({ subscribed: false }), {
+      return new Response(JSON.stringify({ 
+        subscribed: false, 
+        subscription_end: trialEnd.toISOString() 
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
