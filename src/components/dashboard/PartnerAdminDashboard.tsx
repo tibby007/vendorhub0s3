@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Users, FileText, TrendingUp, Settings, Plus, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import TrialBanner from '@/components/subscription/TrialBanner';
 
 const PartnerAdminDashboard = () => {
   const { user } = useAuth();
@@ -60,6 +61,9 @@ const PartnerAdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Trial Banner */}
+      <TrialBanner />
+      
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-vendor-green-600 to-vendor-green-700 rounded-lg p-6 text-white">
         <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name || 'Partner Admin'}!</h1>

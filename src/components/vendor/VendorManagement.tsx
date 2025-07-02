@@ -41,15 +41,30 @@ const VendorManagement = () => {
   });
 
   useEffect(() => {
+    console.log('🔄 VendorManagement effect triggered', { 
+      user: !!user, 
+      userId: user?.id, 
+      role: user?.role,
+      canManage: canManageVendors() 
+    });
+    
     if (user && canManageVendors()) {
+      console.log('✅ Fetching vendors for user:', user.id);
       fetchVendors();
+    } else {
+      console.log('❌ Cannot manage vendors or no user');
     }
   }, [user, canManageVendors]);
 
   const fetchVendors = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('❌ No user ID available for fetching vendors');
+      return;
+    }
     
+    console.log('🔄 Starting to fetch vendors for user:', user.id);
     setIsLoading(true);
+    
     try {
       const { data, error } = await supabase
         .from('vendors')
@@ -57,13 +72,18 @@ const VendorManagement = () => {
         .eq('partner_admin_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error fetching vendors:', error);
+        throw error;
+      }
+      
+      console.log('✅ Successfully fetched vendors:', data?.length || 0);
       setVendors(data || []);
     } catch (error: any) {
-      console.error('Error fetching vendors:', error);
+      console.error('❌ Error fetching vendors:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch vendors",
+        description: `Failed to fetch vendors: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -378,6 +398,7 @@ const VendorManagement = () => {
   );
 
   if (!canManageVendors()) {
+    console.log('❌ Access denied for vendor management. Current role:', currentRole);
     return (
       <Alert className="border-red-200 bg-red-50">
         <Shield className="h-4 w-4 text-red-600" />

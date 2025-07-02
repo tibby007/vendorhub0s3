@@ -95,14 +95,6 @@ const LoginTab = ({ isDemoSession }: LoginTabProps) => {
                 </Link>
               </p>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Want to try a demo?{' '}
-                <Link to="/demo-credentials" className="text-vendor-green-600 hover:text-vendor-green-700 font-medium">
-                  Get Demo Access
-                </Link>
-              </p>
-            </div>
           </>
         )}
       </CardContent>

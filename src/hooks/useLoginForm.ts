@@ -87,8 +87,11 @@ export const useLoginForm = (isDemoSession?: boolean) => {
         });
       }
       
-      // Navigate to dashboard
-      navigate('/dashboard');
+      // Navigate to dashboard with more robust redirect
+      console.log('🔄 Navigating to dashboard after successful login');
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 100);
       
     } catch (error: any) {
       console.error('Login failed:', error);

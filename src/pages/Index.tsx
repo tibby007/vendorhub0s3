@@ -16,10 +16,17 @@ const Index = () => {
     if (!isLoading && !user) {
       console.log('🚫 No user on dashboard, redirecting to auth');
       navigate('/auth', { replace: true });
+    } else if (user) {
+      console.log('✅ User authenticated on dashboard:', { 
+        id: user.id, 
+        role: user.role, 
+        email: user.email 
+      });
     }
   }, [user, isLoading, navigate]);
 
   if (isLoading) {
+    console.log('⏳ Dashboard loading...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
         <div className="text-center">
@@ -38,8 +45,11 @@ const Index = () => {
   const isDemoUser = user.email?.includes('demo-') || user.user_metadata?.demo_session_id;
 
   const renderDashboard = () => {
+    console.log('🎯 Rendering dashboard for role:', user.role);
+    
     switch (user.role) {
       case 'Super Admin':
+        console.log('📊 Loading Super Admin dashboard');
         return <SuperAdminDashboard />;
       case 'Partner Admin':
         // Partner Admin features require subscription (unless demo)
