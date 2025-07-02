@@ -105,9 +105,13 @@ const DemoRegistrationForm = ({ onSuccess }: DemoRegistrationFormProps) => {
         csrfToken
       };
 
+      console.log('Invoking demo-lead-registration with data:', sanitizedData);
+      
       const { data, error } = await supabase.functions.invoke('demo-lead-registration', {
         body: sanitizedData
       });
+
+      console.log('Raw edge function response:', { data, error });
 
       if (error) {
         console.error('Edge function error:', error);
