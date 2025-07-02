@@ -31,14 +31,18 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
     );
   }
 
-  // Check if user has required subscription
+  // Check if user has required subscription or is in trial period
   const hasSubscription = subscriptionData?.subscribed;
+  const isTrialUser = !subscriptionData?.subscribed && subscriptionData?.subscription_end;
   const userTier = subscriptionData?.subscription_tier;
 
   // Tier hierarchy for comparison
   const tierLevels = { 'Basic': 1, 'Pro': 2, 'Premium': 3 };
   const hasRequiredTier = hasSubscription && userTier && 
     tierLevels[userTier as keyof typeof tierLevels] >= tierLevels[requiredTier];
+
+  // Allow access for trial users (they should have basic access during trial)
+  const hasAccess = hasSubscription || isTrialUser;
 
   // If subscription data is not loaded yet and we're not loading, show retry option
   if (!subscriptionData && !isLoading) {
@@ -90,7 +94,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
     );
   }
 
-  if (!hasSubscription || !hasRequiredTier) {
+  if (!hasAccess || (!hasRequiredTier && !isTrialUser)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">
@@ -106,9 +110,13 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
                `This feature requires a ${requiredTier} subscription or higher to access.`}
             </p>
             
-            {!hasSubscription ? (
+            {!hasSubscription && !isTrialUser ? (
               <p className="text-sm text-gray-500">
                 You currently don't have an active subscription.
+              </p>
+            ) : isTrialUser ? (
+              <p className="text-sm text-gray-500">
+                Your trial period has ended. Please upgrade to continue using this feature.
               </p>
             ) : (
               <p className="text-sm text-gray-500">

@@ -45,8 +45,35 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, creating trial user");
-      // Set 3-day trial for new users
+      logStep("No customer found, checking for existing trial user");
+      
+      // Check if user already has a trial record
+      const { data: existingSubscriber } = await supabaseClient
+        .from("subscribers")
+        .select("*")
+        .eq("email", user.email)
+        .maybeSingle();
+      
+      if (existingSubscriber) {
+        // Return existing trial data
+        logStep("Found existing trial user", { 
+          subscribed: existingSubscriber.subscribed,
+          subscription_end: existingSubscriber.subscription_end 
+        });
+        
+        return new Response(JSON.stringify({ 
+          subscribed: existingSubscriber.subscribed,
+          subscription_tier: existingSubscriber.subscription_tier,
+          subscription_end: existingSubscriber.subscription_end,
+          price_id: existingSubscriber.price_id
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      
+      // Create new 3-day trial for new users
+      logStep("Creating new trial user");
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 3);
       

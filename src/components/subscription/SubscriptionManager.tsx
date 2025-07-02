@@ -122,8 +122,8 @@ const SubscriptionManager = () => {
           <>
             <div className="flex items-center justify-between">
               <span className="font-medium">Status:</span>
-              <Badge variant={subscriptionData.subscribed ? "default" : "secondary"}>
-                {subscriptionData.subscribed ? "Active" : "No Subscription"}
+              <Badge variant={subscriptionData.subscribed ? "default" : subscriptionData.subscription_end ? "secondary" : "destructive"}>
+                {subscriptionData.subscribed ? "Active" : subscriptionData.subscription_end ? "Trial" : "No Plan"}
               </Badge>
             </div>
             
@@ -138,14 +138,16 @@ const SubscriptionManager = () => {
             
             {subscriptionData.subscription_end && (
               <div className="flex items-center justify-between">
-                <span className="font-medium">Next Billing:</span>
-                <span className="text-sm text-gray-600">
+                <span className="font-medium">
+                  {subscriptionData.subscribed ? "Next Billing:" : "Trial Ends:"}
+                </span>
+                <span className={`text-sm ${subscriptionData.subscribed ? 'text-gray-600' : 'text-orange-600 font-medium'}`}>
                   {new Date(subscriptionData.subscription_end).toLocaleDateString()}
                 </span>
               </div>
             )}
             
-            {subscriptionData.subscribed && (
+            {subscriptionData.subscribed ? (
               <Button
                 onClick={openCustomerPortal}
                 disabled={isLoading}
@@ -155,6 +157,15 @@ const SubscriptionManager = () => {
                 <CreditCard className="w-4 h-4 mr-2" />
                 Manage Subscription
                 <ExternalLink className="w-4 h-4 ml-2" />
+              </Button>
+            ) : (
+              <Button
+                onClick={() => window.location.href = '/subscription'}
+                className="w-full"
+                variant="default"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Upgrade to Paid Plan
               </Button>
             )}
           </>

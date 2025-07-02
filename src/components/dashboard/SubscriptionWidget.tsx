@@ -37,10 +37,19 @@ const SubscriptionWidget = () => {
             </div>
           )}
           
-          {isTrialUser && (
+          {isTrialUser && subscriptionData.subscription_end && (
             <div className="flex items-center justify-between">
               <span className="text-sm">Trial ends:</span>
               <span className="text-sm text-orange-600">
+                {new Date(subscriptionData.subscription_end).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+          
+          {isSubscribed && subscriptionData.subscription_end && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Next billing:</span>
+              <span className="text-sm text-green-600">
                 {new Date(subscriptionData.subscription_end).toLocaleDateString()}
               </span>
             </div>
