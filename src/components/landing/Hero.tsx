@@ -25,7 +25,7 @@ const Hero = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button size="lg" asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
-              <Link to="/demo-credentials" className="flex items-center gap-2">
+              <Link to="/demo" className="flex items-center gap-2">
                 <Play className="w-4 h-4" />
                 Try Interactive Demo
               </Link>
@@ -49,7 +49,7 @@ const Hero = () => {
           {/* Interactive Demo Overlay */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black/20 rounded-2xl">
             <Button size="lg" asChild className="bg-white text-gray-900 hover:bg-gray-100 shadow-xl">
-              <Link to="/demo-credentials" className="flex items-center gap-2">
+              <Link to="/demo" className="flex items-center gap-2">
                 <Play className="w-5 h-5" />
                 Experience This Live
               </Link>
