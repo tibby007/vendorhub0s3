@@ -60,11 +60,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Handle demo mode
     if (isDemo && demoRole) {
+      console.log('🎭 Setting up demo user for role:', demoRole);
       const mockUser = demoRole === 'Partner Admin' ? 
         { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
         { ...mockVendorUser, user_metadata: {} };
       setUser(mockUser);
       setSession(null); // No real session in demo mode
+      setLoading(false);
+      console.log('✅ Demo user set:', mockUser);
+      return;
+    }
+
+    // If not in demo mode, clear demo user
+    if (!isDemo && user && (user.email === 'partner@demo.com' || user.email === 'vendor@demo.com')) {
+      console.log('🚫 Clearing demo user, not in demo mode');
+      setUser(null);
       setLoading(false);
       return;
     }

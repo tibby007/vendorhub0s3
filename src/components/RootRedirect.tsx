@@ -2,9 +2,11 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 const RootRedirect = () => {
   const { user, isLoading } = useAuth();
+  const { isDemo, demoRole } = useDemoMode();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -25,6 +27,13 @@ const RootRedirect = () => {
 
     // Wait for auth to finish loading before making redirect decisions
     if (!isLoading) {
+      // Check for demo mode
+      if (isDemo && demoRole) {
+        console.log('🎭 Demo mode active at root, redirecting to dashboard. Demo role:', demoRole);
+        navigate('/dashboard', { replace: true });
+        return;
+      }
+      
       if (user) {
         console.log('🏠 User authenticated at root, redirecting to dashboard:', user.email);
         // Immediate redirect to dashboard for authenticated users

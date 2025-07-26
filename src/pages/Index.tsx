@@ -1,6 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import SuperAdminDashboard from '@/components/dashboard/SuperAdminDashboard';
@@ -10,9 +11,16 @@ import SubscriptionGuard from '@/components/subscription/SubscriptionGuard';
 
 const Index = () => {
   const { user, isLoading, subscriptionData } = useAuth();
+  const { isDemo, demoRole } = useDemoMode();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // In demo mode, don't redirect to auth
+    if (isDemo && demoRole) {
+      console.log('🎭 Demo mode active on dashboard, role:', demoRole);
+      return;
+    }
+    
     if (!isLoading && !user) {
       console.log('🚫 No user on dashboard, redirecting to auth');
       navigate('/auth', { replace: true });
@@ -23,7 +31,7 @@ const Index = () => {
         email: user.email 
       });
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, isDemo, demoRole]);
 
   if (isLoading) {
     console.log('⏳ Dashboard loading...');
@@ -37,25 +45,27 @@ const Index = () => {
     );
   }
 
-  if (!user) {
+  // In demo mode, allow access even without a real user
+  if (!user && !isDemo) {
     return null; // Will redirect to auth page
   }
 
   // Check if user is a demo user (bypass subscription checks)
-  const isDemoUser = user.email?.includes('demo-') || user.user_metadata?.demo_session_id;
+  const isDemoUser = isDemo || user?.email?.includes('demo-') || user?.user_metadata?.demo_session_id;
 
   const renderDashboard = () => {
+    // In demo mode, use demo role, otherwise use user role
+    const currentRole = isDemo ? demoRole : user?.role;
+    
     // Debug role information
-    console.log('🎯 INDEX.tsx - User role received:', user.role);
-    console.log('🎯 INDEX.tsx - Role type:', typeof user.role);
-    console.log('🎯 INDEX.tsx - Role length:', user.role?.length);
-    console.log('Role bytes:', Array.from(user.role || '').map(c => c.charCodeAt(0)));
-    console.log('Expected bytes:', Array.from("Partner Admin").map(c => c.charCodeAt(0)));
-    console.log('🎯 INDEX.tsx - Role === "Partner Admin":', user.role === 'Partner Admin');
-    console.log('🎯 Rendering dashboard for role:', user.role, 'User:', user.name, 'Email:', user.email);
+    console.log('🎯 INDEX.tsx - Demo mode:', isDemo);
+    console.log('🎯 INDEX.tsx - Demo role:', demoRole);
+    console.log('🎯 INDEX.tsx - User role:', user?.role);
+    console.log('🎯 INDEX.tsx - Current role:', currentRole);
+    console.log('🎯 Rendering dashboard for role:', currentRole, 'User:', user?.name, 'Email:', user?.email);
     
     // Normalize role for comparison
-    const normalizedRole = user.role?.trim();
+    const normalizedRole = currentRole?.trim();
     
     switch (normalizedRole) {
       case 'Super Admin':
