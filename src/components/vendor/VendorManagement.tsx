@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Edit2, Trash2, User, Shield, AlertCircle } from 'lucide-react';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
+import { checkVendorLimit } from '@/utils/planLimits';
 
 interface Vendor {
   id: string;
@@ -127,6 +128,18 @@ const VendorManagement = () => {
     setIsLoading(true);
 
     try {
+      // Check vendor limit before creating
+      const canCreate = await checkVendorLimit(user.id);
+      if (!canCreate.allowed) {
+        toast({
+          title: "Vendor Limit Reached",
+          description: canCreate.message,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // Create vendor record
       const { error: vendorError } = await supabase
         .from('vendors')

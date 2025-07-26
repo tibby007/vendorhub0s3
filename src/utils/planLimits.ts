@@ -31,19 +31,48 @@ export const checkPlanLimits = async (partnerId: string): Promise<PlanLimits> =>
   };
 };
 
-export const checkVendorLimit = async (partnerId: string): Promise<boolean> => {
-  const limits = await checkPlanLimits(partnerId);
-  
-  const { count: vendorCount } = await supabase
-    .from('vendors')
-    .select('*', { count: 'exact' })
-    .eq('partner_admin_id', partnerId);
+export interface VendorLimitCheck {
+  allowed: boolean;
+  message: string;
+  current: number;
+  limit: number;
+}
 
-  if ((vendorCount || 0) >= limits.vendorLimit) {
-    throw new Error(`Vendor limit reached. You can add up to ${limits.vendorLimit} vendors on your ${limits.planType} plan. Please upgrade to add more vendors.`);
+export const checkVendorLimit = async (partnerId: string): Promise<VendorLimitCheck> => {
+  try {
+    const limits = await checkPlanLimits(partnerId);
+    
+    const { count: vendorCount } = await supabase
+      .from('vendors')
+      .select('*', { count: 'exact' })
+      .eq('partner_admin_id', partnerId);
+
+    const current = vendorCount || 0;
+    const limit = limits.vendorLimit;
+
+    if (current >= limit) {
+      return {
+        allowed: false,
+        message: `Vendor limit reached. You can add up to ${limit} vendors on your ${limits.planType} plan. Please upgrade to add more vendors.`,
+        current,
+        limit
+      };
+    }
+
+    return {
+      allowed: true,
+      message: `You can add ${limit - current} more vendors on your ${limits.planType} plan.`,
+      current,
+      limit
+    };
+  } catch (error) {
+    return {
+      allowed: false,
+      message: error instanceof Error ? error.message : 'Failed to check vendor limits',
+      current: 0,
+      limit: 0
+    };
   }
-
-  return true;
 };
 
 export const formatStorageSize = (bytes: bigint): string => {
