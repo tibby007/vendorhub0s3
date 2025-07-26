@@ -408,6 +408,8 @@ export type Database = {
           created_at: string
           id: string
           partner_admin_id: string
+          storage_limit: number | null
+          storage_used: number | null
           updated_at: string
           user_id: string | null
           vendor_name: string
@@ -419,6 +421,8 @@ export type Database = {
           created_at?: string
           id?: string
           partner_admin_id: string
+          storage_limit?: number | null
+          storage_used?: number | null
           updated_at?: string
           user_id?: string | null
           vendor_name: string
@@ -430,6 +434,8 @@ export type Database = {
           created_at?: string
           id?: string
           partner_admin_id?: string
+          storage_limit?: number | null
+          storage_used?: number | null
           updated_at?: string
           user_id?: string | null
           vendor_name?: string
@@ -456,6 +462,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_hybrid_storage_limit: {
+        Args: { vendor_id: string; file_size: number }
+        Returns: Json
+      }
+      generate_file_path: {
+        Args: { broker_id: string; vendor_id: string; filename: string }
+        Returns: string
+      }
       get_user_partner_id: {
         Args: { user_id: string }
         Returns: string
@@ -471,6 +485,14 @@ export type Database = {
       is_current_user_vendor_for_submission: {
         Args: { submission_vendor_id: string }
         Returns: boolean
+      }
+      set_storage_limits_by_plan: {
+        Args: { partner_id: string; plan_name: string }
+        Returns: undefined
+      }
+      update_hybrid_storage_usage: {
+        Args: { vendor_id: string; file_size: number; is_delete?: boolean }
+        Returns: undefined
       }
       update_partner_storage: {
         Args: { partner_id: string; size_change: number }
