@@ -60,11 +60,11 @@ const SubscriptionWidget = () => {
           <Button 
             size="sm" 
             className="w-full mt-3" 
-            onClick={() => navigate('/settings')}
+            onClick={() => navigate(isTrialUser ? '/pricing' : '/settings')}
             variant={isTrialUser ? "default" : "outline"}
           >
             <Settings className="w-4 h-4 mr-2" />
-            {isTrialUser ? "Upgrade Now" : "Manage Subscription"}
+            {isTrialUser ? "Choose Your Plan" : "Manage Subscription"}
           </Button>
         </div>
       </CardContent>

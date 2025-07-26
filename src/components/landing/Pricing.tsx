@@ -80,7 +80,6 @@ const Pricing = () => {
 
   const handleSubscribeClick = async (tier: any) => {
     try {
-      // Check if user is authenticated first
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -96,7 +95,23 @@ const Pricing = () => {
         return;
       }
 
-      // Step 1: Create setup fee checkout session
+      // Check if user already has a subscription
+      const { data: existingPartner } = await supabase
+        .from('partners')
+        .select('id, billing_status')
+        .eq('id', session.user.id)
+        .single();
+
+      if (existingPartner && existingPartner.billing_status === 'active') {
+        toast({
+          title: "Subscription Exists",
+          description: "You already have an active subscription. Visit billing settings to make changes.",
+        });
+        navigate('/settings/billing');
+        return;
+      }
+
+      // Proceed with setup fee checkout
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           tier: tier.id,
@@ -108,13 +123,10 @@ const Pricing = () => {
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      // Open setup fee checkout in new tab
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.location.href = data.url; // Use location.href for better UX
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);

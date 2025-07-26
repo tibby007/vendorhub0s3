@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { CheckCircle, CreditCard, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const SetupComplete = () => {
   const [searchParams] = useSearchParams();
@@ -26,28 +27,44 @@ const SetupComplete = () => {
     });
   }, [planType, navigate, toast]);
 
-  const proceedToSubscription = () => {
+  const proceedToSubscription = async () => {
     setIsRedirecting(true);
     
-    // Payment links for each plan (replace with your actual Stripe payment links)
-    const paymentLinks = {
-      basic_monthly: 'https://buy.stripe.com/basic-monthly-link',
-      basic_annual: 'https://buy.stripe.com/basic-annual-link',
-      pro_monthly: 'https://buy.stripe.com/pro-monthly-link',
-      pro_annual: 'https://buy.stripe.com/pro-annual-link',
-      premium_monthly: 'https://buy.stripe.com/premium-monthly-link',
-      premium_annual: 'https://buy.stripe.com/premium-annual-link'
-    };
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to complete your subscription",
+          variant: "destructive",
+        });
+        navigate('/auth');
+        return;
+      }
 
-    const linkKey = `${planType}_${isAnnual ? 'annual' : 'monthly'}` as keyof typeof paymentLinks;
-    const paymentLink = paymentLinks[linkKey];
+      // Create subscription checkout (not setup fee)
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          tier: planType,
+          isSetupFee: false, // This is the subscription checkout
+          isAnnual: isAnnual
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-    if (paymentLink) {
-      window.location.href = paymentLink;
-    } else {
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Error creating subscription checkout:', error);
       toast({
         title: "Error",
-        description: "Payment link not configured. Please contact support.",
+        description: "Failed to start subscription checkout. Please try again.",
         variant: "destructive",
       });
       setIsRedirecting(false);

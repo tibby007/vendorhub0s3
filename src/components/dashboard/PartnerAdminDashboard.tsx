@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Users, FileText, TrendingUp, Settings, Plus, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import TrialBanner from '@/components/subscription/TrialBanner';
+import DashboardSubscriptionStatus from '@/components/dashboard/DashboardSubscriptionStatus';
 import SubscriptionWidget from '@/components/dashboard/SubscriptionWidget';
 
 const PartnerAdminDashboard = () => {
@@ -62,8 +62,8 @@ const PartnerAdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Trial Banner */}
-      <TrialBanner />
+      {/* Subscription Status */}
+      <DashboardSubscriptionStatus user={user} />
       
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-vendor-green-600 to-vendor-green-700 rounded-lg p-6 text-white">
