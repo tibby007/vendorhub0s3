@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import { mockVendors } from '@/data/mockPartnerData';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,18 +20,25 @@ import VendorLimitIndicator from './VendorLimitIndicator';
 
 interface Vendor {
   id: string;
-  vendor_name: string;
-  contact_email: string;
-  contact_phone: string;
-  contact_address: string;
+  vendor_name?: string;
+  name?: string;
+  contact_email?: string;
+  email?: string;
+  contact_phone?: string;
+  phone?: string;
+  contact_address?: string;
+  address?: string;
   created_at: string;
   user_id?: string;
+  status?: string;
+  business_type?: string;
 }
 
 const VendorManagement = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { subscription } = useSubscriptionManager();
+  const { isDemo } = useDemoMode();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -50,27 +59,46 @@ const VendorManagement = () => {
       user: !!user, 
       userId: user?.id, 
       role: user?.role,
-      canManage: canManageVendors() 
+      canManage: canManageVendors(),
+      isDemo 
     });
     
-    if (user && canManageVendors()) {
-      console.log('✅ Fetching vendors for user:', user.id);
+    if ((user && canManageVendors()) || isDemo) {
+      console.log('✅ Fetching vendors for user:', user?.id || 'demo');
       fetchVendors();
     } else {
       console.log('❌ Cannot manage vendors or no user');
     }
-  }, [user, canManageVendors]);
+  }, [user, canManageVendors, isDemo]);
 
   const fetchVendors = async () => {
-    if (!user?.id) {
-      console.log('❌ No user ID available for fetching vendors');
-      return;
-    }
-    
-    console.log('🔄 Starting to fetch vendors for user:', user.id);
     setIsLoading(true);
     
     try {
+      if (isDemo) {
+        console.log('🎭 Demo mode: Using mock vendor data');
+        // Convert mock data to match our interface
+        const demoVendors = mockVendors.map(vendor => ({
+          id: vendor.id,
+          vendor_name: vendor.name,
+          contact_email: vendor.email,
+          contact_phone: vendor.phone,
+          contact_address: vendor.address,
+          created_at: vendor.created_at,
+          status: vendor.status,
+          business_type: vendor.business_type
+        }));
+        setVendors(demoVendors);
+        return;
+      }
+
+      if (!user?.id) {
+        console.log('❌ No user ID available for fetching vendors');
+        return;
+      }
+      
+      console.log('🔄 Starting to fetch vendors for user:', user.id);
+      
       const { data, error } = await supabase
         .from('vendors')
         .select('*')
@@ -127,11 +155,34 @@ const VendorManagement = () => {
       return;
     }
 
-    if (!user?.id) return;
-
     setIsLoading(true);
 
     try {
+      if (isDemo) {
+        // Demo mode - simulate success
+        toast({
+          title: "Demo Mode",
+          description: "Vendor creation simulated successfully! In live mode, they would receive login credentials.",
+        });
+        resetForm();
+        setIsCreateDialogOpen(false);
+        // Add to demo vendors list
+        const newDemoVendor = {
+          id: `demo-vendor-${Date.now()}`,
+          vendor_name: formData.vendor_name,
+          contact_email: formData.contact_email,
+          contact_phone: formData.contact_phone,
+          contact_address: formData.contact_address,
+          created_at: new Date().toISOString(),
+          status: 'active'
+        };
+        setVendors(prev => [newDemoVendor, ...prev]);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!user?.id) return;
+
       // Check subscription status first
       if (!subscription.subscribed && subscription.status !== 'trial') {
         toast({
@@ -225,6 +276,32 @@ const VendorManagement = () => {
 
     setIsLoading(true);
     try {
+      if (isDemo) {
+        // Demo mode - simulate success
+        toast({
+          title: "Demo Mode",
+          description: "Vendor update simulated successfully!",
+        });
+        
+        // Update the vendor in the demo vendors list
+        setVendors(prev => prev.map(v => 
+          v.id === editingVendor.id 
+            ? {
+                ...v,
+                vendor_name: formData.vendor_name,
+                contact_email: formData.contact_email,
+                contact_phone: formData.contact_phone,
+                contact_address: formData.contact_address,
+              }
+            : v
+        ));
+        
+        setEditingVendor(null);
+        resetForm();
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('vendors')
         .update({
@@ -262,6 +339,19 @@ const VendorManagement = () => {
 
     setIsLoading(true);
     try {
+      if (isDemo) {
+        // Demo mode - simulate success
+        toast({
+          title: "Demo Mode",
+          description: "Vendor deletion simulated successfully!",
+        });
+        
+        // Remove the vendor from the demo vendors list
+        setVendors(prev => prev.filter(v => v.id !== vendorId));
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('vendors')
         .delete()
@@ -290,10 +380,10 @@ const VendorManagement = () => {
   const handleEdit = (vendor: Vendor) => {
     setEditingVendor(vendor);
     setFormData({
-      vendor_name: vendor.vendor_name,
-      contact_email: vendor.contact_email,
-      contact_phone: vendor.contact_phone || '',
-      contact_address: vendor.contact_address || '',
+      vendor_name: vendor.vendor_name || vendor.name || '',
+      contact_email: vendor.contact_email || vendor.email || '',
+      contact_phone: vendor.contact_phone || vendor.phone || '',
+      contact_address: vendor.contact_address || vendor.address || '',
       password: ''
     });
     setErrors({});
@@ -490,9 +580,15 @@ const VendorManagement = () => {
               <TableBody>
                 {vendors.map((vendor) => (
                   <TableRow key={vendor.id}>
-                    <TableCell className="font-medium">{vendor.vendor_name}</TableCell>
-                    <TableCell>{vendor.contact_email}</TableCell>
-                    <TableCell>{vendor.contact_phone || 'N/A'}</TableCell>
+                    <TableCell className="font-medium">
+                      {vendor.vendor_name || vendor.name || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      {vendor.contact_email || vendor.email || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      {vendor.contact_phone || vendor.phone || 'N/A'}
+                    </TableCell>
                     <TableCell>{new Date(vendor.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
