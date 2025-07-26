@@ -14,6 +14,7 @@ export const useAuthState = () => {
   const [sessionProcessed, setSessionProcessed] = useState(false);
   const [lastSessionId, setLastSessionId] = useState<string | null>(null);
 
+  // Always call hooks in the same order - moved to top
   const { upsertUserProfile, clearProfileCache } = useUserProfile();
   const { 
     subscription, 
