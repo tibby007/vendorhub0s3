@@ -27,7 +27,7 @@ const RootRedirect = () => {
 
     // Wait for auth to finish loading before making redirect decisions
     if (!isLoading) {
-      // Check for demo mode
+      // Check for demo mode first - if demo mode is active, redirect to dashboard immediately
       if (isDemo && demoRole) {
         console.log('🎭 Demo mode active at root, redirecting to dashboard. Demo role:', demoRole);
         navigate('/dashboard', { replace: true });
@@ -45,7 +45,7 @@ const RootRedirect = () => {
         navigate('/landing', { replace: true });
       }
     }
-  }, [user, isLoading, navigate, searchParams]);
+  }, [user, isLoading, navigate, searchParams, isDemo, demoRole]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
