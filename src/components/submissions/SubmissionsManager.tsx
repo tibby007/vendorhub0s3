@@ -13,17 +13,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import { mockPartnerSubmissions } from '@/data/mockPartnerData';
 
 interface Submission {
   id: string;
-  customer_id: string;
-  vendor_id: string;
+  customer_id?: string;
+  vendor_id?: string;
   status: string;
-  submission_date: string;
+  submission_date?: string;
+  submitted_at?: string;
   approval_terms?: string;
   sales_invoice_url?: string;
   drivers_license_url?: string;
   misc_documents_url?: string[];
+  // Database fields
   customers?: {
     customer_name: string;
     email?: string;
@@ -31,10 +35,17 @@ interface Submission {
   vendors?: {
     vendor_name: string;
   };
+  // Mock data fields
+  customer_name?: string;
+  customer_email?: string;
+  vendor_name?: string;
+  amount?: number;
+  description?: string;
 }
 
 const SubmissionsManager = () => {
   const { user } = useAuth();
+  const { isDemo } = useDemoMode();
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,12 +56,20 @@ const SubmissionsManager = () => {
     if (user?.id) {
       fetchSubmissions();
     }
-  }, [user]);
+  }, [user, isDemo]);
 
   const fetchSubmissions = async () => {
     if (!user?.id) return;
 
     setIsLoading(true);
+    
+    // Use mock data in demo mode
+    if (isDemo) {
+      setSubmissions(mockPartnerSubmissions as any);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('submissions')
@@ -77,6 +96,22 @@ const SubmissionsManager = () => {
   };
 
   const updateSubmissionStatus = async (submissionId: string, status: string, approvalTerms?: string) => {
+    // Handle demo mode
+    if (isDemo) {
+      setSubmissions(prev => 
+        prev.map(sub => 
+          sub.id === submissionId 
+            ? { ...sub, status: status.toLowerCase() }
+            : sub
+        )
+      );
+      toast({
+        title: "Demo: Status Updated",
+        description: `Submission ${status.toLowerCase()} successfully (demo mode)`,
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('submissions')
@@ -138,7 +173,7 @@ const SubmissionsManager = () => {
           <DialogHeader>
             <DialogTitle>Update Submission Status</DialogTitle>
             <DialogDescription>
-              Update the status for {submission.customers?.customer_name}'s submission
+              Update the status for {submission.customer_name || submission.customers?.customer_name}'s submission
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -253,17 +288,15 @@ const SubmissionsManager = () => {
               <TableBody>
                 {filteredSubmissions.map((submission) => (
                   <TableRow key={submission.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{submission.customers?.customer_name}</div>
-                        {submission.customers?.email && (
-                          <div className="text-sm text-gray-600">{submission.customers.email}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{submission.vendors?.vendor_name}</TableCell>
-                    <TableCell>{getStatusBadge(submission.status)}</TableCell>
-                    <TableCell>{new Date(submission.submission_date).toLocaleDateString()}</TableCell>
+                     <TableCell>
+                       <div>
+                         <div className="font-medium">{submission.customer_name || submission.customers?.customer_name}</div>
+                         <div className="text-sm text-gray-600">{submission.customer_email || submission.customers?.email}</div>
+                       </div>
+                     </TableCell>
+                     <TableCell>{submission.vendor_name || submission.vendors?.vendor_name}</TableCell>
+                     <TableCell>{getStatusBadge(submission.status)}</TableCell>
+                     <TableCell>{new Date(submission.submitted_at || submission.submission_date || '').toLocaleDateString()}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Dialog>
@@ -277,8 +310,8 @@ const SubmissionsManager = () => {
                             <DialogHeader>
                               <DialogTitle>Submission Details</DialogTitle>
                               <DialogDescription>
-                                Customer: {submission.customers?.customer_name} | 
-                                Vendor: {submission.vendors?.vendor_name}
+                               Customer: {submission.customer_name || submission.customers?.customer_name} | 
+                               Vendor: {submission.vendor_name || submission.vendors?.vendor_name}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
@@ -287,10 +320,10 @@ const SubmissionsManager = () => {
                                   <Label>Status</Label>
                                   <div className="mt-1">{getStatusBadge(submission.status)}</div>
                                 </div>
-                                <div>
-                                  <Label>Submission Date</Label>
-                                  <div className="mt-1">{new Date(submission.submission_date).toLocaleDateString()}</div>
-                                </div>
+                                 <div>
+                                   <Label>Submission Date</Label>
+                                   <div className="mt-1">{new Date(submission.submitted_at || submission.submission_date || '').toLocaleDateString()}</div>
+                                 </div>
                               </div>
                               
                               {submission.approval_terms && (
