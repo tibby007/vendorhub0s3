@@ -1,19 +1,22 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Star, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import BillingToggle from '@/components/subscription/BillingToggle';
 
 const Pricing = () => {
   const navigate = useNavigate();
+  const [isAnnual, setIsAnnual] = useState(false);
 
   const pricingTiers = [
     {
       name: "VendorHub Basic",
-      price: "$97",
-      period: "/month",
+      monthlyPrice: 97,
+      annualPrice: 970,
+      setupFee: 297,
       description: "Perfect for small partner networks",
       features: [
         "Up to 3 vendors",
@@ -24,12 +27,14 @@ const Pricing = () => {
       ],
       popular: false,
       buttonText: "Start 3-Day Free Trial",
-      priceId: "price_1Rc1dbB1YJBVEg8wlVQbLAIR" // Basic monthly
+      monthlyPriceId: "price_1Rc1dbB1YJBVEg8wlVQbLAIR",
+      annualPriceId: "price_basic_annual" // You'll need to create this
     },
     {
       name: "VendorHub Pro",
-      price: "$197",
-      period: "/month",
+      monthlyPrice: 197,
+      annualPrice: 1970,
+      setupFee: 497,
       description: "Ideal for growing businesses",
       features: [
         "Up to 7 vendors",
@@ -42,12 +47,14 @@ const Pricing = () => {
       ],
       popular: true,
       buttonText: "Start 3-Day Free Trial",
-      priceId: "price_1Rc1eXB1YJBVEg8wXyhCVw7X" // Pro monthly
+      monthlyPriceId: "price_1Rc1eXB1YJBVEg8wXyhCVw7X",
+      annualPriceId: "price_pro_annual" // You'll need to create this
     },
     {
       name: "VendorHub Premium",
-      price: "$397",
-      period: "/month",
+      monthlyPrice: 397,
+      annualPrice: 3970,
+      setupFee: 797,
       description: "For enterprise-scale operations",
       features: [
         "Unlimited vendors",
@@ -60,15 +67,20 @@ const Pricing = () => {
       ],
       popular: false,
       buttonText: "Start 3-Day Free Trial",
-      priceId: "price_1Rc1fkB1YJBVEg8wqjcXMzEK" // Premium monthly
+      monthlyPriceId: "price_1Rc1fkB1YJBVEg8wqjcXMzEK",
+      annualPriceId: "price_premium_annual" // You'll need to create this
     }
   ];
 
-  const handleSubscribeClick = (priceId: string, tierName: string) => {
+  const handleSubscribeClick = (tier: any) => {
+    const priceId = isAnnual ? tier.annualPriceId : tier.monthlyPriceId;
+    
     // Store the selected plan info for the checkout process
     sessionStorage.setItem('selectedPlan', JSON.stringify({
       priceId,
-      tier: tierName.replace('VendorHub ', '')
+      tier: tier.name.replace('VendorHub ', ''),
+      isAnnual,
+      setupFee: tier.setupFee
     }));
     
     // Navigate to auth page with subscription intent
@@ -82,9 +94,18 @@ const Pricing = () => {
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
             Simple, Transparent Pricing
           </h2>
-          <p className="text-lg text-gray-600 mb-4">
+          <p className="text-lg text-gray-600 mb-6">
             Choose the plan that fits your business size and growth goals
           </p>
+          
+          {/* Billing Toggle */}
+          <div className="mb-8">
+            <BillingToggle 
+              isAnnual={isAnnual} 
+              onToggle={setIsAnnual}
+            />
+          </div>
+          
           <div className="inline-flex items-center gap-2 bg-vendor-gold-100 text-vendor-gold-800 px-4 py-2 rounded-full text-sm font-medium border border-vendor-gold-200">
             <Calendar className="w-4 h-4" />
             All plans include a 3-day free trial
@@ -113,8 +134,20 @@ const Pricing = () => {
               <CardHeader className="text-center">
                 <CardTitle className="text-xl">{tier.name}</CardTitle>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold text-gray-900">{tier.price}</span>
-                  <span className="text-gray-600">{tier.period}</span>
+                  <span className="text-4xl font-bold text-gray-900">
+                    ${isAnnual ? tier.annualPrice : tier.monthlyPrice}
+                  </span>
+                  <span className="text-gray-600">
+                    {isAnnual ? '/year' : '/month'}
+                  </span>
+                  {isAnnual && (
+                    <div className="text-sm text-vendor-green-600 font-medium mt-1">
+                      Save 17%
+                    </div>
+                  )}
+                </div>
+                <div className="text-sm text-gray-500 mt-2">
+                  + ${tier.setupFee} setup fee
                 </div>
                 <CardDescription className="mt-2">{tier.description}</CardDescription>
               </CardHeader>
@@ -136,7 +169,7 @@ const Pricing = () => {
                       : 'border-vendor-green-500 text-vendor-green-600 hover:bg-vendor-green-50'
                   }`}
                   variant={tier.popular ? 'default' : 'outline'}
-                  onClick={() => handleSubscribeClick(tier.priceId, tier.name)}
+                  onClick={() => handleSubscribeClick(tier)}
                 >
                   {tier.buttonText}
                 </Button>
@@ -145,14 +178,14 @@ const Pricing = () => {
           ))}
         </div>
 
-        {/* Annual Savings Callout */}
+        {/* Setup Fee Notice */}
         <div className="text-center mt-12">
           <Card className="inline-block p-6 bg-gradient-to-r from-vendor-gold-50 to-vendor-gold-100 border-vendor-gold-200 shadow-lg">
             <div className="flex items-center gap-3">
               <Star className="w-6 h-6 text-vendor-gold-600" />
               <div>
-                <p className="font-medium text-vendor-gold-900">Save 17% with Annual Billing</p>
-                <p className="text-sm text-vendor-gold-700">Switch to yearly plans after your free trial</p>
+                <p className="font-medium text-vendor-gold-900">All Plans Include Setup & Onboarding</p>
+                <p className="text-sm text-vendor-gold-700">One-time setup fee covers full platform configuration and training</p>
               </div>
             </div>
           </Card>
