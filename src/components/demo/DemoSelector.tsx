@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { User, Building2, ArrowLeft, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { DemoAnalytics } from '@/utils/demoAnalytics';
 
 const DemoSelector = () => {
   const navigate = useNavigate();
@@ -27,50 +29,54 @@ const DemoSelector = () => {
         setIsLoading(false);
         return;
       }
-      
-      // Reset demo passwords to ensure they're current
-      try {
-        const resetResponse = await fetch('https://ewxsolozmcjdoqyydlcu.supabase.co/functions/v1/reset-demo-passwords', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!resetResponse.ok) {
-          throw new Error('Failed to reset demo passwords');
-        }
-        
-        const resetResult = await resetResponse.json();
-        if (!resetResult.success) {
-          throw new Error(resetResult.error || 'Password reset failed');
-        }
-        
-        console.log('Demo passwords reset successfully');
-      } catch (error) {
-        console.error('Could not reset demo passwords:', error);
-        toast.error('Demo setup failed. Please try again.');
+
+      // Direct authentication with known demo credentials
+      const credentials = {
+        email: role === 'Partner Admin' ? 'demo-partner@vendorhub.com' : 'demo-vendor@vendorhub.com',
+        password: 'demo123!',
+        role: role
+      };
+
+      console.log(`Attempting direct login for ${role}...`);
+
+      // Authenticate directly with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
+      });
+
+      if (authError) {
+        console.error('Demo authentication failed:', authError);
+        toast.error('Demo authentication failed. Please try again.');
         setIsLoading(false);
         return;
       }
 
-      const credentials = role === 'Partner Admin' 
-        ? { email: 'demo-partner@vendorhub.com', password: 'demo123!', role }
-        : { email: 'demo-vendor@vendorhub.com', password: 'demo123!', role };
-    
-      // Store credentials for auto-fill
+      console.log('Demo authentication successful:', authData);
+
+      // Start demo session tracking
+      const sessionId = DemoAnalytics.startSession({
+        role: credentials.role,
+        email: credentials.email,
+        sessionType: 'demo'
+      }, credentials.role);
+
+      // Store demo session info
       sessionStorage.setItem('demoCredentials', JSON.stringify({
         ...credentials,
-        isDemoMode: true
+        isDemoMode: true,
+        sessionId
       }));
+      sessionStorage.setItem('isDemoMode', 'true');
+      sessionStorage.setItem('demoSessionActive', 'true');
       
       // Store rate limiting info
       localStorage.setItem('last_demo_time', now.toString());
       
-      toast.success(`${role} demo session starting...`);
+      toast.success(`${role} demo session started! Session expires in 10 minutes.`);
       
-      // Navigate to auth with demo mode
-      navigate('/auth?demo=true');
+      // Navigate directly to dashboard
+      navigate('/');
       
     } catch (error) {
       console.error('Demo setup error:', error);
