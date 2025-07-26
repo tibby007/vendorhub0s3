@@ -34,10 +34,10 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { priceId, tier } = await req.json();
-    if (!priceId || !tier) throw new Error("Price ID and tier are required");
+    const { priceId, tier, isSetupFee, isAnnual } = await req.json();
+    if (!tier) throw new Error("Tier is required");
     
-    logStep("Request data", { priceId, tier });
+    logStep("Request data", { priceId, tier, isSetupFee, isAnnual });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2023-10-16" 
@@ -51,6 +51,49 @@ serve(async (req) => {
       logStep("Found existing customer", { customerId });
     }
 
+    // Check if this is a setup fee checkout
+    
+    if (isSetupFee) {
+      // Create setup fee checkout session
+      const setupFeeAmounts = {
+        'basic': 29700,  // $297
+        'pro': 49700,    // $497
+        'premium': 79700 // $797
+      };
+      
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `VendorHub ${tier.charAt(0).toUpperCase() + tier.slice(1)} Setup Fee`,
+                description: 'One-time setup and onboarding fee'
+              },
+              unit_amount: setupFeeAmounts[tier] || setupFeeAmounts.basic
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `${req.headers.get("origin")}/setup-complete?plan=${tier}&annual=${isAnnual}`,
+        cancel_url: `${req.headers.get("origin")}/pricing`,
+        metadata: {
+          plan_type: tier,
+          is_annual: isAnnual.toString(),
+          flow_step: 'setup_fee'
+        }
+      });
+      
+      return new Response(JSON.stringify({ url: session.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Original subscription checkout
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -66,6 +109,10 @@ serve(async (req) => {
       subscription_data: {
         trial_period_days: 3,
       },
+      metadata: {
+        plan_type: tier || 'basic',
+        flow_step: 'subscription'
+      }
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });

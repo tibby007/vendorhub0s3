@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import SubscriptionPlans from '@/components/subscription/SubscriptionPlans';
 import SubscriptionManager from '@/components/subscription/SubscriptionManager';
+import BillingStatus from '@/components/billing/BillingStatus';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Subscription = () => {
@@ -50,7 +51,7 @@ const Subscription = () => {
             </TabsList>
             
             <TabsContent value="status" className="space-y-6">
-              <SubscriptionManager />
+              <BillingStatus />
             </TabsContent>
             
             <TabsContent value="plans" className="space-y-6">

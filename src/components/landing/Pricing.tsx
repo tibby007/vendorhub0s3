@@ -6,13 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Star, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BillingToggle from '@/components/subscription/BillingToggle';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Pricing = () => {
   const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(false);
+  const { toast } = useToast();
 
   const pricingTiers = [
     {
+      id: "basic",
       name: "VendorHub Basic",
       monthlyPrice: 97,
       annualPrice: 970,
@@ -28,9 +32,10 @@ const Pricing = () => {
       popular: false,
       buttonText: "Start 3-Day Free Trial",
       monthlyPriceId: "price_1Rc1dbB1YJBVEg8wlVQbLAIR",
-      annualPriceId: "price_basic_annual" // You'll need to create this
+      annualPriceId: "price_basic_annual"
     },
     {
+      id: "pro",
       name: "VendorHub Pro",
       monthlyPrice: 197,
       annualPrice: 1970,
@@ -48,9 +53,10 @@ const Pricing = () => {
       popular: true,
       buttonText: "Start 3-Day Free Trial",
       monthlyPriceId: "price_1Rc1eXB1YJBVEg8wXyhCVw7X",
-      annualPriceId: "price_pro_annual" // You'll need to create this
+      annualPriceId: "price_pro_annual"
     },
     {
+      id: "premium",
       name: "VendorHub Premium",
       monthlyPrice: 397,
       annualPrice: 3970,
@@ -68,23 +74,56 @@ const Pricing = () => {
       popular: false,
       buttonText: "Start 3-Day Free Trial",
       monthlyPriceId: "price_1Rc1fkB1YJBVEg8wqjcXMzEK",
-      annualPriceId: "price_premium_annual" // You'll need to create this
+      annualPriceId: "price_premium_annual"
     }
   ];
 
-  const handleSubscribeClick = (tier: any) => {
-    const priceId = isAnnual ? tier.annualPriceId : tier.monthlyPriceId;
-    
-    // Store the selected plan info for the checkout process
-    sessionStorage.setItem('selectedPlan', JSON.stringify({
-      priceId,
-      tier: tier.name.replace('VendorHub ', ''),
-      isAnnual,
-      setupFee: tier.setupFee
-    }));
-    
-    // Navigate to auth page with subscription intent
-    navigate('/auth?subscribe=true');
+  const handleSubscribeClick = async (tier: any) => {
+    try {
+      // Check if user is authenticated first
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // Store plan selection and redirect to auth
+        sessionStorage.setItem('selectedPlan', JSON.stringify({
+          tierId: tier.id,
+          tierName: tier.name,
+          isAnnual,
+          setupFee: tier.setupFee,
+          price: isAnnual ? tier.annualPrice : tier.monthlyPrice
+        }));
+        navigate('/auth?intent=subscription');
+        return;
+      }
+
+      // Step 1: Create setup fee checkout session
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          tier: tier.id,
+          isSetupFee: true,
+          isAnnual: isAnnual
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Open setup fee checkout in new tab
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start checkout process. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
