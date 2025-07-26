@@ -11,6 +11,12 @@ const profileData = new Map<string, AuthUser>();
 export const useUserProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
 
+  const getDemoUserRole = (email: string): string => {
+    if (email === 'demo-partner@vendorhub.com') return 'Partner Admin';
+    if (email === 'demo-vendor@vendorhub.com') return 'Vendor';
+    return 'Vendor'; // fallback
+  };
+
   const upsertUserProfile = async (user: User): Promise<AuthUser> => {
     // TEMPORARY: Skip profile upsert to prevent loading issues
     console.log('⏭️ Skipping profile upsert for demo launch');
@@ -19,9 +25,9 @@ export const useUserProfile = () => {
     const isDemoUser = user.email?.includes('demo-');
     return {
       ...user,
-      role: isDemoUser ? (user.user_metadata?.role || 'Vendor') : 'Partner Admin',
+      role: isDemoUser ? getDemoUserRole(user.email!) : 'Partner Admin',
       name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-      partnerId: isDemoUser && user.user_metadata?.role === 'Partner Admin' ? 'demo-partner-id' : undefined,
+      partnerId: isDemoUser && getDemoUserRole(user.email!) === 'Partner Admin' ? 'demo-partner-id' : undefined,
     } as AuthUser;
 
     // Original code commented out for now
