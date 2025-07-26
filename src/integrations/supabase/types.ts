@@ -241,6 +241,45 @@ export type Database = {
           },
         ]
       }
+      security_audit_log: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          new_value: string | null
+          old_value: string | null
+          performed_by: string | null
+          target_user_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          new_value?: string | null
+          old_value?: string | null
+          performed_by?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          new_value?: string | null
+          old_value?: string | null
+          performed_by?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       setup_fee_payments: {
         Row: {
           amount_paid: number
@@ -511,6 +550,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_user_role: {
+        Args: { target_user_id: string; new_role: string; reason?: string }
+        Returns: Json
+      }
       check_hybrid_storage_limit: {
         Args: { vendor_id: string; file_size: number }
         Returns: Json
@@ -534,6 +577,10 @@ export type Database = {
       is_current_user_vendor_for_submission: {
         Args: { submission_vendor_id: string }
         Returns: boolean
+      }
+      log_security_event: {
+        Args: { event_type: string; details?: string }
+        Returns: undefined
       }
       set_storage_limits_by_plan: {
         Args: { partner_id: string; plan_name: string }
