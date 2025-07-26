@@ -108,6 +108,25 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
+    // Check if this is a demo user - bypass API calls completely
+    if (session.user.email?.includes('demo-')) {
+      console.log('🚀 [SubscriptionContext] Demo user detected, returning mock subscription data');
+      
+      const mockState: Partial<SubscriptionState> = {
+        subscribed: true,
+        tier: 'Pro',
+        status: 'active',
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        priceId: 'demo-price-id',
+        billingStatus: 'active',
+        planType: 'pro',
+        trialEnd: null,
+      };
+
+      dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: mockState });
+      return;
+    }
+
     // Use cache if valid and not forcing refresh
     if (!forceRefresh && isCacheValid()) {
       return;
