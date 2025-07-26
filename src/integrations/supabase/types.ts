@@ -220,6 +220,47 @@ export type Database = {
           },
         ]
       }
+      storage_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          ip_address: unknown | null
+          partner_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          ip_address?: unknown | null
+          partner_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          ip_address?: unknown | null
+          partner_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_audit_log_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submissions: {
         Row: {
           approval_terms: string | null

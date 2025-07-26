@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import SubscriptionManager from '@/components/subscription/SubscriptionManager';
 import ResourcesManagement from '@/components/resources/ResourcesManagement';
 import StorageUsageCard from '@/components/dashboard/StorageUsageCard';
+import SecurityAuditPanel from '@/components/security/SecurityAuditPanel';
 
 interface PartnerProfile {
   id: string;

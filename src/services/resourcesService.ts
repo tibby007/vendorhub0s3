@@ -99,19 +99,19 @@ export const resourcesService = {
     if (error) throw error;
   },
 
-  async uploadFile(file: File, userId: string): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+  async uploadFile(file: File, userId: string, secureFileName?: string): Promise<string> {
+    const fileName = secureFileName || `${userId}/${Date.now()}.${file.name.split('.').pop()}`;
+    const fullPath = `${userId}/${fileName}`;
     
     const { data, error } = await supabase.storage
-      .from('submissions')
-      .upload(fileName, file);
+      .from('partner-documents')
+      .upload(fullPath, file);
 
     if (error) throw error;
     
     const { data: { publicUrl } } = supabase.storage
-      .from('submissions')
-      .getPublicUrl(fileName);
+      .from('partner-documents')
+      .getPublicUrl(fullPath);
 
     return publicUrl;
   }
