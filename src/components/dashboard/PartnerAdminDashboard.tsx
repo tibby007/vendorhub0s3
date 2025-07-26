@@ -1,31 +1,79 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, FileText, TrendingUp, Settings, Plus, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
+import { supabase } from '@/integrations/supabase/client';
 import DashboardSubscriptionStatus from '@/components/dashboard/DashboardSubscriptionStatus';
 import SubscriptionWidget from '@/components/dashboard/SubscriptionWidget';
 
 const PartnerAdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { subscription } = useSubscriptionManager();
+  const [vendorCount, setVendorCount] = useState(0);
+  const [submissionCount, setSubmissionCount] = useState(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user?.id) return;
+
+      // Fetch vendor count
+      const { count: vendors } = await supabase
+        .from('vendors')
+        .select('*', { count: 'exact' })
+        .eq('partner_admin_id', user.id);
+
+      // Fetch pending submissions count
+      const { count: submissions } = await supabase
+        .from('submissions')
+        .select('*', { count: 'exact' })
+        .eq('partner_admin_id', user.id)
+        .eq('status', 'Pending');
+
+      setVendorCount(vendors || 0);
+      setSubmissionCount(submissions || 0);
+    };
+
+    fetchStats();
+  }, [user?.id]);
+
+  const vendorLimits = {
+    basic: 3,
+    pro: 7,
+    premium: 999999
+  };
+
+  const vendorLimit = vendorLimits[subscription.tier?.toLowerCase() as keyof typeof vendorLimits] || 3;
+  const vendorUsagePercentage = Math.min((vendorCount / vendorLimit) * 100, 100);
+  const isNearVendorLimit = vendorCount >= vendorLimit * 0.8;
+
+  const getVendorDescription = () => {
+    if (vendorLimit === 999999) return "Unlimited vendors";
+    const remaining = vendorLimit - vendorCount;
+    if (remaining <= 0) return "Limit reached - upgrade needed";
+    if (isNearVendorLimit) return `${remaining} remaining - consider upgrading`;
+    return `${remaining} of ${vendorLimit} remaining`;
+  };
 
   const stats = [
     {
       title: "Total Vendors",
-      value: "12",
-      description: "Active vendor partners",
+      value: vendorCount.toString(),
+      description: getVendorDescription(),
       icon: Users,
-      color: "text-blue-600"
+      color: isNearVendorLimit ? "text-yellow-600" : "text-blue-600",
+      showUpgrade: vendorCount >= vendorLimit
     },
     {
       title: "Pending Submissions",
-      value: "8",
-      description: "Awaiting review",
+      value: submissionCount.toString(),
+      description: submissionCount > 0 ? "Awaiting review" : "All caught up!",
       icon: FileText,
-      color: "text-yellow-600"
+      color: submissionCount > 5 ? "text-red-600" : "text-yellow-600"
     },
     {
       title: "Monthly Revenue",
@@ -76,7 +124,7 @@ const PartnerAdminDashboard = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Card key={index}>
+          <Card key={index} className={stat.showUpgrade ? 'border-yellow-200 bg-yellow-50' : undefined}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
@@ -84,6 +132,15 @@ const PartnerAdminDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
               <p className="text-xs text-muted-foreground">{stat.description}</p>
+              {stat.showUpgrade && (
+                <Button 
+                  size="sm" 
+                  className="mt-2 text-xs"
+                  onClick={() => navigate('/subscription')}
+                >
+                  Upgrade Plan
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}

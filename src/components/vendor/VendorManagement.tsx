@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Edit2, Trash2, User, Shield, AlertCircle } from 'lucide-react';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
-import { checkVendorLimit } from '@/utils/planLimits';
+import { useNavigate } from 'react-router-dom';
+import VendorLimitIndicator from './VendorLimitIndicator';
 
 interface Vendor {
   id: string;
@@ -26,6 +28,8 @@ interface Vendor {
 
 const VendorManagement = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { subscription } = useSubscriptionManager();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -128,13 +132,54 @@ const VendorManagement = () => {
     setIsLoading(true);
 
     try {
-      // Check vendor limit before creating
-      const canCreate = await checkVendorLimit(user.id);
-      if (!canCreate.allowed) {
+      // Check subscription status first
+      if (!subscription.subscribed && subscription.status !== 'trial') {
+        toast({
+          title: "Subscription Required",
+          description: "You need an active subscription to add vendors.",
+          variant: "destructive",
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/subscription')}
+            >
+              Choose Plan
+            </Button>
+          )
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Check vendor limits based on plan
+      const { count: currentVendorCount } = await supabase
+        .from('vendors')
+        .select('*', { count: 'exact' })
+        .eq('partner_admin_id', user.id);
+
+      const vendorLimits = {
+        basic: 3,
+        pro: 7,
+        premium: 999999
+      };
+
+      const currentLimit = vendorLimits[subscription.tier?.toLowerCase() as keyof typeof vendorLimits] || 3;
+
+      if ((currentVendorCount || 0) >= currentLimit) {
         toast({
           title: "Vendor Limit Reached",
-          description: canCreate.message,
+          description: `You can only have ${currentLimit} vendors on your ${subscription.tier?.toLowerCase() || 'basic'} plan.`,
           variant: "destructive",
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/subscription')}
+            >
+              Upgrade Plan
+            </Button>
+          )
         });
         setIsLoading(false);
         return;
@@ -409,6 +454,9 @@ const VendorManagement = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Vendor Limit Indicator */}
+      <VendorLimitIndicator vendorCount={vendors.length} />
 
       <Card>
         <CardHeader>
