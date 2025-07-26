@@ -6,6 +6,14 @@ export interface StorageData {
   storage_limit: number;
 }
 
+export interface StorageCheckResult {
+  allowed: boolean;
+  reason?: string;
+  message?: string;
+  vendor_remaining?: number;
+  broker_remaining?: number;
+}
+
 export const checkStorageLimit = async (partnerId: string, fileSize: number): Promise<boolean> => {
   const { data: partner } = await supabase
     .from('partners')
@@ -75,8 +83,7 @@ export const uploadFileSecurely = async (
   return data.path;
 };
 
-// Hybrid storage functions - will be enabled after migration
-/*
+// Hybrid storage functions - now enabled after successful migration
 export const uploadFileWithHybridLimits = async (
   file: File,
   vendorId: string,
@@ -86,13 +93,18 @@ export const uploadFileWithHybridLimits = async (
   const validatedFile = await validateFileUpload(file);
   
   // 2. Check hybrid storage limits
-  const { data: storageCheck } = await supabase.rpc('check_hybrid_storage_limit', {
+  const { data: storageCheck, error: storageError } = await supabase.rpc('check_hybrid_storage_limit', {
     vendor_id: vendorId,
     file_size: validatedFile.size
   });
   
-  if (!storageCheck?.allowed) {
-    throw new Error(storageCheck?.message || 'Storage limit exceeded');
+  if (storageError) {
+    throw new Error(`Storage validation failed: ${storageError.message}`);
+  }
+  
+  const result = storageCheck as unknown as StorageCheckResult;
+  if (!result?.allowed) {
+    throw new Error(result?.message || 'Storage limit exceeded');
   }
   
   // 3. Generate secure file path
@@ -118,32 +130,36 @@ export const uploadFileWithHybridLimits = async (
 };
 
 export const getStorageStatus = async (vendorId: string) => {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('vendors')
     .select(`
       storage_used,
       storage_limit,
-      partners!inner (
-        storage_used,
-        storage_limit
-      )
+      partner_admin_id
     `)
     .eq('id', vendorId)
     .single();
     
-  if (!data) return null;
+  if (error || !data) return null;
+  
+  // Get partner data separately
+  const { data: partnerData } = await supabase
+    .from('partners')
+    .select('storage_used, storage_limit')
+    .eq('id', data.partner_admin_id)
+    .single();
+  if (!partnerData) return null;
   
   return {
     vendor: {
-      used: data.storage_used,
-      limit: data.storage_limit,
-      percentage: (data.storage_used / data.storage_limit) * 100
+      used: data.storage_used || 0,
+      limit: data.storage_limit || 2147483648, // 2GB default
+      percentage: ((data.storage_used || 0) / (data.storage_limit || 2147483648)) * 100
     },
     broker: {
-      used: data.partners.storage_used,
-      limit: data.partners.storage_limit, 
-      percentage: (data.partners.storage_used / data.partners.storage_limit) * 100
+      used: partnerData.storage_used || 0,
+      limit: partnerData.storage_limit || 5368709120, // 5GB default
+      percentage: ((partnerData.storage_used || 0) / (partnerData.storage_limit || 5368709120)) * 100
     }
   };
 };
-*/
