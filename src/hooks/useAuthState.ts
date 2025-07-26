@@ -4,7 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { useSubscriptionWithCache } from '@/hooks/useSubscriptionWithCache';
+import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { AuthUser } from '@/types/auth';
 
 export const useAuthState = () => {
@@ -14,13 +14,11 @@ export const useAuthState = () => {
 
   const { upsertUserProfile, clearProfileCache } = useUserProfile();
   const { 
-    subscriptionData, 
-    isLoading: subscriptionLoading,
-    error: subscriptionError,
-    refreshSubscription, 
-    checkSubscriptionAccess,
-    clearCache
-  } = useSubscriptionWithCache();
+    subscription, 
+    refresh: refreshSubscription, 
+    checkAccess: checkSubscriptionAccess,
+    invalidateCache: clearCache
+  } = useSubscriptionManager();
 
   useEffect(() => {
     let mounted = true;
@@ -86,7 +84,7 @@ export const useAuthState = () => {
               // Refresh subscription data in background
               setTimeout(() => {
                 if (mounted && session) {
-                  refreshSubscription(session, false);
+                  refreshSubscription(false);
                 }
               }, 1000);
             }
@@ -194,6 +192,13 @@ export const useAuthState = () => {
     };
   }, [upsertUserProfile, refreshSubscription, clearCache, clearProfileCache]);
 
+  // Create legacy interface for subscriptionData
+  const subscriptionData = subscription.subscribed ? {
+    subscribed: subscription.subscribed,
+    subscription_tier: subscription.tier,
+    subscription_end: subscription.endDate,
+  } : null;
+
   return {
     user,
     session,
@@ -201,7 +206,9 @@ export const useAuthState = () => {
     isLoading,
     setUser,
     setSession,
-    refreshSubscription,
+    refreshSubscription: (session: Session | null, forceRefresh?: boolean) => {
+      refreshSubscription(forceRefresh || false);
+    },
     checkSubscriptionAccess,
     clearCache,
     clearProfileCache

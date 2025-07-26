@@ -3,11 +3,20 @@ import React, { createContext, useContext } from 'react';
 import { AuthContextType } from '@/types/auth';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthActions } from '@/hooks/useAuthActions';
+import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
+import { setGlobalSession } from '@/contexts/SubscriptionContext';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const authState = useAuthState();
+  const { refresh: refreshSubscription } = useSubscriptionManager();
+  
+  // Update subscription session when auth session changes
+  React.useEffect(() => {
+    setGlobalSession(authState.session);
+  }, [authState.session]);
+  
   const authActions = useAuthActions({
     setIsLoading: () => {}, // This will be handled by the auth state hook
     setUser: authState.setUser,
@@ -15,7 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearCache: authState.clearCache,
     clearProfileCache: authState.clearProfileCache,
     refreshSubscription: async (session, forceRefresh) => {
-      await authState.refreshSubscription(session, forceRefresh);
+      await refreshSubscription(forceRefresh || false);
     },
     session: authState.session
   });
@@ -26,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     subscriptionData: authState.subscriptionData,
     login: authActions.login,
     logout: authActions.logout,
-    refreshSubscription: authActions.refreshSubscription,
+    refreshSubscription: (forceRefresh?: boolean) => refreshSubscription(forceRefresh || false),
     checkSubscriptionAccess: authState.checkSubscriptionAccess,
     isLoading: authState.isLoading
   };
