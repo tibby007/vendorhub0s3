@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, Palette, Type, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface BrandingData {
   portalName: string;
@@ -17,6 +18,7 @@ interface BrandingData {
 
 const BrandingSettings = () => {
   const { toast } = useToast();
+  const { isDemo } = useDemoMode();
   const [branding, setBranding] = useState<BrandingData>({
     portalName: 'VendorHub',
     logoUrl: '',
@@ -38,8 +40,8 @@ const BrandingSettings = () => {
       const fakeUrl = URL.createObjectURL(file);
       setBranding(prev => ({ ...prev, logoUrl: fakeUrl }));
       toast({
-        title: "Logo uploaded successfully",
-        description: "Your brand logo has been updated."
+        title: isDemo ? "Demo: Logo uploaded successfully" : "Logo uploaded successfully",
+        description: isDemo ? "This is a demo - logo changes are not persisted." : "Your brand logo has been updated."
       });
     } catch (error) {
       toast({
@@ -54,11 +56,19 @@ const BrandingSettings = () => {
 
   const handleSave = async () => {
     try {
-      // Save branding settings to database
-      toast({
-        title: "Branding settings saved",
-        description: "Your white-label configuration has been updated."
-      });
+      // Show demo-specific message or save normally
+      if (isDemo) {
+        toast({
+          title: "Demo: Branding settings saved",
+          description: "Changes are not persisted in demo mode, but you can see the live preview above!"
+        });
+      } else {
+        // Save branding settings to database in real mode
+        toast({
+          title: "Branding settings saved",
+          description: "Your white-label configuration has been updated."
+        });
+      }
     } catch (error) {
       toast({
         title: "Save failed",
