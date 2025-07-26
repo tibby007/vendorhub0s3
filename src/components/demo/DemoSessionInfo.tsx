@@ -15,7 +15,7 @@ const DemoSessionInfo = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Demo Session Active</h3>
-                <p className="text-gray-600">30-minute full access • Sample data environment</p>
+                <p className="text-gray-600">10-minute full access • Sample data environment</p>
               </div>
             </div>
             <Badge className="bg-vendor-green-100 text-vendor-green-700">

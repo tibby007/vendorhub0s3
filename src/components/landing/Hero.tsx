@@ -32,7 +32,7 @@ const Hero = () => {
             </Button>
           </div>
           <div className="text-sm text-gray-500 mb-8">
-            ✓ Full feature access  ✓ Real data scenarios  ✓ 30-minute session  ✓ No commitment required
+            ✓ Full feature access  ✓ Real data scenarios  ✓ 10-minute session  ✓ No commitment required
           </div>
         </div>
 

@@ -13,7 +13,7 @@ export const DEMO_FEATURES: DemoFeature[] = [
     ],
     limitations: [
       'Read-only data access',
-      '30-minute session limit',
+      '10-minute session limit',
       'Limited to sample data'
     ]
   },
@@ -29,7 +29,7 @@ export const DEMO_FEATURES: DemoFeature[] = [
     ],
     limitations: [
       'Cannot submit real applications',
-      '30-minute session limit',
+      '10-minute session limit',
       'Sample data environment'
     ]
   }

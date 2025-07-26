@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, ArrowRight, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DemoAnalytics } from '@/utils/demoAnalytics';
 
 interface DemoSessionManagerProps {
   sessionDuration?: number; // in minutes
@@ -13,7 +14,7 @@ interface DemoSessionManagerProps {
 }
 
 const DemoSessionManager = ({ 
-  sessionDuration = 30, 
+  sessionDuration = 10, 
   onSessionExpired,
   onUpgradePrompted,
   onUpgradeClicked
@@ -21,6 +22,24 @@ const DemoSessionManager = ({
   const [timeRemaining, setTimeRemaining] = useState(sessionDuration * 60); // in seconds
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  
+  // Sync with DemoAnalytics session timer
+  useEffect(() => {
+    const syncTimer = setInterval(() => {
+      const analyticsTimeRemaining = DemoAnalytics.getSessionTimeRemaining();
+      if (analyticsTimeRemaining <= 0) {
+        setTimeRemaining(0);
+        onSessionExpired?.();
+        return;
+      }
+      
+      // Convert from milliseconds to seconds
+      const secondsRemaining = Math.floor(analyticsTimeRemaining / 1000);
+      setTimeRemaining(secondsRemaining);
+    }, 1000);
+
+    return () => clearInterval(syncTimer);
+  }, [onSessionExpired]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -30,8 +49,8 @@ const DemoSessionManager = ({
           return 0;
         }
         
-        // Show upgrade prompt at 10 minutes and 5 minutes remaining
-        if (prev === 600 || prev === 300) {
+        // Show upgrade prompt at 5 minutes and 2 minutes remaining
+        if (prev === 300 || prev === 120) {
           setShowUpgradePrompt(true);
           onUpgradePrompted?.();
         }
@@ -50,8 +69,8 @@ const DemoSessionManager = ({
   };
 
   const getTimeColor = () => {
-    if (timeRemaining <= 300) return 'text-red-600'; // Last 5 minutes
-    if (timeRemaining <= 600) return 'text-orange-600'; // Last 10 minutes
+    if (timeRemaining <= 120) return 'text-red-600'; // Last 2 minutes
+    if (timeRemaining <= 300) return 'text-orange-600'; // Last 5 minutes
     return 'text-vendor-green-600';
   };
 

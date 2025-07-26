@@ -34,8 +34,8 @@ interface DemoEvent {
 
 export class DemoAnalytics {
   private static SESSION_KEY = 'demo_session';
-  private static SESSION_DURATION = 30 * 60 * 1000; // 30 minutes
-  private static WARNING_THRESHOLD = 5 * 60 * 1000; // 5 minutes before expiry
+  private static SESSION_DURATION = 10 * 60 * 1000; // 10 minutes
+  private static WARNING_THRESHOLD = 2 * 60 * 1000; // 2 minutes before expiry
 
   static startSession(userData: any, userRole: string): string {
     const sessionId = this.generateSessionId();

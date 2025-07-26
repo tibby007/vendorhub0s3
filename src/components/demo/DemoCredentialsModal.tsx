@@ -67,7 +67,7 @@ const DemoCredentialsModal = ({ isOpen, onOpenChange, credentials, sessionId, on
               <Timer className="w-4 h-4 text-vendor-green-600" />
               <span className="text-sm font-medium text-vendor-green-900">Demo Session Active</span>
               <Badge variant="secondary" className="bg-vendor-green-100 text-vendor-green-700 text-xs">
-                30 Minutes
+                10 Minutes
               </Badge>
             </div>
             <p className="text-xs text-vendor-green-700">
@@ -169,7 +169,7 @@ const DemoCredentialsModal = ({ isOpen, onOpenChange, credentials, sessionId, on
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <p className="text-xs text-amber-800">
               <strong>Important:</strong> Please save these credentials before closing this dialog. 
-              Your demo session will expire after 30 minutes of inactivity.
+              Your demo session will expire after 10 minutes of inactivity.
             </p>
           </div>
         </div>

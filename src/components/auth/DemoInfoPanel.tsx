@@ -31,7 +31,7 @@ const DemoInfoPanel = ({ email, password, role }: DemoInfoPanelProps) => {
       {email && password ? (
         <div className="space-y-3">
           <p className="text-xs text-vendor-green-700 mb-3">
-            Your demo credentials are ready to use. Demo sessions are limited to 30 minutes.
+            Your demo credentials are ready to use. Demo sessions are limited to 10 minutes.
           </p>
           
           {/* Credentials Display */}
@@ -75,7 +75,7 @@ const DemoInfoPanel = ({ email, password, role }: DemoInfoPanelProps) => {
         </div>
       ) : (
         <p className="text-xs text-vendor-green-700">
-          Use the demo credentials from your registration to login. Demo sessions are limited to 30 minutes.
+          Use the demo credentials from your registration to login. Demo sessions are limited to 10 minutes.
         </p>
       )}
     </div>

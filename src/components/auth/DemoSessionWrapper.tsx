@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DemoSessionManager from '@/components/demo/DemoSessionManager';
 import { DemoAnalytics, DEMO_EVENTS } from '@/utils/demoAnalytics';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DemoSessionWrapperProps {
   children: React.ReactNode;
@@ -33,6 +34,15 @@ const DemoSessionWrapper: React.FC<DemoSessionWrapperProps> = ({ children }) => 
     console.log('Demo session expired');
     DemoAnalytics.trackEvent(DEMO_EVENTS.SESSION_EXPIRED);
     DemoAnalytics.endSession();
+    
+    // Clear all demo-related storage
+    sessionStorage.removeItem('demo_credentials');
+    sessionStorage.removeItem('isDemoMode');
+    sessionStorage.removeItem('demo_session');
+    
+    // Force logout if authenticated as demo user
+    supabase.auth.signOut();
+    
     setIsDemoSession(false);
     navigate('/demo');
   };
@@ -49,7 +59,7 @@ const DemoSessionWrapper: React.FC<DemoSessionWrapperProps> = ({ children }) => 
     <>
       {isDemoSession && (
         <DemoSessionManager 
-          sessionDuration={30}
+          sessionDuration={10}
           onSessionExpired={handleSessionExpired}
           onUpgradePrompted={handleUpgradePrompt}
           onUpgradeClicked={handleUpgradeClick}
