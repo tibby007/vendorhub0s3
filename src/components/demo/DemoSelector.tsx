@@ -21,7 +21,7 @@ const DemoSelector = () => {
       // Check for rate limiting
       const lastDemoTime = localStorage.getItem('last_demo_time');
       const now = Date.now();
-      const DEMO_COOLDOWN = 30 * 60 * 1000; // 30 minutes between demo sessions
+      const DEMO_COOLDOWN = 10 * 60 * 1000; // 10 minutes between demo sessions
       
       if (lastDemoTime && (now - parseInt(lastDemoTime)) < DEMO_COOLDOWN) {
         const remainingMinutes = Math.ceil((DEMO_COOLDOWN - (now - parseInt(lastDemoTime))) / (60 * 1000));
