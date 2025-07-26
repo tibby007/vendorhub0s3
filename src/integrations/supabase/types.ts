@@ -251,15 +251,7 @@ export type Database = {
           partner_id?: string | null
           user_agent?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "storage_audit_log_partner_id_fkey"
-            columns: ["partner_id"]
-            isOneToOne: false
-            referencedRelation: "partners"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       submissions: {
         Row: {

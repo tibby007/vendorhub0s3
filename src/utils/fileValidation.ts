@@ -12,7 +12,7 @@ const DANGEROUS_EXTENSIONS = ['.exe', '.bat', '.cmd', '.com', '.scr', '.js', '.p
 export const validateFileUpload = async (file: File): Promise<File> => {
   // Check file size
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error(`File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`);
+    throw new Error('File size must be less than 10MB');
   }
 
   // Check MIME type

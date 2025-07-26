@@ -100,19 +100,47 @@ export const resourcesService = {
   },
 
   async uploadFile(file: File, userId: string, secureFileName?: string): Promise<string> {
-    const fileName = secureFileName || `${userId}/${Date.now()}.${file.name.split('.').pop()}`;
+    // Generate secure path structure
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+    const fileName = secureFileName || `${crypto.randomUUID()}.${fileExtension}`;
     const fullPath = `${userId}/${fileName}`;
     
-    const { data, error } = await supabase.storage
-      .from('partner-documents')
-      .upload(fullPath, file);
-
-    if (error) throw error;
+    console.log('Uploading to path:', fullPath);
+    console.log('Bucket: partner-documents');
     
+    const { data, error } = await supabase.storage
+      .from('partner-documents')  // Make sure this bucket exists!
+      .upload(fullPath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Upload error:', error);
+      throw new Error(`Upload failed: ${error.message}`);
+    }
+    
+    // Get the file URL (not public URL for security)
     const { data: { publicUrl } } = supabase.storage
       .from('partner-documents')
       .getPublicUrl(fullPath);
 
     return publicUrl;
+  },
+
+  async deleteFile(fileUrl: string, userId: string): Promise<void> {
+    // Extract the file path from the URL
+    const urlParts = fileUrl.split('/');
+    const fileName = urlParts[urlParts.length - 1];
+    const filePath = `${userId}/${fileName}`;
+    
+    const { error } = await supabase.storage
+      .from('partner-documents')
+      .remove([filePath]);
+    
+    if (error) {
+      console.error('Delete error:', error);
+      throw new Error(`Delete failed: ${error.message}`);
+    }
   }
 };
