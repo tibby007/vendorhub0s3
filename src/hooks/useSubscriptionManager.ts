@@ -1,28 +1,14 @@
-import { useContext, useEffect } from 'react';
+import { useContext } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { SubscriptionContext } from '@/contexts/SubscriptionContext';
 
-// Re-export the hook from context for backwards compatibility
+// Main hook for accessing subscription data
 export const useSubscriptionManager = () => {
   const context = useContext(SubscriptionContext);
   if (context === undefined) {
     throw new Error('useSubscriptionManager must be used within a SubscriptionProvider');
   }
   return context;
-};
-
-// Hook for components that need to set the current session
-export const useSubscriptionSession = () => {
-  const { refresh } = useSubscriptionManager();
-  
-  const setSession = (session: Session | null) => {
-    // Trigger refresh when session changes
-    if (session) {
-      refresh(false);
-    }
-  };
-
-  return { setSession };
 };
 
 // Legacy hook interface for backwards compatibility
