@@ -133,34 +133,55 @@ export type Database = {
       }
       partners: {
         Row: {
+          billing_status: string
           contact_email: string
           contact_phone: string | null
           created_at: string
+          current_period_end: string | null
           id: string
           name: string
+          plan_type: string
           storage_limit: number | null
           storage_used: number | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string | null
           updated_at: string
+          vendor_limit: number
         }
         Insert: {
+          billing_status?: string
           contact_email: string
           contact_phone?: string | null
           created_at?: string
+          current_period_end?: string | null
           id?: string
           name: string
+          plan_type?: string
           storage_limit?: number | null
           storage_used?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
           updated_at?: string
+          vendor_limit?: number
         }
         Update: {
+          billing_status?: string
           contact_email?: string
           contact_phone?: string | null
           created_at?: string
+          current_period_end?: string | null
           id?: string
           name?: string
+          plan_type?: string
           storage_limit?: number | null
           storage_used?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
           updated_at?: string
+          vendor_limit?: number
         }
         Relationships: []
       }
@@ -219,6 +240,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      setup_fee_payments: {
+        Row: {
+          amount_paid: number
+          created_at: string | null
+          customer_email: string
+          id: string
+          is_annual: boolean
+          payment_status: string | null
+          plan_type: string
+          session_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string | null
+          customer_email: string
+          id?: string
+          is_annual: boolean
+          payment_status?: string | null
+          plan_type: string
+          session_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string | null
+          customer_email?: string
+          id?: string
+          is_annual?: boolean
+          payment_status?: string | null
+          plan_type?: string
+          session_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       storage_audit_log: {
         Row: {
