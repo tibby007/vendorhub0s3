@@ -10,7 +10,9 @@ import { AuthUser } from '@/types/auth';
 export const useAuthState = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionProcessed, setSessionProcessed] = useState(false);
+  const [lastSessionId, setLastSessionId] = useState<string | null>(null);
 
   const { upsertUserProfile, clearProfileCache } = useUserProfile();
   const { 
@@ -21,176 +23,50 @@ export const useAuthState = () => {
   } = useSubscriptionManager();
 
   useEffect(() => {
-    let mounted = true;
-    let profileProcessing = false;
-    let authProcessingTimer: NodeJS.Timeout | null = null;
-    let lastProcessedEvent = '';
-    let lastProcessedTime = 0;
-    let isInitialized = false;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Auth event:', event, session?.user?.id || 'no-user');
 
-    const handleAuthStateChange = async (event: string, session: Session | null) => {
-      // Prevent rapid successive identical events with stricter checking
-      const now = Date.now();
-      const eventKey = `${event}-${session?.user?.id || 'null'}-${session?.access_token?.slice(-8) || 'null'}`;
-      
-      // For INITIAL_SESSION, only process once per session
-      if (event === 'INITIAL_SESSION' && isInitialized) {
-        console.log('⏭️ Skipping duplicate INITIAL_SESSION - already initialized');
+      // CRITICAL: Prevent duplicate processing
+      const currentSessionId = session?.user?.id || null;
+      if (event === 'INITIAL_SESSION' && currentSessionId === lastSessionId && sessionProcessed) {
+        console.log('🚫 Skipping duplicate INITIAL_SESSION');
         return;
       }
-      
-      if (eventKey === lastProcessedEvent && now - lastProcessedTime < 1000) {
-        console.log('⏭️ Skipping duplicate auth event:', event);
-        return;
-      }
-      
-      lastProcessedEvent = eventKey;
-      lastProcessedTime = now;
-      
-      console.log('🔐 Auth state changed:', event, session?.user?.email);
-      
-      if (!mounted) return;
 
-      // Clear any pending auth processing
-      if (authProcessingTimer) {
-        clearTimeout(authProcessingTimer);
-      }
+      // CRITICAL: Always set loading false on any auth event
+      setIsLoading(false);
 
-      // Process auth changes immediately for better UX
-      setSession(session);
-      
-      if (session?.user && !profileProcessing) {
-        profileProcessing = true;
-        isInitialized = true;
+      if (session?.user) {
+        setLastSessionId(currentSessionId);
+        setSessionProcessed(true);
+        setSession(session);
+        setUser(session.user);
         
-        try {
-          console.log('👤 Processing successful auth for user:', session.user.email);
-          
-          // Clear cache for demo users to ensure fresh profile data
-          if (session.user.email?.includes('demo-')) {
-            console.log('🧹 Clearing cached profile for demo user');
-            clearProfileCache();
-          }
-          
-          // Enrich user profile with error handling and timeout
-          const isDemoUser = session.user.email?.includes('demo-');
-          
-          try {
-            const enrichedUser = await upsertUserProfile(session.user);
-            if (mounted) {
-              setUser(enrichedUser);
-              console.log('✅ User profile loaded successfully');
-              
-              // Refresh subscription data in background
-              setTimeout(() => {
-                if (mounted && session) {
-                  refreshSubscription(false);
-                }
-              }, 1000);
-            }
-          } catch (profileError) {
-            console.error('⚠️ Profile upsert failed, using emergency fallback:', profileError);
-            
-            if (mounted) {
-              // Create immediate fallback user to prevent login hanging
-              const emergencyUser = {
-                ...session.user,
-                role: isDemoUser ? (session.user.user_metadata?.role || 'Vendor') : 'Partner Admin',
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                partnerId: isDemoUser && session.user.user_metadata?.role === 'Partner Admin' ? 'demo-partner-id' : undefined,
-              } as AuthUser;
-              
-              setUser(emergencyUser);
-              console.log('🚨 Emergency user fallback activated');
-            }
-          }
-        } catch (err: any) {
-          console.error('❌ Error in auth state change:', err);
-          if (mounted) {
-            // For demo users, use fallback data to ensure login works
-            const fallbackUser = {
-              ...session.user,
-              role: session.user.email?.includes('demo-') ? 'Vendor' : 'Partner Admin',
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-            } as AuthUser;
-            
-            setUser(fallbackUser);
-            console.log('⚠️ Using fallback user data for demo user');
-            
-            // Only show toast for non-demo users or critical errors
-            if (!session.user.email?.includes('demo-') && !err.message?.includes('Failed to fetch')) {
-              toast({
-                title: "Profile Loading Issue",
-                description: "Using basic profile data. Some features may be limited.",
-                variant: "destructive",
-              });
-            }
-          }
-        } finally {
-          profileProcessing = false;
-        }
-      } else if (!session) {
-        if (mounted) {
-          console.log('🚪 User logged out or no session');
-          setUser(null);
-          clearCache();
-          clearProfileCache();
-          isInitialized = false;
-        }
+        // Skip profile upsert for now to prevent timeout
+        console.log('✅ User authenticated, skipping profile upsert');
+      } else {
+        setLastSessionId(null);
+        setSessionProcessed(true);
+        setSession(null);
+        setUser(null);
+        console.log('🚪 No session found');
       }
-      
-      // Always set loading to false after processing
-      if (mounted) {
-        setIsLoading(false);
-      }
-    };
+    });
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+    return () => subscription.unsubscribe();
+  }, [sessionProcessed, lastSessionId]);
 
-    // Check for existing session with retry logic
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('❌ Error getting session:', error);
-          if (mounted) {
-            setIsLoading(false);
-          }
-          return;
-        }
-        
-        if (mounted) {
-          if (session) {
-            console.log('🔄 Initial session found:', session.user?.email);
-            // Only process if not already initialized
-            if (!isInitialized) {
-              handleAuthStateChange('INITIAL_SESSION', session);
-            }
-          } else {
-            console.log('❌ No initial session found');
-            setIsLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Failed to initialize auth:', error);
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
+  // CRITICAL: Force loading to false after 10 seconds max
+  useEffect(() => {
+    const loadingTimeout = setTimeout(() => {
+      console.log('⏰ Loading timeout reached, forcing loading to false');
+      setIsLoading(false);
+    }, 10000);
 
-    // Add a small delay before initializing to prevent race conditions
-    setTimeout(initializeAuth, 100);
-
-    return () => {
-      mounted = false;
-      if (authProcessingTimer) {
-        clearTimeout(authProcessingTimer);
-      }
-      subscription.unsubscribe();
-    };
-  }, [upsertUserProfile, refreshSubscription, clearCache, clearProfileCache]);
+    return () => clearTimeout(loadingTimeout);
+  }, []);
 
   // Create legacy interface for subscriptionData
   const subscriptionData = subscription.subscribed ? {

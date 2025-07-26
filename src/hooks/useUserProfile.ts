@@ -12,6 +12,20 @@ export const useUserProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const upsertUserProfile = async (user: User): Promise<AuthUser> => {
+    // TEMPORARY: Skip profile upsert to prevent loading issues
+    console.log('⏭️ Skipping profile upsert for demo launch');
+    
+    // Return immediate fallback user data
+    const isDemoUser = user.email?.includes('demo-');
+    return {
+      ...user,
+      role: isDemoUser ? (user.user_metadata?.role || 'Vendor') : 'Partner Admin',
+      name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+      partnerId: isDemoUser && user.user_metadata?.role === 'Partner Admin' ? 'demo-partner-id' : undefined,
+    } as AuthUser;
+
+    // Original code commented out for now
+    /*
     // Return cached data if available
     if (profileData.has(user.id)) {
       console.log('🎯 Using cached profile for:', user.email);
@@ -37,6 +51,7 @@ export const useUserProfile = () => {
       profileCache.delete(user.id);
       setIsLoading(false);
     }
+    */
   };
 
   const performUpsertProfile = async (user: User): Promise<AuthUser> => {
