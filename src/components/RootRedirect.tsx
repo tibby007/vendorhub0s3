@@ -26,13 +26,11 @@ const RootRedirect = () => {
     // Wait for auth to finish loading before making redirect decisions
     if (!isLoading) {
       if (user) {
-        console.log('🏠 User authenticated at root, redirecting to dashboard');
-        // Add small delay to ensure auth state is fully settled
-        setTimeout(() => {
-          const queryString = searchParams.toString();
-          const dashboardUrl = queryString ? `/dashboard?${queryString}` : '/dashboard';
-          navigate(dashboardUrl, { replace: true });
-        }, 100);
+        console.log('🏠 User authenticated at root, redirecting to dashboard:', user.email);
+        // Immediate redirect to dashboard for authenticated users
+        const queryString = searchParams.toString();
+        const dashboardUrl = queryString ? `/dashboard?${queryString}` : '/dashboard';
+        navigate(dashboardUrl, { replace: true });
       } else {
         console.log('🏠 No user at root, redirecting to landing');
         navigate('/landing', { replace: true });
