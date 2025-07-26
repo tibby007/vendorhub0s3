@@ -23,6 +23,15 @@ export const useUserProfile = () => {
     
     // Return immediate fallback user data
     const isDemoUser = user.email?.includes('demo-');
+    
+    console.log('🔍 User email:', user.email);
+    console.log('🔍 isDemoUser:', isDemoUser);
+    console.log('🔍 Role assigned:', isDemoUser ? getDemoUserRole(user.email!) : 'Partner Admin');
+    console.log('🔍 Complete user object:', {
+      ...user,
+      role: isDemoUser ? getDemoUserRole(user.email!) : 'Partner Admin'
+    });
+    
     return {
       ...user,
       role: isDemoUser ? getDemoUserRole(user.email!) : 'Partner Admin',
