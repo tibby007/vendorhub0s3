@@ -25,22 +25,20 @@ const Footer = () => {
             <ul className="space-y-2 text-gray-400">
               <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
               <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
             </ul>
           </div>
           
           <div>
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+              <li><Link to="/demo" className="hover:text-white transition-colors">Demo</Link></li>
             </ul>
           </div>
           
           <div>
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="mailto:support@vendorhub.com" className="hover:text-white transition-colors">Chat Support</a></li>
+              <li><a href="mailto:support@aimarvelsinc.com" className="hover:text-white transition-colors">support@aimarvelsinc.com</a></li>
             </ul>
           </div>
         </div>
