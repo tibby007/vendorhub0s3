@@ -54,26 +54,26 @@ serve(async (req) => {
     // Check if this is a setup fee checkout
     
     if (isSetupFee) {
-      // Create setup fee checkout session
-      const setupFeeAmounts = {
-        'basic': 29700,  // $297
-        'pro': 49700,    // $497
-        'premium': 79700 // $797
+      // Map plan types to setup fee price IDs
+      const setupFeePriceMap = {
+        'basic': 'price_1Rp5uDB1YJBVEg8wydyjK4uL',
+        'pro': 'price_1Rp5uSB1YJBVEg8wb8WODNOH', 
+        'premium': 'price_1Rp5uiB1YJBVEg8wkLbyhjl1'
       };
+
+      const priceId = setupFeePriceMap[tier as keyof typeof setupFeePriceMap];
+      if (!priceId) {
+        throw new Error(`Invalid plan type: ${tier}`);
+      }
+
+      logStep("Creating setup fee checkout session", { tier, priceId, isAnnual });
       
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,
         line_items: [
           {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: `VendorHub ${tier.charAt(0).toUpperCase() + tier.slice(1)} Setup Fee`,
-                description: 'One-time setup and onboarding fee'
-              },
-              unit_amount: setupFeeAmounts[tier] || setupFeeAmounts.basic
-            },
+            price: priceId,
             quantity: 1,
           },
         ],
