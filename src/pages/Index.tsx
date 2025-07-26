@@ -45,6 +45,11 @@ const Index = () => {
   const isDemoUser = user.email?.includes('demo-') || user.user_metadata?.demo_session_id;
 
   const renderDashboard = () => {
+    // Debug role information
+    console.log('🎯 INDEX.tsx - User role received:', user.role);
+    console.log('🎯 INDEX.tsx - Role type:', typeof user.role);
+    console.log('🎯 INDEX.tsx - Role length:', user.role?.length);
+    console.log('🎯 INDEX.tsx - Role === "Partner Admin":', user.role === 'Partner Admin');
     console.log('🎯 Rendering dashboard for role:', user.role, 'User:', user.name, 'Email:', user.email);
     
     switch (user.role) {
