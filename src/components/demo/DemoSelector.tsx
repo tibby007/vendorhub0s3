@@ -33,7 +33,7 @@ const DemoSelector = () => {
       // Direct authentication with known demo credentials
       const credentials = {
         email: role === 'Partner Admin' ? 'demo-partner@vendorhub.com' : 'demo-vendor@vendorhub.com',
-        password: 'demo123!',
+        password: 'DemoPass123!',
         role: role
       };
 
