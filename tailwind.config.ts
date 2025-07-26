@@ -76,6 +76,8 @@ export default {
 					800: '#166534',
 					900: '#14532d',
 				},
+				warning: "hsl(var(--warning))",
+				success: "hsl(var(--success))",
 				'vendor-gold': {
 					50: '#fffbeb',
 					100: '#fef3c7',

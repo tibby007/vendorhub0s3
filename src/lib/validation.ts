@@ -6,7 +6,7 @@ export const partnerAdminSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/, 'Password must contain uppercase, lowercase, number, and special character'),
   company: z.string().min(2, 'Company name must be at least 2 characters').max(200, 'Company name too long'),
   contactPhone: z.string().regex(/^\+?[\d\s\-\(\)]{10,15}$/, 'Invalid phone number format').optional(),
   subscription: z.enum(['Basic', 'Pro', 'Premium'])
@@ -35,7 +35,7 @@ export const vendorSchema = z.object({
   contact_phone: z.string().regex(/^\+?[\d\s\-\(\)]{10,15}$/, 'Invalid phone number format').optional(),
   contact_address: z.string().max(500, 'Address too long').optional(),
   password: z.string().min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number').optional()
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/, 'Password must contain uppercase, lowercase, number, and special character').optional()
 });
 
 // File Upload Validation
@@ -61,3 +61,62 @@ export const sanitizeFilename = (filename: string): string => {
     .replace(/_{2,}/g, '_')
     .toLowerCase();
 };
+
+// Password strength validation function
+export const getPasswordStrength = (password: string): {
+  score: number;
+  feedback: string[];
+} => {
+  const feedback: string[] = [];
+  let score = 0;
+
+  if (password.length >= 8) score += 1;
+  else feedback.push('Use at least 8 characters');
+
+  if (password.length >= 12) score += 1;
+  else if (password.length >= 8) feedback.push('Consider using 12+ characters for better security');
+
+  if (/[a-z]/.test(password)) score += 1;
+  else feedback.push('Include lowercase letters');
+
+  if (/[A-Z]/.test(password)) score += 1;
+  else feedback.push('Include uppercase letters');
+
+  if (/\d/.test(password)) score += 1;
+  else feedback.push('Include numbers');
+
+  if (/[@$!%*?&]/.test(password)) score += 1;
+  else feedback.push('Include special characters (@$!%*?&)');
+
+  if (password.length >= 16) score += 1;
+
+  return { score, feedback };
+};
+
+// Login attempt validation schema
+export const loginAttemptSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+  timestamp: z.number().default(() => Date.now()),
+  ip_address: z.string().optional(),
+  user_agent: z.string().optional()
+});
+
+// Security event logging schema
+export const securityEventSchema = z.object({
+  event_type: z.enum([
+    'login_attempt',
+    'login_success',
+    'login_failure',
+    'password_reset',
+    'role_change',
+    'suspicious_activity',
+    'demo_access',
+    'demo_session_cleanup'
+  ]),
+  user_id: z.string().uuid().optional(),
+  details: z.string().optional(),
+  ip_address: z.string().optional(),
+  user_agent: z.string().optional(),
+  timestamp: z.number().default(() => Date.now())
+});

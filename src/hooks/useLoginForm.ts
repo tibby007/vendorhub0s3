@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DemoAnalytics, DEMO_EVENTS } from '@/utils/demoAnalytics';
+import { SecurityService } from '@/services/securityService';
 
 export const useLoginForm = (isDemoSession?: boolean) => {
   const [email, setEmail] = useState('');
@@ -55,6 +56,17 @@ export const useLoginForm = (isDemoSession?: boolean) => {
     try {
       console.log('Starting login process for:', email);
       
+      // Security: Check rate limits and log attempt
+      const ipAddress = SecurityService.getClientIP();
+      const userAgent = SecurityService.getUserAgent();
+      
+      await SecurityService.logLoginAttempt({
+        email,
+        password: '', // Never log the actual password
+        ip_address: ipAddress,
+        user_agent: userAgent
+      }, false); // Will be updated to true on success
+      
       // Track demo login attempt if it's a demo session
       if (isDemoSession || email.includes('demo-')) {
         DemoAnalytics.trackEvent(DEMO_EVENTS.LOGIN_ATTEMPT, {
@@ -67,6 +79,14 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       
       // If we get here, login was successful
       console.log('Login completed successfully');
+      
+      // Log successful login
+      await SecurityService.logLoginAttempt({
+        email,
+        password: '',
+        ip_address: ipAddress,
+        user_agent: userAgent
+      }, true);
       
       // Check if this is a demo user
       const isDemoUser = email.includes('demo-');

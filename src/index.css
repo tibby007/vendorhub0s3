@@ -45,6 +45,10 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 142 76% 36%;
+    
+    /* Security status colors */
+    --warning: 38 92% 50%;
+    --success: 142 76% 36%;
   }
 
   .dark {
@@ -75,8 +79,29 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 142 76% 36%;
+    
+    /* Security status colors */
+    --warning: 38 92% 50%;
+    --success: 142 76% 36%;
   }
 }
+
+  /* Security and status colors */
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+  
+  .text-success {
+    color: hsl(var(--success));
+  }
+  
+  .bg-warning {
+    background-color: hsl(var(--warning));
+  }
+  
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
 
 @layer base {
   * {

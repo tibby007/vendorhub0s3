@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PasswordStrengthIndicator } from '@/components/ui/password-strength-indicator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { partnerAdminSchema } from '@/lib/validation';
+import { SecurityService } from '@/services/securityService';
 
 const SignupTab = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,19 +23,29 @@ const SignupTab = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (signupData.password !== signupData.confirmPassword) {
+    // Validate form data using schema
+    const validation = partnerAdminSchema.safeParse({
+      name: signupData.name,
+      email: signupData.email,
+      password: signupData.password,
+      company: 'Default Company', // This will be updated later
+      subscription: 'Basic'
+    });
+
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: "Validation Error",
+        description: firstError.message,
         variant: "destructive",
       });
       return;
     }
-
-    if (signupData.password.length < 6) {
+    
+    if (signupData.password !== signupData.confirmPassword) {
       toast({
         title: "Error",
-        description: "Password must be at least 6 characters long",
+        description: "Passwords do not match",
         variant: "destructive",
       });
       return;
@@ -152,13 +165,14 @@ const SignupTab = () => {
             <Input
               id="signup-password"
               type="password"
-              placeholder="Create a password (min 6 characters)"
+              placeholder="Create a strong password (8+ characters)"
               value={signupData.password}
               onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
               required
               disabled={isLoading}
-              minLength={6}
+              minLength={8}
             />
+            <PasswordStrengthIndicator password={signupData.password} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm-password">Confirm Password</Label>
