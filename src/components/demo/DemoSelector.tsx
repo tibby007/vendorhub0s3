@@ -10,8 +10,8 @@ const DemoSelector = () => {
 
   const handleDemoSelect = (role: 'Partner Admin' | 'Vendor') => {
     const credentials = role === 'Partner Admin' 
-      ? { email: 'demo-partner@vendorhub.com', password: 'demo123!', role }
-      : { email: 'demo-vendor@vendorhub.com', password: 'demo123!', role };
+      ? { email: 'demo-partner@vendorhub.com', password: 'DemoPass123!', role }
+      : { email: 'demo-vendor@vendorhub.com', password: 'DemoPass123!', role };
     
     // Store credentials for auto-fill
     sessionStorage.setItem('demoCredentials', JSON.stringify({
