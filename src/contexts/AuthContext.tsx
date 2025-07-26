@@ -2,7 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
-import { mockPartnerUser, mockVendorUser } from '@/data/mockPartnerData';
+import { mockPartnerUser } from '@/data/mockPartnerData';
+import { mockVendorUser } from '@/data/mockVendorData';
 import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface AuthUser {

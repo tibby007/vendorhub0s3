@@ -2,7 +2,7 @@ export const mockVendorUser = {
   id: 'demo-vendor-456',
   email: 'demo@vendor.com', 
   name: 'Michael Chen',
-  role: 'Vendor',
+  role: 'Vendor', // Fixed: Ensure this is exactly "Vendor"
   avatar_url: null,
   created_at: '2024-01-10T08:00:00Z'
 };

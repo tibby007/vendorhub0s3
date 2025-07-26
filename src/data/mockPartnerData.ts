@@ -2,7 +2,7 @@ export const mockPartnerUser = {
   id: 'demo-partner-123',
   email: 'demo@partner.com',
   name: 'Sarah Johnson',
-  role: 'Partner Admin',
+  role: 'Partner Admin', // Fixed: Ensure this is exactly "Partner Admin"
   avatar_url: null,
   created_at: '2024-01-15T10:00:00Z'
 };
@@ -107,13 +107,3 @@ export const mockResources = [
     created_at: '2024-01-10T09:00:00Z'
   }
 ];
-
-// Export vendor user from this file for convenience
-export const mockVendorUser = {
-  id: 'demo-vendor-456',
-  email: 'demo@vendor.com', 
-  name: 'Michael Chen',
-  role: 'Vendor',
-  avatar_url: null,
-  created_at: '2024-01-10T08:00:00Z'
-};
