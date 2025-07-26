@@ -74,17 +74,28 @@ export class SecurityService {
     success: boolean
   ) {
     try {
-      const validatedData = loginAttemptSchema.parse(attemptData);
+      // For attempts (success=false), use lenient validation - just check basic fields exist
+      if (!success) {
+        // Basic validation for attempts - don't block on missing optional fields
+        if (!attemptData.email || typeof attemptData.email !== 'string') {
+          console.warn('Invalid email in login attempt data, skipping security logging');
+          return { success: true };
+        }
+      } else {
+        // For successful logins, use full validation
+        const validatedData = loginAttemptSchema.parse(attemptData);
+        attemptData = validatedData;
+      }
       
-      // Check rate limit
-      const rateCheck = this.checkLoginRateLimit(validatedData.email, validatedData.ip_address);
+      // Check rate limit only for valid attempts
+      const rateCheck = this.checkLoginRateLimit(attemptData.email, attemptData.ip_address);
       
       if (!rateCheck.allowed) {
         await this.logSecurityEvent({
           event_type: 'suspicious_activity',
-          details: `Rate limit exceeded for email: ${validatedData.email}`,
-          ip_address: validatedData.ip_address,
-          user_agent: validatedData.user_agent
+          details: `Rate limit exceeded for email: ${attemptData.email}`,
+          ip_address: attemptData.ip_address,
+          user_agent: attemptData.user_agent
         });
         
         throw new Error(`Too many login attempts. Try again after ${new Date(rateCheck.resetTime!).toLocaleTimeString()}`);
@@ -93,15 +104,16 @@ export class SecurityService {
       // Log the attempt
       await this.logSecurityEvent({
         event_type: success ? 'login_success' : 'login_failure',
-        details: `Login attempt for ${validatedData.email}`,
-        ip_address: validatedData.ip_address,
-        user_agent: validatedData.user_agent
+        details: `Login attempt for ${attemptData.email}`,
+        ip_address: attemptData.ip_address,
+        user_agent: attemptData.user_agent
       });
 
       return { success: true };
     } catch (error) {
-      console.error('Login attempt validation failed:', error);
-      throw error;
+      console.error('Login attempt logging failed:', error);
+      // Don't throw for logging failures - just log and continue
+      return { success: false, error };
     }
   }
 

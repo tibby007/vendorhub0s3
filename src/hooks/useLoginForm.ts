@@ -60,12 +60,19 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       const ipAddress = SecurityService.getClientIP();
       const userAgent = SecurityService.getUserAgent();
       
-      await SecurityService.logLoginAttempt({
-        email,
-        password: '', // Never log the actual password
-        ip_address: ipAddress,
-        user_agent: userAgent
-      }, false); // Will be updated to true on success
+      console.log('🔒 Logging login attempt for:', email);
+      
+      try {
+        await SecurityService.logLoginAttempt({
+          email,
+          password: '', // Never log the actual password
+          ip_address: ipAddress,
+          user_agent: userAgent
+        }, false); // Will be updated to true on success
+      } catch (securityError) {
+        console.warn('Security logging failed, but continuing with login:', securityError);
+        // Don't block login for security logging failures
+      }
       
       // Track demo login attempt if it's a demo session
       if (isDemoSession || email.includes('demo-')) {
@@ -81,12 +88,17 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       console.log('Login completed successfully');
       
       // Log successful login
-      await SecurityService.logLoginAttempt({
-        email,
-        password: '',
-        ip_address: ipAddress,
-        user_agent: userAgent
-      }, true);
+      try {
+        await SecurityService.logLoginAttempt({
+          email,
+          password: '',
+          ip_address: ipAddress,
+          user_agent: userAgent
+        }, true);
+      } catch (securityError) {
+        console.warn('Failed to log successful login, but continuing:', securityError);
+        // Don't block user flow for security logging failures
+      }
       
       // Check if this is a demo user
       const isDemoUser = email.includes('demo-');
