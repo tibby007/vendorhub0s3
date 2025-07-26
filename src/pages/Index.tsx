@@ -49,10 +49,15 @@ const Index = () => {
     console.log('🎯 INDEX.tsx - User role received:', user.role);
     console.log('🎯 INDEX.tsx - Role type:', typeof user.role);
     console.log('🎯 INDEX.tsx - Role length:', user.role?.length);
+    console.log('Role bytes:', Array.from(user.role || '').map(c => c.charCodeAt(0)));
+    console.log('Expected bytes:', Array.from("Partner Admin").map(c => c.charCodeAt(0)));
     console.log('🎯 INDEX.tsx - Role === "Partner Admin":', user.role === 'Partner Admin');
     console.log('🎯 Rendering dashboard for role:', user.role, 'User:', user.name, 'Email:', user.email);
     
-    switch (user.role) {
+    // Normalize role for comparison
+    const normalizedRole = user.role?.trim();
+    
+    switch (normalizedRole) {
       case 'Super Admin':
         console.log('📊 Loading Super Admin dashboard');
         return <SuperAdminDashboard />;
