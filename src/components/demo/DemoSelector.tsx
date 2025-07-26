@@ -8,7 +8,19 @@ import { Link } from 'react-router-dom';
 const DemoSelector = () => {
   const navigate = useNavigate();
 
-  const handleDemoSelect = (role: 'Partner Admin' | 'Vendor') => {
+  const handleDemoSelect = async (role: 'Partner Admin' | 'Vendor') => {
+    // First reset demo passwords to ensure they're current
+    try {
+      await fetch('https://ewxsolozmcjdoqyydlcu.supabase.co/functions/v1/reset-demo-passwords', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+    } catch (error) {
+      console.warn('Could not reset demo passwords:', error);
+    }
+
     const credentials = role === 'Partner Admin' 
       ? { email: 'demo-partner@vendorhub.com', password: 'demo123!', role }
       : { email: 'demo-vendor@vendorhub.com', password: 'demo123!', role };
