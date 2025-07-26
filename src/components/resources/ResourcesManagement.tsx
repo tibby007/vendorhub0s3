@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { resourcesService, ResourceFile } from '@/services/resourcesService';
+import { checkStorageLimit, updateStorageUsage } from '@/utils/storageUtils';
 import ResourceCard from './ResourceCard';
 import FileUploadDialog from './FileUploadDialog';
 import NewsDialog from './NewsDialog';
@@ -59,6 +60,19 @@ const ResourcesManagement = () => {
 
     setIsLoading(true);
     try {
+      // Check storage limit before upload
+      const canUpload = await checkStorageLimit(user.id, selectedFile.size);
+      
+      if (!canUpload) {
+        toast({
+          title: "Storage Limit Exceeded",
+          description: "Please upgrade your plan or delete some files to make space",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const fileUrl = await resourcesService.uploadFile(selectedFile, user.id);
       
       await resourcesService.createResource({
@@ -72,6 +86,9 @@ const ResourcesManagement = () => {
         is_published: true,
         partner_admin_id: user.id
       });
+
+      // Update storage usage after successful upload
+      await updateStorageUsage(user.id, selectedFile.size);
 
       toast({
         title: "Success",
@@ -167,9 +184,17 @@ const ResourcesManagement = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this resource?')) return;
 
+    const resourceToDelete = resources.find(r => r.id === id);
+    
     setIsLoading(true);
     try {
       await resourcesService.deleteResource(id);
+      
+      // Update storage usage if file had a size
+      if (resourceToDelete?.file_size && user?.id) {
+        await updateStorageUsage(user.id, resourceToDelete.file_size, true);
+      }
+      
       toast({
         title: "Success",
         description: "Resource deleted successfully",

@@ -14,6 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import SubscriptionManager from '@/components/subscription/SubscriptionManager';
 import ResourcesManagement from '@/components/resources/ResourcesManagement';
+import StorageUsageCard from '@/components/dashboard/StorageUsageCard';
 
 interface PartnerProfile {
   id: string;
@@ -217,44 +218,50 @@ const PartnerSettings = () => {
         </TabsList>
 
         <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>Partner Profile</CardTitle>
-              <CardDescription>Update your basic partner information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Company Name</Label>
-                  <Input
-                    id="name"
-                    value={profile.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Your Company Name"
-                  />
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Partner Profile</CardTitle>
+                <CardDescription>Update your basic partner information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Company Name</Label>
+                    <Input
+                      id="name"
+                      value={profile.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder="Your Company Name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Contact Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profile.contact_email}
+                      onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                      placeholder="contact@company.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Contact Phone</Label>
+                    <Input
+                      id="phone"
+                      value={profile.contact_phone}
+                      onChange={(e) => handleInputChange('contact_phone', e.target.value)}
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Contact Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile.contact_email}
-                    onChange={(e) => handleInputChange('contact_email', e.target.value)}
-                    placeholder="contact@company.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Contact Phone</Label>
-                  <Input
-                    id="phone"
-                    value={profile.contact_phone}
-                    onChange={(e) => handleInputChange('contact_phone', e.target.value)}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+            
+            {profile.id && (
+              <StorageUsageCard partnerId={profile.id} />
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="subscription">
