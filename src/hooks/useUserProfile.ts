@@ -18,25 +18,23 @@ export const useUserProfile = () => {
   };
 
   const upsertUserProfile = async (user: User): Promise<AuthUser> => {
-    // TEMPORARY: Skip profile upsert to prevent loading issues
-    console.log('⏭️ Skipping profile upsert for demo launch');
+    // Bypass all complex logic for demo users
+    if (user?.email?.includes('demo-')) {
+      console.log('🚀 Demo user detected, bypassing all auth/subscription checks');
+      return {
+        ...user,
+        role: getDemoUserRole(user.email!),
+        name: user.user_metadata?.name || user.email?.split('@')[0] || 'Demo User',
+        partnerId: getDemoUserRole(user.email!) === 'Partner Admin' ? 'demo-partner-id' : undefined,
+        subscription: { status: 'active', tier: 'pro' },
+      } as AuthUser;
+    }
     
-    // Return immediate fallback user data
-    const isDemoUser = user.email?.includes('demo-');
-    
-    console.log('🔍 User email:', user.email);
-    console.log('🔍 isDemoUser:', isDemoUser);
-    console.log('🔍 Role assigned:', isDemoUser ? getDemoUserRole(user.email!) : 'Partner Admin');
-    console.log('🔍 Complete user object:', {
-      ...user,
-      role: isDemoUser ? getDemoUserRole(user.email!) : 'Partner Admin'
-    });
-    
+    // Return immediate fallback user data for regular users
     return {
       ...user,
-      role: isDemoUser ? getDemoUserRole(user.email!) : 'Partner Admin',
+      role: 'Partner Admin',
       name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-      partnerId: isDemoUser && getDemoUserRole(user.email!) === 'Partner Admin' ? 'demo-partner-id' : undefined,
     } as AuthUser;
 
     // Original code commented out for now
