@@ -20,7 +20,7 @@ const Navigation = () => {
               <Link to="/auth">Login</Link>
             </Button>
             <Button asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
-              <Link to="/demo-credentials">Try Interactive Demo</Link>
+              <Link to="/demo">Try Interactive Demo</Link>
             </Button>
           </div>
         </div>

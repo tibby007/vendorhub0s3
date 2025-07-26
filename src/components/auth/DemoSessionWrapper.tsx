@@ -34,7 +34,7 @@ const DemoSessionWrapper: React.FC<DemoSessionWrapperProps> = ({ children }) => 
     DemoAnalytics.trackEvent(DEMO_EVENTS.SESSION_EXPIRED);
     DemoAnalytics.endSession();
     setIsDemoSession(false);
-    navigate('/demo-credentials');
+    navigate('/demo');
   };
 
   const handleUpgradePrompt = () => {
