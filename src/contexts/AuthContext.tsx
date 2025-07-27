@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { mockPartnerUser } from '@/data/mockPartnerData';
 import { mockVendorUser } from '@/data/mockVendorData';
-import { useDemoMode } from '@/hooks/useDemoMode';
 import { SecureStorage } from '@/utils/secureStorage';
 
 interface AuthUser {
@@ -43,7 +42,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isDemo, demoRole } = useDemoMode();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,36 +58,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log('🔄 AuthContext effect triggered:', { 
-      isDemo, 
-      demoRole, 
       currentUserEmail: user?.email, 
       loading 
     });
 
-    // Check for direct demo session in storage as fallback
-    const demoSession = SecureStorage.getSecureItem('demoSession');
-    console.log('🔍 Direct demo session check:', demoSession);
-
-    // Handle demo mode - IMMEDIATE response
-    // Check both useDemoMode hook AND direct storage
-    if ((isDemo && demoRole) || (demoSession && demoSession.role)) {
-      const effectiveDemoRole = demoRole || demoSession?.role;
-      console.log('🎭 Setting up demo user for role:', effectiveDemoRole, 'Source:', isDemo ? 'hook' : 'storage');
-      
-      const mockUser = effectiveDemoRole === 'Partner Admin' ? 
-        { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
-        { ...mockVendorUser, user_metadata: {} };
-      
-      // Set user and immediately clear loading state
-      setUser(mockUser);
-      setSession(null); // No real session in demo mode
-      setLoading(false);
-      console.log('✅ Demo user set immediately:', mockUser);
-      return;
+    // Check for demo credentials directly (simple check without circular dependency)
+    const demoCredentials = sessionStorage.getItem('demoCredentials');
+    if (demoCredentials) {
+      try {
+        const credentials = JSON.parse(demoCredentials);
+        if (credentials.isDemoMode && credentials.role) {
+          console.log('🎭 Demo credentials detected, setting up demo user:', credentials.role);
+          
+          const mockUser = credentials.role === 'Partner Admin' ? 
+            { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
+            { ...mockVendorUser, user_metadata: {} };
+          
+          setUser(mockUser);
+          setSession(null);
+          setLoading(false);
+          console.log('✅ Demo user set:', mockUser);
+          return;
+        }
+      } catch (error) {
+        console.warn('Failed to parse demo credentials:', error);
+      }
     }
 
     // If not in demo mode, clear demo user
-    if (!isDemo && !demoSession && user && (user.email === 'partner@demo.com' || user.email === 'vendor@demo.com')) {
+    if (!demoCredentials && user && (user.email === 'partner@demo.com' || user.email === 'vendor@demo.com')) {
       console.log('🚫 Clearing demo user, not in demo mode');
       setUser(null);
       setLoading(false);
@@ -97,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Handle real authentication only if not in demo mode
-    if (!isDemo && !demoSession) {
+    if (!demoCredentials) {
       console.log('🔐 Setting up real auth listener');
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         console.log('🔐 Auth state change:', event, !!session);
@@ -143,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subscription.unsubscribe();
       };
     }
-  }, [isDemo, demoRole, user]);
+  }, [user]);
 
   // Listen for demo mode changes
   useEffect(() => {
@@ -180,9 +177,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    console.log('🚪 Logout triggered, demo mode:', isDemo);
+    console.log('🚪 Logout triggered');
     
-    if (isDemo || sessionStorage.getItem('demoCredentials')) {
+    // Check if this is a demo session
+    const demoCredentials = sessionStorage.getItem('demoCredentials');
+    if (demoCredentials) {
       console.log('🎭 Clearing demo mode');
       // Clear all demo mode storage
       sessionStorage.removeItem('demo_mode');
@@ -195,9 +194,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear demo user
       setUser(null);
       setSession(null);
-      
-      // Trigger demo mode change event
-      window.dispatchEvent(new Event('demo-mode-changed'));
       
       // Navigate to demo page
       window.location.href = '/demo';
@@ -212,22 +208,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshSubscription = async (forceRefresh?: boolean) => {
     // Mock implementation for demo mode
-    if (isDemo) return;
+    const demoCredentials = sessionStorage.getItem('demoCredentials');
+    if (demoCredentials) return;
     // Real implementation would refresh subscription here
   };
 
   const checkSubscriptionAccess = (requiredTier: string) => {
     // Always allow access in demo mode
-    if (isDemo) return true;
-    // Real implementation would check subscription access
+    const demoCredentials = sessionStorage.getItem('demoCredentials');
+    if (demoCredentials) return true;
+    
+    // Real subscription check would go here
     return true;
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
+    <AuthContext.Provider value={{
+      user,
       session,
-      subscriptionData: isDemo ? mockSubscriptionData : null,
+      subscriptionData: sessionStorage.getItem('demoCredentials') ? mockSubscriptionData : null,
       loading, 
       isLoading: loading,
       login,
