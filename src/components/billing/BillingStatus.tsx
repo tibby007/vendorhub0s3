@@ -44,17 +44,24 @@ const BillingStatus = () => {
         .from('partners')
         .select('plan_type, billing_status, trial_end, current_period_end, vendor_limit, storage_limit, storage_used, stripe_customer_id')
         .eq('id', user.partnerId || user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      // If no data (new user), set null and component will handle gracefully
       setBillingData(data);
     } catch (error) {
       console.error('Error fetching billing data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load billing information",
-        variant: "destructive",
-      });
+      // Only show error toast for actual errors, not missing data
+      if (error && (error as any).code !== '406') {
+        toast({
+          title: "Error",
+          description: "Failed to load billing information",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }

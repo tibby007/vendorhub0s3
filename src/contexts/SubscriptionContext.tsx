@@ -156,11 +156,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      // Fetch partner data for billing info
+      // Fetch partner data for billing info - use user id if no partner_id in metadata
+      const partnerId = session.user.user_metadata?.partner_id || session.user.id;
       const { data: partnerData, error: partnerError } = await supabase
         .from('partners')
         .select('billing_status, plan_type, trial_end, current_period_end')
-        .eq('id', session.user.user_metadata?.partner_id)
+        .eq('id', partnerId)
         .maybeSingle();
       console.log('[SubscriptionContext] Partner data response:', { partnerData, partnerError });
 

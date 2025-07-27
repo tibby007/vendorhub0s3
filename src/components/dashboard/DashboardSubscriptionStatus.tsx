@@ -25,13 +25,17 @@ const DashboardSubscriptionStatus: React.FC<DashboardSubscriptionStatusProps> = 
           .from('partners')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (error && error.code === 'PGRST116') {
+        if (error && error.code !== 'PGRST116') {
+          console.warn('Error fetching partner data:', error);
+          setSubscriptionStatus('no_subscription');
+          return;
+        }
+        
+        if (!data) {
           // No subscription found - new user
           setSubscriptionStatus('no_subscription');
-        } else if (error) {
-          throw error;
         } else {
           setPartnerData(data);
           const status = data.billing_status;
