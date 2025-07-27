@@ -206,8 +206,8 @@ const Demo = () => {
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" asChild>
-                  <a href="mailto:contact@vendorhub.com?subject=Schedule Demo">
-                    Schedule Demo
+                  <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">
+                    Book a Consultation
                   </a>
                 </Button>
               </div>
