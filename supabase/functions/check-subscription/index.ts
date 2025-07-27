@@ -13,6 +13,20 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
+// Helper function to map plan types to subscription tiers
+const mapPlanTypeToTier = (planType: string): string => {
+  switch (planType?.toLowerCase()) {
+    case 'basic':
+      return 'Basic';
+    case 'pro':
+      return 'Pro';
+    case 'premium':
+      return 'Premium';
+    default:
+      return 'Basic';
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -57,19 +71,21 @@ serve(async (req) => {
         
         if (trialEnd > now) {
           logStep("User is in active trial period");
+          const subscriptionTier = mapPlanTypeToTier(partnerData.plan_type);
+          
           await supabaseClient.from("subscribers").upsert({
             email: user.email,
             user_id: user.id,
             stripe_customer_id: null,
             subscribed: false,
-            subscription_tier: partnerData.plan_type,
+            subscription_tier: subscriptionTier,
             subscription_end: partnerData.trial_end,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'email' });
           
           return new Response(JSON.stringify({
             subscribed: false,
-            subscription_tier: partnerData.plan_type,
+            subscription_tier: subscriptionTier,
             subscription_end: partnerData.trial_end,
             trial_active: true
           }), {
@@ -100,7 +116,7 @@ serve(async (req) => {
           logStep("User is in active trial period (from subscribers table)");
           return new Response(JSON.stringify({
             subscribed: false,
-            subscription_tier: subscriberData.subscription_tier || 'basic',
+            subscription_tier: subscriberData.subscription_tier || 'Basic',
             subscription_end: subscriberData.subscription_end,
             trial_active: true
           }), {
@@ -113,159 +129,50 @@ serve(async (req) => {
       }
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // If no trial found, create a new trial for the user
+    logStep("No trial found, creating new trial for user");
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 3);
     
-    if (customers.data.length === 0) {
-      logStep("No customer found, checking for existing trial user");
-      
-      // Check if user already has a trial record
-      const { data: existingSubscriber } = await supabaseClient
-        .from("subscribers")
-        .select("*")
-        .eq("email", user.email)
-        .maybeSingle();
-      
-      if (existingSubscriber) {
-        // Check if this is an existing customer who should be reset to trial
-        // If they have a stripe_customer_id but no active subscription, reset them to trial
-        if (existingSubscriber.stripe_customer_id && !existingSubscriber.subscribed) {
-          logStep("Resetting existing customer to trial status");
-          const trialEnd = new Date();
-          trialEnd.setDate(trialEnd.getDate() + 3);
-          
-          await supabaseClient.from("subscribers").upsert({
-            email: user.email,
-            user_id: user.id,
-            stripe_customer_id: existingSubscriber.stripe_customer_id,
-            subscribed: false, // Reset to trial status
-            subscription_tier: null,
-            subscription_end: trialEnd.toISOString(),
-            price_id: null,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'email' });
-          
-          return new Response(JSON.stringify({ 
-            subscribed: false, 
-            subscription_tier: null,
-            subscription_end: trialEnd.toISOString(),
-            price_id: null
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          });
-        }
-        
-        // Return existing trial data for users without stripe customer
-        logStep("Found existing trial user", { 
-          subscribed: existingSubscriber.subscribed,
-          subscription_end: existingSubscriber.subscription_end 
-        });
-        
-        return new Response(JSON.stringify({ 
-          subscribed: existingSubscriber.subscribed,
-          subscription_tier: existingSubscriber.subscription_tier,
-          subscription_end: existingSubscriber.subscription_end,
-          price_id: existingSubscriber.price_id
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        });
-      }
-      
-      // Create new 3-day trial for new users
-      logStep("Creating new trial user");
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 3);
-      
-      await supabaseClient.from("subscribers").upsert({
-        email: user.email,
-        user_id: user.id,
-        stripe_customer_id: null,
-        subscribed: false, // Trial users are NOT subscribed
-        subscription_tier: null,
-        subscription_end: trialEnd.toISOString(),
-        price_id: null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'email' });
-      
-      return new Response(JSON.stringify({ 
-        subscribed: false, 
-        subscription_tier: null,
-        subscription_end: trialEnd.toISOString(),
-        price_id: null 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
-
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1,
-    });
-    
-    const hasActiveSub = subscriptions.data.length > 0;
-    let subscriptionTier = null;
-    let subscriptionEnd = null;
-    let priceId = null;
-
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      priceId = subscription.items.data[0].price.id;
-      
-      // Map price IDs to tiers
-      const priceToTierMap: Record<string, string> = {
-        'price_1Rc1dbB1YJBVEg8wlVQbLAIR': 'Basic', // Basic monthly
-        'price_1Rc1e7B1YJBVEg8wjKH1HiZ0': 'Basic', // Basic annual
-        'price_1Rc1eXB1YJBVEg8wXyhCVw7X': 'Pro',   // Pro monthly
-        'price_1Rc1etB1YJBVEg8wbEgve1jj': 'Pro',   // Pro annual
-        'price_1Rc1fkB1YJBVEg8wqjcXMzEK': 'Premium', // Premium monthly
-        'price_1Rc1fkB1YJBVEg8wSBzyX6WQ': 'Premium', // Premium annual
-      };
-      
-      subscriptionTier = priceToTierMap[priceId] || 'Basic';
-      logStep("Active subscription found", { 
-        subscriptionId: subscription.id, 
-        endDate: subscriptionEnd, 
-        priceId, 
-        subscriptionTier 
-      });
-    } else {
-      logStep("No active subscription found");
-    }
-
+    // Create trial record in subscribers table
     await supabaseClient.from("subscribers").upsert({
       email: user.email,
       user_id: user.id,
-      stripe_customer_id: customerId,
-      subscribed: hasActiveSub,
-      subscription_tier: subscriptionTier,
-      subscription_end: subscriptionEnd,
-      price_id: priceId,
+      stripe_customer_id: null,
+      subscribed: false,
+      subscription_tier: 'Basic',
+      subscription_end: trialEnd.toISOString(),
+      price_id: null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'email' });
-
-    logStep("Updated database with subscription info", { 
-      subscribed: hasActiveSub, 
-      subscriptionTier,
-      priceId 
-    });
-
-    return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
-      subscription_tier: subscriptionTier,
-      subscription_end: subscriptionEnd,
-      price_id: priceId
+    
+    // Also ensure partner record exists with trial status
+    await supabaseClient.from("partners").upsert({
+      contact_email: user.email,
+      name: user.user_metadata?.name || user.email,
+      plan_type: 'basic',
+      billing_status: 'trialing',
+      trial_end: trialEnd.toISOString(),
+      current_period_end: trialEnd.toISOString(),
+      vendor_limit: 3,
+      storage_limit: 5368709120,
+      storage_used: 0,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'contact_email' });
+    
+    logStep("Created new trial for user", { trialEnd: trialEnd.toISOString() });
+    
+    return new Response(JSON.stringify({ 
+      subscribed: false, 
+      subscription_tier: 'Basic',
+      subscription_end: trialEnd.toISOString(),
+      trial_active: true,
+      price_id: null 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in check-subscription", { message: errorMessage });

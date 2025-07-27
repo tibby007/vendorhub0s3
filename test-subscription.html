@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Subscription Function</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Test Subscription Function</h1>
+    <div id="result"></div>
+    
+    <script>
+        const SUPABASE_URL = 'https://ewxsolozmcjdoqyydlcu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3eHNvbG96bWNqZG9xeXlkbGN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE5NzQ5NzQsImV4cCI6MjA0NzU1MDk3NH0.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        async function testSubscription() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testing subscription function...</p>';
+            
+            try {
+                // First, sign in as jimayers@aol.com
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                    email: 'jimayers@aol.com',
+                    password: 'test123' // You'll need to provide the actual password
+                });
+                
+                if (authError) {
+                    resultDiv.innerHTML = `<p>Auth Error: ${authError.message}</p>`;
+                    return;
+                }
+                
+                resultDiv.innerHTML += `<p>✅ Signed in as: ${authData.user.email}</p>`;
+                
+                // Now test the check-subscription function
+                const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('check-subscription', {
+                    headers: {
+                        Authorization: `Bearer ${authData.session.access_token}`,
+                    },
+                });
+                
+                if (subscriptionError) {
+                    resultDiv.innerHTML += `<p>❌ Subscription Error: ${subscriptionError.message}</p>`;
+                    return;
+                }
+                
+                resultDiv.innerHTML += `<p>✅ Subscription Data: ${JSON.stringify(subscriptionData, null, 2)}</p>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Run the test
+        testSubscription();
+    </script>
+</body>
+</html> 
