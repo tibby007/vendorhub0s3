@@ -82,6 +82,37 @@ serve(async (req) => {
       }
     }
 
+    // Also check subscribers table for trial status
+    const { data: subscriberData, error: subscriberError } = await supabaseClient
+      .from('subscribers')
+      .select('*')
+      .eq('email', user.email)
+      .maybeSingle();
+
+    if (subscriberData && !subscriberError && !subscriberData.subscribed) {
+      logStep("Found trial subscriber data", { subscriberData });
+      
+      if (subscriberData.subscription_end) {
+        const trialEnd = new Date(subscriberData.subscription_end);
+        const now = new Date();
+        
+        if (trialEnd > now) {
+          logStep("User is in active trial period (from subscribers table)");
+          return new Response(JSON.stringify({
+            subscribed: false,
+            subscription_tier: subscriberData.subscription_tier || 'basic',
+            subscription_end: subscriberData.subscription_end,
+            trial_active: true
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        } else {
+          logStep("Trial period has expired (from subscribers table)");
+        }
+      }
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     

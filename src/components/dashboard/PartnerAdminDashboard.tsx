@@ -11,6 +11,7 @@ import DashboardSubscriptionStatus from '@/components/dashboard/DashboardSubscri
 import SubscriptionWidget from '@/components/dashboard/SubscriptionWidget';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { mockPartnerStats } from '@/data/mockPartnerData';
+import TrialBanner from '@/components/subscription/TrialBanner';
 
 const PartnerAdminDashboard = () => {
   const { user } = useAuth();
@@ -127,6 +128,15 @@ const PartnerAdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Trial Banner - Show for trial users */}
+      {subscription.endDate && !subscription.subscribed && (
+        <TrialBanner 
+          trialEnd={subscription.endDate}
+          planType={subscription.tier?.toLowerCase() || 'basic'}
+          onUpgrade={() => navigate('/subscription')}
+        />
+      )}
+
       {/* Subscription Status */}
       <DashboardSubscriptionStatus user={user} />
       
