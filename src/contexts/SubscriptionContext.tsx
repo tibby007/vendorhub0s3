@@ -91,6 +91,7 @@ export const setGlobalSession = (session: Session | null) => {
 };
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('[SubscriptionContext] SubscriptionProvider initializing');
   const [state, dispatch] = useReducer(subscriptionReducer, initialState);
   const sessionRef = useRef<Session | null>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);

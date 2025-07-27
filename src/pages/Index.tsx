@@ -28,17 +28,36 @@ const Index = () => {
     if (!isLoading && !user) {
       console.log('🚫 No user on dashboard, redirecting to auth');
       navigate('/auth', { replace: true });
-    } else if (user && !subscription.isLoading) {
+    } else if (user) {
       console.log('✅ User authenticated on dashboard:', { 
         id: user.id, 
         role: user.role, 
         email: user.email 
       });
-      console.log('📊 Subscription status:', subscription.status, 'subscribed:', subscription.subscribed);
+      console.log('📊 Subscription status:', subscription.status, 'subscribed:', subscription.subscribed, 'isLoading:', subscription.isLoading);
       
-      // Check if user should be redirected to subscription setup
-      // For new users or users without subscription, redirect to subscription page
-      if (!isDemo && !subscription.subscribed && subscription.status === 'expired') {
+      // If subscription hasn't been checked yet (initial load), trigger a refresh
+      if (subscription.status === 'loading' && subscription.lastUpdated === 0) {
+        console.log('🔄 Initial subscription check needed, refreshing...');
+        // Small delay to ensure session is available
+        setTimeout(() => {
+          console.log('🔄 Triggering subscription refresh');
+          // Use a direct supabase call since context sync might be broken
+          import('@/integrations/supabase/client').then(({ supabase }) => {
+            supabase.functions.invoke('check-subscription').then(({ data, error }) => {
+              console.log('📊 Direct subscription check result:', { data, error });
+              if (error || !data?.subscribed) {
+                console.log('🆕 New user detected, redirecting to subscription');
+                navigate('/subscription', { replace: true });
+              }
+            });
+          });
+        }, 1000);
+        return;
+      }
+      
+      // Check if user should be redirected to subscription setup after subscription loads
+      if (!subscription.isLoading && !isDemo && !subscription.subscribed && subscription.status === 'expired') {
         console.log('🆕 User needs subscription setup, redirecting to subscription');
         navigate('/subscription', { replace: true });
         return;
