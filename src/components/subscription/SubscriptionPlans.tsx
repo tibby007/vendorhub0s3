@@ -103,6 +103,18 @@ const SubscriptionPlans = () => {
     try {
       const priceId = isAnnual ? plan.annualPriceId : plan.monthlyPriceId;
       
+      // Check if we should use direct mode
+      const urlParams = new URLSearchParams(window.location.search);
+      const useDirect = urlParams.get('direct') === 'true';
+      
+      console.log('Checkout attempt:', {
+        plan: plan.id,
+        priceId,
+        isAnnual,
+        useDirect,
+        hasSession: !!session
+      });
+      
       const { data, error } = await invokeFunction('create-checkout', {
         body: {
           priceId,
