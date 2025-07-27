@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, FileText, BarChart3, Settings, Upload, Download } from 'lucide-react';
+import { Users, FileText, BarChart3, Settings, Upload, Download, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Demo = () => {
   return (
@@ -21,8 +22,11 @@ const Demo = () => {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-500">demo-partner@vendorhub.com</span>
-              <Button variant="outline" size="sm">
-                Back to Home
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/landing">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
+                </Link>
               </Button>
             </div>
           </div>
@@ -196,11 +200,15 @@ const Demo = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg">
-                  Start Free Trial
+                <Button size="lg" asChild>
+                  <Link to="/auth?intent=trial">
+                    Start 3-Day Free Trial
+                  </Link>
                 </Button>
-                <Button variant="outline" size="lg">
-                  Schedule Demo
+                <Button variant="outline" size="lg" asChild>
+                  <a href="mailto:contact@vendorhub.com?subject=Schedule Demo">
+                    Schedule Demo
+                  </a>
                 </Button>
               </div>
             </CardContent>
