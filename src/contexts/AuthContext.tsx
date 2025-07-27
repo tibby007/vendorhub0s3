@@ -181,19 +181,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Check if this is a demo session
     const demoCredentials = sessionStorage.getItem('demoCredentials');
-    if (demoCredentials) {
+    const isDemoMode = sessionStorage.getItem('isDemoMode');
+    const isDemoUser = user?.email?.includes('@demo.com');
+    
+    if (demoCredentials || isDemoMode || isDemoUser) {
       console.log('🎭 Clearing demo mode');
+      
       // Clear all demo mode storage
       sessionStorage.removeItem('demo_mode');
       sessionStorage.removeItem('demo_role'); 
       sessionStorage.removeItem('demoCredentials');
       sessionStorage.removeItem('isDemoMode');
+      sessionStorage.removeItem('demoRole');
       sessionStorage.removeItem('demoSessionActive');
+      sessionStorage.removeItem('demo_session');
       localStorage.removeItem('last_demo_time');
+      localStorage.removeItem('demo_session');
       
       // Clear demo user
       setUser(null);
       setSession(null);
+      setLoading(false);
       
       // Navigate to demo page
       window.location.href = '/demo';
@@ -201,7 +209,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     console.log('🔐 Performing real logout');
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force clear state even if logout fails
+      setUser(null);
+      setSession(null);
+      setLoading(false);
+    }
   };
 
   const signOut = logout; // Alias for compatibility

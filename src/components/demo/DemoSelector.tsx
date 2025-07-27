@@ -16,18 +16,39 @@ const DemoSelector = () => {
     setIsStarting(true);
     
     try {
-      // Start secure demo mode
-      const success = await startDemoMode(role);
+      console.log('🎭 Starting demo for role:', role);
       
-      if (success) {
-        toast.success(`${role} demo started! Explore all features with sample data.`);
-        // Navigate directly to dashboard
-        navigate('/');
-      } else {
-        toast.error('Failed to start demo. Please try again.');
+      // Store demo credentials directly in sessionStorage for immediate access
+      const demoCredentials = {
+        email: role === 'Partner Admin' ? 'partner@demo.com' : 'vendor@demo.com',
+        password: 'demo123',
+        role: role,
+        isDemoMode: true
+      };
+      
+      sessionStorage.setItem('demoCredentials', JSON.stringify(demoCredentials));
+      sessionStorage.setItem('isDemoMode', 'true');
+      sessionStorage.setItem('demoRole', role);
+      
+      // Also try to start the secure demo mode
+      try {
+        await startDemoMode(role);
+      } catch (err) {
+        console.warn('Secure demo mode failed, continuing with basic demo:', err);
       }
+      
+      toast.success(`${role} demo started! Explore all features with sample data.`);
+      
+      // Navigate immediately - AuthContext will pick up the demo credentials
+      navigate('/dashboard');
+      
     } catch (error) {
-      console.error('Demo start error:', error);
+      console.error('Failed to start demo:', error);
+      // Clear any partial demo state
+      sessionStorage.removeItem('demoCredentials');
+      sessionStorage.removeItem('isDemoMode');
+      sessionStorage.removeItem('demoRole');
+      
       toast.error('Failed to start demo. Please try again.');
     } finally {
       setIsStarting(false);
