@@ -28,16 +28,17 @@ const Index = () => {
     if (!isLoading && !user) {
       console.log('🚫 No user on dashboard, redirecting to auth');
       navigate('/auth', { replace: true });
-    } else if (user) {
+    } else if (user && !subscription.isLoading) {
       console.log('✅ User authenticated on dashboard:', { 
         id: user.id, 
         role: user.role, 
         email: user.email 
       });
+      console.log('📊 Subscription status:', subscription.status, 'subscribed:', subscription.subscribed);
       
       // Check if user should be redirected to subscription setup
       // For new users or users without subscription, redirect to subscription page
-      if (!isDemo && !subscription.subscribed && subscription.status !== 'trial' && subscription.status !== 'loading') {
+      if (!isDemo && !subscription.subscribed && subscription.status === 'expired') {
         console.log('🆕 User needs subscription setup, redirecting to subscription');
         navigate('/subscription', { replace: true });
         return;
@@ -45,7 +46,7 @@ const Index = () => {
     }
   }, [user, isLoading, navigate, isDemo, demoRole, subscription, location.pathname]);
 
-  if (isLoading) {
+  if (isLoading || subscription.isLoading) {
     console.log('⏳ Dashboard loading...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">

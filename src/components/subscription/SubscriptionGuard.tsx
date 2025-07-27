@@ -48,7 +48,8 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   const hasAccess = hasSubscription || isTrialUser;
 
   // If subscription data is not loaded yet and we're not loading, show retry option
-  if (!subscription.lastUpdated && !subscription.isLoading) {
+  // BUT: Don't show error for new users who legitimately have no subscription yet
+  if (!subscription.lastUpdated && !subscription.isLoading && subscription.status === 'error') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">

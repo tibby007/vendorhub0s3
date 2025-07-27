@@ -206,8 +206,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (isCacheValid()) {
         dispatch({ type: 'SET_LOADING', payload: false });
       } else {
-        // For new users or network errors, provide a clean state that will route to subscription setup
-        console.log('[SubscriptionContext] Setting fallback state for new user');
+        // For new users, provide a clean state that will route to subscription setup
+        console.log('[SubscriptionContext] Setting fallback state for new user (network error)');
         const fallbackState: Partial<SubscriptionState> = {
           subscribed: false,
           tier: null,
