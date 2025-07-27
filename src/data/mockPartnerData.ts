@@ -1,8 +1,8 @@
 export const mockPartnerUser = {
   id: 'demo-partner-123',
-  email: 'demo@partner.com',
+  email: 'partner@demo.com', // Fixed: Match AuthContext expectation
   name: 'Sarah Johnson',
-  role: 'Partner Admin', // Fixed: Ensure this is exactly "Partner Admin"
+  role: 'Partner Admin',
   avatar_url: null,
   created_at: '2024-01-15T10:00:00Z'
 };
