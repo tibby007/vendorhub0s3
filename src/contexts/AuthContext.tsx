@@ -6,6 +6,7 @@ import { mockPartnerUser } from '@/data/mockPartnerData';
 import { mockVendorUser } from '@/data/mockVendorData';
 import { SecureStorage } from '@/utils/secureStorage';
 import { setGlobalSession } from '@/contexts/SubscriptionContext';
+import { invokeFunction } from '@/utils/netlifyFunctions';
 
 interface AuthUser {
   id: string;
@@ -46,6 +47,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
 
   // Mock subscription data for demo mode
   const mockSubscriptionData: MockSubscriptionData = {
@@ -72,30 +75,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: session.user.id,
             email: session.user.email || '',
             name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-            role: session.user.user_metadata?.role || 'Vendor',
+            role: session.user.user_metadata?.role || 'Partner Admin',
             avatar_url: session.user.user_metadata?.avatar_url,
             created_at: session.user.created_at,
             user_metadata: session.user.user_metadata
           };
           setUser(authUser);
           console.log('✅ Real user set:', authUser);
+          
+          // Check subscription status for real users
+          await checkSubscriptionStatus(session);
         } catch (error) {
           console.error('Error setting user data:', error);
           const fallbackUser = {
             id: session.user.id,
             email: session.user.email || '',
             name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-            role: 'Vendor',
+            role: 'Partner Admin',
             avatar_url: session.user.user_metadata?.avatar_url,
             created_at: session.user.created_at,
             user_metadata: session.user.user_metadata
           };
           setUser(fallbackUser);
           console.log('✅ Fallback user set:', fallbackUser);
+          
+          // Still try to check subscription even with fallback user
+          await checkSubscriptionStatus(session);
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        setSubscriptionData(null);
         console.log('🚫 User signed out');
+      } else if (event === 'INITIAL_SESSION' && session?.user) {
+        // Handle existing session on page load
+        const authUser = {
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+          role: session.user.user_metadata?.role || 'Partner Admin',
+          avatar_url: session.user.user_metadata?.avatar_url,
+          created_at: session.user.created_at,
+          user_metadata: session.user.user_metadata
+        };
+        setUser(authUser);
+        console.log('✅ Initial session user set:', authUser);
+        
+        // Check subscription status for existing session
+        await checkSubscriptionStatus(session);
       }
       setLoading(false);
     });
@@ -233,11 +259,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = logout; // Alias for compatibility
 
+  const checkSubscriptionStatus = async (userSession: Session) => {
+    if (!userSession) return;
+    
+    setSubscriptionLoading(true);
+    try {
+      console.log('🔍 Checking subscription status...');
+      const { data, error } = await invokeFunction('check-subscription', {
+        headers: {
+          Authorization: `Bearer ${userSession.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Subscription check error:', error);
+        setSubscriptionData(null);
+      } else {
+        console.log('✅ Subscription data:', data);
+        setSubscriptionData(data);
+      }
+    } catch (error) {
+      console.error('Failed to check subscription:', error);
+      setSubscriptionData(null);
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  };
+
   const refreshSubscription = async (forceRefresh?: boolean) => {
     // Mock implementation for demo mode
     const demoCredentials = sessionStorage.getItem('demoCredentials');
     if (demoCredentials) return;
-    // Real implementation would refresh subscription here
+    
+    // Real subscription refresh
+    if (session) {
+      await checkSubscriptionStatus(session);
+    }
   };
 
   const checkSubscriptionAccess = (requiredTier: string) => {
@@ -253,9 +310,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{
       user,
       session,
-      subscriptionData: sessionStorage.getItem('demoCredentials') ? mockSubscriptionData : null,
-      loading, 
-      isLoading: loading,
+      subscriptionData: sessionStorage.getItem('demoCredentials') ? mockSubscriptionData : subscriptionData,
+      loading: loading || subscriptionLoading, 
+      isLoading: loading || subscriptionLoading,
       login,
       logout,
       signOut, 
