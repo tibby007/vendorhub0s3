@@ -2,6 +2,20 @@
 exports.handler = async (event, context) => {
   const { path, httpMethod, headers, body } = event;
   
+  // Handle CORS preflight requests
+  if (httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
+        'Access-Control-Max-Age': '86400',
+      },
+      body: '',
+    };
+  }
+  
   // Extract the function name from the path
   const functionPath = path.replace('/.netlify/functions/supabase-proxy/', '');
   

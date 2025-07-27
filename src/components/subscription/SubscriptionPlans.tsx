@@ -106,7 +106,8 @@ const SubscriptionPlans = () => {
       const { data, error } = await invokeFunction('create-checkout', {
         body: {
           priceId,
-          tier: plan.name.replace('VendorHub ', ''),
+          tier: plan.id, // Use plan.id which is already lowercase ('basic', 'pro', 'premium')
+          isAnnual: isAnnual,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
