@@ -9,12 +9,12 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import Subscription from "./pages/Subscription";
 
 import SetupComplete from "./pages/SetupComplete";
 import Demo from "./pages/Demo";
-import DemoSelector from "./components/demo/DemoSelector";
 import ProtectedRoute from "./components/ProtectedRoute";
 import VendorManagement from "./components/vendor/VendorManagement";
 import ResourcesManagement from "./components/resources/ResourcesManagement";
@@ -37,10 +37,10 @@ function App() {
             <Routes>
               <Route path="/landing" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/pricing" element={<Pricing />} />
               <Route path="/setup-complete" element={<SetupComplete />} />
               
-              <Route path="/demo" element={<DemoSelector />} />
-              <Route path="/demo-live" element={<Demo />} />
+              <Route path="/demo" element={<Demo />} />
               <Route path="/subscription" element={
                 <ProtectedRoute>
                   <Subscription />

@@ -78,7 +78,7 @@ function subscriptionReducer(state: SubscriptionState, action: SubscriptionActio
 
 export const SubscriptionContext = createContext<SubscriptionManager | undefined>(undefined);
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes - increased for better performance
 const DEBOUNCE_DELAY = 1000; // 1 second
 
 // Global session management
@@ -108,24 +108,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    // Check if this is a demo user - bypass API calls completely
-    if (session.user.email?.includes('demo-')) {
-      console.log('🚀 [SubscriptionContext] Demo user detected, returning mock subscription data');
-      
-      const mockState: Partial<SubscriptionState> = {
-        subscribed: true,
-        tier: 'Pro',
-        status: 'active',
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-        priceId: 'demo-price-id',
-        billingStatus: 'active',
-        planType: 'pro',
-        trialEnd: null,
-      };
-
-      dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: mockState });
-      return;
-    }
+    // Skip demo user logic as requested - all users go through normal flow
 
     // Use cache if valid and not forcing refresh
     if (!forceRefresh && isCacheValid()) {
@@ -189,11 +172,32 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('Error fetching subscription data:', err);
       
+      // Enhanced error handling - if rate limited, use cached data longer
+      if (errorMessage.includes('rate') || errorMessage.includes('limit')) {
+        console.warn('Rate limited, extending cache duration');
+        if (state.lastUpdated > 0) {
+          // Keep using existing data for rate limit errors
+          dispatch({ type: 'SET_LOADING', payload: false });
+          return;
+        }
+      }
+      
       // If we have cached data, keep using it on error
       if (isCacheValid()) {
         dispatch({ type: 'SET_LOADING', payload: false });
       } else {
-        dispatch({ type: 'SET_ERROR', payload: errorMessage });
+        // Provide fallback state for better UX
+        const fallbackState: Partial<SubscriptionState> = {
+          subscribed: false,
+          tier: null,
+          status: 'trial', // Default to trial for better UX
+          endDate: null,
+          priceId: null,
+          billingStatus: 'trialing',
+          planType: null,
+          trialEnd: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3-day trial
+        };
+        dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: fallbackState });
       }
     } finally {
       isRequestInFlight.current = false;

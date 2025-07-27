@@ -186,7 +186,7 @@ export const useDemoMode = (): DemoModeConfig & {
     SecureStorage.removeSecureItem('demoSession');
     SecureStorage.clearAllSecureItems();
     
-    // Clear legacy storage
+    // Clear legacy storage (what the demo pages actually use)
     sessionStorage.removeItem('demo_mode');
     sessionStorage.removeItem('demo_role');
     sessionStorage.removeItem('demoCredentials');
@@ -240,52 +240,74 @@ export const useDemoMode = (): DemoModeConfig & {
   // Initialize demo mode on mount
   useEffect(() => {
     const initializeDemoMode = async () => {
+      // Check for new secure demo session first
       const demoSession = SecureStorage.getSecureItem('demoSession') as DemoSession | null;
       
-      if (!demoSession) {
-        // Check for legacy demo mode and clear it
-        const legacyDemoMode = sessionStorage.getItem('demo_mode');
-        if (legacyDemoMode === 'true') {
-          console.warn('Legacy demo mode detected, clearing...');
-          exitDemoMode();
+      if (demoSession) {
+        // Validate existing session (with fallback)
+        let isValid = false;
+        try {
+          isValid = await validateDemoSession(demoSession);
+        } catch (error) {
+          console.warn('Demo session validation failed, trying client-side fallback:', error);
+          isValid = validateDemoSessionClientSide(demoSession);
         }
+
+        if (!isValid) {
+          console.warn('Invalid demo session found, clearing...');
+          exitDemoMode();
+          return;
+        }
+
+        // Calculate time remaining
+        const now = Date.now();
+        const sessionAge = now - demoSession.startTime;
+        const timeRemaining = Math.max(0, 600000 - sessionAge); // 10 minutes total
+
+        if (timeRemaining <= 0) {
+          console.warn('Demo session expired, clearing...');
+          exitDemoMode();
+          return;
+        }
+
+        // Update config with valid session
+        setConfig({
+          isDemo: true,
+          demoRole: demoSession.role,
+          sessionId: demoSession.sessionId,
+          timeRemaining,
+          isValidating: false
+        });
         return;
       }
-
-      // Validate existing session (with fallback)
-      let isValid = false;
-      try {
-        isValid = await validateDemoSession(demoSession);
-      } catch (error) {
-        console.warn('Demo session validation failed, trying client-side fallback:', error);
-        isValid = validateDemoSessionClientSide(demoSession);
+      
+      // Check for legacy demo credentials (what the demo pages actually use)
+      const legacyCredentials = sessionStorage.getItem('demoCredentials');
+      if (legacyCredentials) {
+        try {
+          const credentials = JSON.parse(legacyCredentials);
+          if (credentials.isDemoMode && credentials.role) {
+            console.log('🎭 Legacy demo credentials detected, activating demo mode:', credentials.role);
+            setConfig({
+              isDemo: true,
+              demoRole: credentials.role,
+              sessionId: `legacy-${Date.now()}`,
+              timeRemaining: 600000, // 10 minutes
+              isValidating: false
+            });
+            return;
+          }
+        } catch (error) {
+          console.warn('Failed to parse legacy demo credentials:', error);
+        }
       }
-
-      if (!isValid) {
-        console.warn('Invalid demo session found, clearing...');
+      
+      // Check for other legacy demo mode and clear it
+      const legacyDemoMode = sessionStorage.getItem('demo_mode');
+      if (legacyDemoMode === 'true') {
+        console.warn('Legacy demo mode detected, clearing...');
         exitDemoMode();
-        return;
       }
-
-      // Calculate time remaining
-      const now = Date.now();
-      const sessionAge = now - demoSession.startTime;
-      const timeRemaining = Math.max(0, 600000 - sessionAge); // 10 minutes total
-
-      if (timeRemaining <= 0) {
-        console.warn('Demo session expired, clearing...');
-        exitDemoMode();
-        return;
-      }
-
-      // Update config with valid session
-      setConfig({
-        isDemo: true,
-        demoRole: demoSession.role,
-        sessionId: demoSession.sessionId,
-        timeRemaining,
-        isValidating: false
-      });
     };
 
     initializeDemoMode();
@@ -304,6 +326,7 @@ export const useDemoMode = (): DemoModeConfig & {
 
     return () => clearInterval(refreshInterval);
   }, [config.isDemo, refreshSession]);
+
 
   // Update time remaining
   useEffect(() => {

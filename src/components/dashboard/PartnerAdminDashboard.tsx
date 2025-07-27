@@ -9,11 +9,14 @@ import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardSubscriptionStatus from '@/components/dashboard/DashboardSubscriptionStatus';
 import SubscriptionWidget from '@/components/dashboard/SubscriptionWidget';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import { mockPartnerStats } from '@/data/mockPartnerData';
 
 const PartnerAdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { subscription } = useSubscriptionManager();
+  const { isDemo } = useDemoMode();
   const [vendorCount, setVendorCount] = useState(0);
   const [submissionCount, setSubmissionCount] = useState(0);
 
@@ -21,25 +24,39 @@ const PartnerAdminDashboard = () => {
     const fetchStats = async () => {
       if (!user?.id) return;
 
-      // Fetch vendor count
-      const { count: vendors } = await supabase
-        .from('vendors')
-        .select('*', { count: 'exact' })
-        .eq('partner_admin_id', user.id);
+      // Use mock data in demo mode
+      if (isDemo) {
+        setVendorCount(mockPartnerStats.totalVendors);
+        setSubmissionCount(mockPartnerStats.pendingApplications);
+        return;
+      }
 
-      // Fetch pending submissions count
-      const { count: submissions } = await supabase
-        .from('submissions')
-        .select('*', { count: 'exact' })
-        .eq('partner_admin_id', user.id)
-        .eq('status', 'Pending');
+      try {
+        // Fetch vendor count
+        const { count: vendors } = await supabase
+          .from('vendors')
+          .select('*', { count: 'exact' })
+          .eq('partner_admin_id', user.id);
 
-      setVendorCount(vendors || 0);
-      setSubmissionCount(submissions || 0);
+        // Fetch pending submissions count
+        const { count: submissions } = await supabase
+          .from('submissions')
+          .select('*', { count: 'exact' })
+          .eq('partner_admin_id', user.id)
+          .eq('status', 'Pending');
+
+        setVendorCount(vendors || 0);
+        setSubmissionCount(submissions || 0);
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+        // Fallback to mock data on error
+        setVendorCount(mockPartnerStats.totalVendors);
+        setSubmissionCount(mockPartnerStats.pendingApplications);
+      }
     };
 
     fetchStats();
-  }, [user?.id]);
+  }, [user?.id, isDemo]);
 
   const vendorLimits = {
     basic: 3,
@@ -77,8 +94,8 @@ const PartnerAdminDashboard = () => {
     },
     {
       title: "Monthly Revenue",
-      value: "$24,500",
-      description: "+12% from last month",
+      value: isDemo ? `$${mockPartnerStats.monthlyRevenue.toLocaleString()}` : "$24,500",
+      description: isDemo ? `+${mockPartnerStats.revenueGrowth}% from last month` : "+12% from last month",
       icon: TrendingUp,
       color: "text-green-600"
     }

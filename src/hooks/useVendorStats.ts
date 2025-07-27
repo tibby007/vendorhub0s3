@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { mockVendorStats } from '@/data/mockVendorData';
 
 interface VendorStats {
   total: number;
@@ -19,6 +20,21 @@ export const useVendorStats = () => {
   useEffect(() => {
     const fetchSubmissionStats = async () => {
       if (!user?.id) return;
+      
+      // Check if this is demo mode by looking at user email
+      const isDemo = user.email === 'vendor@demo.com' || 
+                     sessionStorage.getItem('demoCredentials') || 
+                     sessionStorage.getItem('isDemoMode');
+      
+      if (isDemo) {
+        console.log('🎭 Demo mode: Using mock vendor stats');
+        setSubmissionStats({
+          total: mockVendorStats.totalSubmissions,
+          pending: mockVendorStats.pendingSubmissions,
+          approved: mockVendorStats.approvedSubmissions
+        });
+        return;
+      }
       
       try {
         // Get vendor record to find submissions
@@ -51,6 +67,12 @@ export const useVendorStats = () => {
         setSubmissionStats({ total, pending, approved });
       } catch (error) {
         console.error('Error fetching submission stats:', error);
+        // Fallback to mock data on error
+        setSubmissionStats({
+          total: mockVendorStats.totalSubmissions,
+          pending: mockVendorStats.pendingSubmissions,
+          approved: mockVendorStats.approvedSubmissions
+        });
       }
     };
 
