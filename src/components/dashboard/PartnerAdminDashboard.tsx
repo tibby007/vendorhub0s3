@@ -127,7 +127,7 @@ const PartnerAdminDashboard = () => {
     }
   ];
 
-  const isTrial = (subscription.status === 'trialing' || (!subscription.subscribed && subscription.trialEnd && new Date(subscription.trialEnd) > new Date()));
+  const isTrial = (subscription.status === 'trial' || (!subscription.subscribed && subscription.trialEnd && new Date(subscription.trialEnd) > new Date()));
 
   return (
     <div className="space-y-6">

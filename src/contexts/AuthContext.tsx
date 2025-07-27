@@ -174,7 +174,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    setUser(data.user);
+    setUser({
+      id: data.user.id,
+      email: data.user.email || '',
+      name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || '',
+      role: data.user.user_metadata?.role || 'Vendor',
+      avatar_url: data.user.user_metadata?.avatar_url,
+      created_at: data.user.created_at,
+      user_metadata: data.user.user_metadata
+    });
     setSession(data.session);
     setGlobalSession(data.session); // <-- Add this line
   };
