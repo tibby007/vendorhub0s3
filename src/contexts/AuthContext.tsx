@@ -5,6 +5,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { mockPartnerUser } from '@/data/mockPartnerData';
 import { mockVendorUser } from '@/data/mockVendorData';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { SecureStorage } from '@/utils/secureStorage';
 
 interface AuthUser {
   id: string;
@@ -65,10 +66,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading 
     });
 
+    // Check for direct demo session in storage as fallback
+    const demoSession = SecureStorage.getSecureItem('demoSession');
+    console.log('🔍 Direct demo session check:', demoSession);
+
     // Handle demo mode - IMMEDIATE response
-    if (isDemo && demoRole) {
-      console.log('🎭 Setting up demo user for role:', demoRole);
-      const mockUser = demoRole === 'Partner Admin' ? 
+    // Check both useDemoMode hook AND direct storage
+    if ((isDemo && demoRole) || (demoSession && demoSession.role)) {
+      const effectiveDemoRole = demoRole || demoSession?.role;
+      console.log('🎭 Setting up demo user for role:', effectiveDemoRole, 'Source:', isDemo ? 'hook' : 'storage');
+      
+      const mockUser = effectiveDemoRole === 'Partner Admin' ? 
         { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
         { ...mockVendorUser, user_metadata: {} };
       
@@ -81,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // If not in demo mode, clear demo user
-    if (!isDemo && user && (user.email === 'partner@demo.com' || user.email === 'vendor@demo.com')) {
+    if (!isDemo && !demoSession && user && (user.email === 'partner@demo.com' || user.email === 'vendor@demo.com')) {
       console.log('🚫 Clearing demo user, not in demo mode');
       setUser(null);
       setLoading(false);
@@ -89,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Handle real authentication only if not in demo mode
-    if (!isDemo) {
+    if (!isDemo && !demoSession) {
       console.log('🔐 Setting up real auth listener');
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         console.log('🔐 Auth state change:', event, !!session);
@@ -135,7 +143,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subscription.unsubscribe();
       };
     }
-  }, [isDemo, demoRole]);
+  }, [isDemo, demoRole, user]);
+
+  // Listen for demo mode changes
+  useEffect(() => {
+    const handleDemoModeChange = () => {
+      console.log('🔄 Demo mode changed event received');
+      // Force re-evaluation by checking storage directly
+      const demoSession = SecureStorage.getSecureItem('demoSession');
+      if (demoSession && demoSession.role) {
+        console.log('🎭 Demo mode activated via event, setting up user for role:', demoSession.role);
+        const mockUser = demoSession.role === 'Partner Admin' ? 
+          { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
+          { ...mockVendorUser, user_metadata: {} };
+        
+        setUser(mockUser);
+        setSession(null);
+        setLoading(false);
+        console.log('✅ Demo user set via event:', mockUser);
+      } else if (!demoSession) {
+        console.log('🚫 Demo mode deactivated via event');
+        if (user && (user.email === 'partner@demo.com' || user.email === 'vendor@demo.com')) {
+          setUser(null);
+          setLoading(false);
+        }
+      }
+    };
+
+    window.addEventListener('demo-mode-changed', handleDemoModeChange);
+    return () => window.removeEventListener('demo-mode-changed', handleDemoModeChange);
+  }, [user]);
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
