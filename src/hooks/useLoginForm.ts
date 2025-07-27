@@ -65,7 +65,6 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       try {
         await SecurityService.logLoginAttempt({
           email,
-          password: '', // Never log the actual password
           ip_address: ipAddress,
           user_agent: userAgent
         }, false); // Will be updated to true on success
@@ -91,7 +90,6 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       try {
         await SecurityService.logLoginAttempt({
           email,
-          password: '',
           ip_address: ipAddress,
           user_agent: userAgent
         }, true);

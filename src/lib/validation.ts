@@ -96,7 +96,7 @@ export const getPasswordStrength = (password: string): {
 // Login attempt validation schema
 export const loginAttemptSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().optional(), // Make password optional for security logging
   timestamp: z.number().default(() => Date.now()),
   ip_address: z.string().optional(),
   user_agent: z.string().optional()

@@ -74,18 +74,9 @@ export class SecurityService {
     success: boolean
   ) {
     try {
-      // For attempts (success=false), use lenient validation - just check basic fields exist
-      if (!success) {
-        // Basic validation for attempts - don't block on missing optional fields
-        if (!attemptData.email || typeof attemptData.email !== 'string') {
-          console.warn('Invalid email in login attempt data, skipping security logging');
-          return { success: true };
-        }
-      } else {
-        // For successful logins, use full validation
-        const validatedData = loginAttemptSchema.parse(attemptData);
-        attemptData = validatedData;
-      }
+      // Always use full validation since password is now optional
+      const validatedData = loginAttemptSchema.parse(attemptData);
+      attemptData = validatedData;
       
       // Check rate limit only for valid attempts
       const rateCheck = this.checkLoginRateLimit(attemptData.email, attemptData.ip_address);
