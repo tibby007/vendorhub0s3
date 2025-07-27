@@ -54,15 +54,16 @@ const Index = () => {
   const isDemoUser = isDemo || user?.email?.includes('demo-') || user?.user_metadata?.demo_session_id;
 
   const renderDashboard = () => {
-    // In demo mode, use demo role, otherwise use user role
-    const currentRole = isDemo ? demoRole : user?.role;
+    // In demo mode, use demo role, otherwise use user_metadata.role or user.role
+    const currentRole = isDemo ? demoRole : user?.user_metadata?.role || user?.role;
+    const currentName = user?.user_metadata?.name || user?.name;
     
     // Debug role information
     console.log('🎯 INDEX.tsx - Demo mode:', isDemo);
     console.log('🎯 INDEX.tsx - Demo role:', demoRole);
-    console.log('🎯 INDEX.tsx - User role:', user?.role);
+    console.log('🎯 INDEX.tsx - User role:', user?.user_metadata?.role || user?.role);
     console.log('🎯 INDEX.tsx - Current role:', currentRole);
-    console.log('🎯 Rendering dashboard for role:', currentRole, 'User:', user?.name, 'Email:', user?.email);
+    console.log('🎯 Rendering dashboard for role:', currentRole, 'User:', currentName, 'Email:', user?.email);
     
     // Normalize role for comparison
     const normalizedRole = currentRole?.trim();
