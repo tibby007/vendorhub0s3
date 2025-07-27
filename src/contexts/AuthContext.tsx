@@ -5,6 +5,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { mockPartnerUser } from '@/data/mockPartnerData';
 import { mockVendorUser } from '@/data/mockVendorData';
 import { SecureStorage } from '@/utils/secureStorage';
+import { setGlobalSession } from '@/contexts/SubscriptionContext';
 
 interface AuthUser {
   id: string;
@@ -171,8 +172,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    setUser(data.user);
+    setSession(data.session);
+    setGlobalSession(data.session); // <-- Add this line
   };
 
   const logout = async () => {
