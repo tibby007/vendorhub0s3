@@ -103,20 +103,23 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const fetchSubscriptionData = useCallback(async (forceRefresh = false) => {
     const session = sessionRef.current;
+    console.log('[SubscriptionContext] fetchSubscriptionData called. forceRefresh:', forceRefresh);
+    console.log('[SubscriptionContext] Current session:', session);
     if (!session) {
+      console.warn('[SubscriptionContext] No session present. Skipping subscription fetch.');
       dispatch({ type: 'RESET' });
       return;
     }
 
-    // Skip demo user logic as requested - all users go through normal flow
-
     // Use cache if valid and not forcing refresh
     if (!forceRefresh && isCacheValid()) {
+      console.log('[SubscriptionContext] Using cached subscription data.');
       return;
     }
 
     // Prevent multiple simultaneous requests
     if (isRequestInFlight.current) {
+      console.warn('[SubscriptionContext] Request already in flight. Skipping.');
       return;
     }
 
@@ -124,14 +127,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     isRequestInFlight.current = true;
 
     try {
+      console.log('[SubscriptionContext] Fetching subscription data from check-subscription function...');
       // Fetch subscription data from check-subscription edge function
       const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
+      console.log('[SubscriptionContext] check-subscription response:', { subscriptionData, subscriptionError });
 
       if (subscriptionError) {
+        console.error('[SubscriptionContext] Subscription error:', subscriptionError);
         throw new Error(subscriptionError.message || 'Failed to check subscription');
       }
 
@@ -141,9 +147,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .select('billing_status, plan_type, trial_end, current_period_end')
         .eq('id', session.user.user_metadata?.partner_id)
         .maybeSingle();
+      console.log('[SubscriptionContext] Partner data response:', { partnerData, partnerError });
 
       if (partnerError && partnerError.code !== 'PGRST116') {
-        console.warn('Failed to fetch partner data:', partnerError);
+        console.warn('[SubscriptionContext] Failed to fetch partner data:', partnerError);
       }
 
       // Determine status based on subscription data
@@ -170,11 +177,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: newState });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('Error fetching subscription data:', err);
+      console.error('[SubscriptionContext] Error fetching subscription data:', err);
       
       // Enhanced error handling - if rate limited, use cached data longer
       if (errorMessage.includes('rate') || errorMessage.includes('limit')) {
-        console.warn('Rate limited, extending cache duration');
+        console.warn('[SubscriptionContext] Rate limited, extending cache duration');
         if (state.lastUpdated > 0) {
           // Keep using existing data for rate limit errors
           dispatch({ type: 'SET_LOADING', payload: false });
@@ -239,6 +246,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Set current session and auto-refresh when session changes
   const setSession = useCallback((session: Session | null) => {
+    console.log('[SubscriptionContext] setSession called. Session:', session);
     sessionRef.current = session;
     if (!session) {
       dispatch({ type: 'RESET' });
