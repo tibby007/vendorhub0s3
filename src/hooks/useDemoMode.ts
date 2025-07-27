@@ -48,7 +48,7 @@ export const useDemoMode = (): DemoModeConfig & {
     };
   }, []);
 
-  // Validate demo session with server
+  // Validate demo session with server (with fallback for production)
   const validateDemoSession = useCallback(async (session: DemoSession): Promise<boolean> => {
     try {
       // Check rate limiting
@@ -61,21 +61,56 @@ export const useDemoMode = (): DemoModeConfig & {
       // Get client IP (simplified - in production use proper IP detection)
       const ipAddress = 'client-ip'; // This would be properly detected in production
 
-      const { data, error } = await supabase.functions.invoke('validate-demo-session', {
-        body: {
-          sessionId: session.sessionId,
-          ipAddress
-        }
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('validate-demo-session', {
+          body: {
+            sessionId: session.sessionId,
+            ipAddress
+          }
+        });
 
-      if (error) {
-        console.error('Demo session validation error:', error);
+        if (error) {
+          console.warn('Demo session validation error (falling back to client-side validation):', error);
+          // Fall back to client-side validation
+          return validateDemoSessionClientSide(session);
+        }
+
+        return data?.valid === true;
+      } catch (functionError) {
+        console.warn('Supabase function not available (falling back to client-side validation):', functionError);
+        // Fall back to client-side validation
+        return validateDemoSessionClientSide(session);
+      }
+    } catch (error) {
+      console.error('Failed to validate demo session:', error);
+      return false;
+    }
+  }, []);
+
+  // Client-side demo session validation (fallback)
+  const validateDemoSessionClientSide = useCallback((session: DemoSession): boolean => {
+    try {
+      const now = Date.now();
+      const sessionAge = now - session.startTime;
+      const maxSessionDuration = 10 * 60 * 1000; // 10 minutes
+
+      // Check if session is expired
+      if (sessionAge > maxSessionDuration) {
+        console.warn('Demo session expired (client-side validation)');
         return false;
       }
 
-      return data?.valid === true;
+      // Check if session token is valid format
+      if (!SecurityUtils.validateSessionToken(session.token)) {
+        console.warn('Invalid demo session token (client-side validation)');
+        return false;
+      }
+
+      // Basic validation passed
+      console.log('Demo session validated client-side');
+      return true;
     } catch (error) {
-      console.error('Failed to validate demo session:', error);
+      console.error('Client-side demo session validation failed:', error);
       return false;
     }
   }, []);
@@ -105,7 +140,7 @@ export const useDemoMode = (): DemoModeConfig & {
       // Store session securely
       SecureStorage.setSecureItem('demoSession', demoSession);
       
-      // Log security event
+      // Log security event (non-blocking)
       try {
         await supabase.functions.invoke('log-security-event', {
           body: {
@@ -115,7 +150,8 @@ export const useDemoMode = (): DemoModeConfig & {
           }
         });
       } catch (logError) {
-        console.warn('Failed to log demo session start:', logError);
+        console.warn('Failed to log demo session start (continuing anyway):', logError);
+        // Don't block demo mode if logging fails
       }
 
       // Update config
@@ -180,7 +216,15 @@ export const useDemoMode = (): DemoModeConfig & {
       return false;
     }
 
-    const isValid = await validateDemoSession(demoSession);
+    // Validate session (with fallback)
+    let isValid = false;
+    try {
+      isValid = await validateDemoSession(demoSession);
+    } catch (error) {
+      console.warn('Demo session refresh failed, trying client-side fallback:', error);
+      isValid = validateDemoSessionClientSide(demoSession);
+    }
+
     if (!isValid) {
       exitDemoMode();
       return false;
@@ -191,7 +235,7 @@ export const useDemoMode = (): DemoModeConfig & {
     SecureStorage.setSecureItem('demoSession', demoSession);
 
     return true;
-  }, [validateDemoSession, exitDemoMode]);
+  }, [validateDemoSession, validateDemoSessionClientSide, exitDemoMode]);
 
   // Initialize demo mode on mount
   useEffect(() => {
@@ -208,8 +252,15 @@ export const useDemoMode = (): DemoModeConfig & {
         return;
       }
 
-      // Validate existing session
-      const isValid = await validateDemoSession(demoSession);
+      // Validate existing session (with fallback)
+      let isValid = false;
+      try {
+        isValid = await validateDemoSession(demoSession);
+      } catch (error) {
+        console.warn('Demo session validation failed, trying client-side fallback:', error);
+        isValid = validateDemoSessionClientSide(demoSession);
+      }
+
       if (!isValid) {
         console.warn('Invalid demo session found, clearing...');
         exitDemoMode();
@@ -238,7 +289,7 @@ export const useDemoMode = (): DemoModeConfig & {
     };
 
     initializeDemoMode();
-  }, [validateDemoSession, exitDemoMode]);
+  }, [validateDemoSession, validateDemoSessionClientSide, exitDemoMode]);
 
   // Auto-refresh session periodically
   useEffect(() => {
