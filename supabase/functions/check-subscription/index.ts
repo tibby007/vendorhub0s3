@@ -41,6 +41,47 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // First check if user is in trial period via partners table
+    const { data: partnerData, error: partnerError } = await supabaseClient
+      .from('partners')
+      .select('billing_status, trial_end, plan_type')
+      .eq('contact_email', user.email)
+      .maybeSingle();
+
+    if (partnerData && !partnerError) {
+      logStep("Found partner data", { partnerData });
+      
+      if (partnerData.billing_status === 'trialing' && partnerData.trial_end) {
+        const trialEnd = new Date(partnerData.trial_end);
+        const now = new Date();
+        
+        if (trialEnd > now) {
+          logStep("User is in active trial period");
+          await supabaseClient.from("subscribers").upsert({
+            email: user.email,
+            user_id: user.id,
+            stripe_customer_id: null,
+            subscribed: false,
+            subscription_tier: partnerData.plan_type,
+            subscription_end: partnerData.trial_end,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'email' });
+          
+          return new Response(JSON.stringify({
+            subscribed: false,
+            subscription_tier: partnerData.plan_type,
+            subscription_end: partnerData.trial_end,
+            trial_active: true
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        } else {
+          logStep("Trial period has expired");
+        }
+      }
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     

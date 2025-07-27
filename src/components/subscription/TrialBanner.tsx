@@ -10,25 +10,9 @@ const TrialBanner = () => {
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number } | null>(null);
   const [isVisible, setIsVisible] = useState(true);
 
-  console.log('🔍 TrialBanner render:', { 
-    subscriptionData, 
-    isTrialUser: !subscriptionData?.subscribed && subscriptionData?.subscription_end,
-    isVisible 
-  });
-
   useEffect(() => {
-    console.log('🔄 TrialBanner useEffect:', { 
-      hasSubscriptionData: !!subscriptionData,
-      hasSubscriptionEnd: !!subscriptionData?.subscription_end,
-      subscribed: subscriptionData?.subscribed,
-      subscriptionEnd: subscriptionData?.subscription_end
-    });
-    
+    // Show banner for trial users (not subscribed but has subscription_end)
     if (!subscriptionData?.subscription_end || subscriptionData.subscribed) {
-      console.log('❌ TrialBanner: Not showing banner', { 
-        hasEnd: !!subscriptionData?.subscription_end, 
-        subscribed: subscriptionData?.subscribed 
-      });
       return;
     }
 
@@ -56,14 +40,6 @@ const TrialBanner = () => {
 
   // Show banner for trial users (not subscribed but has subscription_end)
   const shouldShowBanner = subscriptionData?.subscription_end && !subscriptionData.subscribed && timeLeft && isVisible;
-  
-  console.log('🔍 TrialBanner final check:', {
-    hasSubscriptionEnd: !!subscriptionData?.subscription_end,
-    notSubscribed: !subscriptionData?.subscribed,
-    hasTimeLeft: !!timeLeft,
-    isVisible,
-    shouldShowBanner
-  });
   
   if (!shouldShowBanner) {
     return null;
