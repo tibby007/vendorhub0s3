@@ -17,14 +17,26 @@ exports.handler = async (event, context) => {
   }
   
   // Extract the function name from the path
-  const functionPath = path.replace('/.netlify/functions/supabase-proxy/', '');
+  // The path comes as /functions/v1/function-name, we need just function-name
+  let functionPath = path;
+  
+  // Remove various possible prefixes
+  functionPath = functionPath.replace('/.netlify/functions/supabase-proxy/', '');
+  functionPath = functionPath.replace('/functions/v1/', '');
+  functionPath = functionPath.replace('.netlify/functions/supabase-proxy/', '');
+  
+  // If it still starts with /, remove it
+  if (functionPath.startsWith('/')) {
+    functionPath = functionPath.substring(1);
+  }
   
   // Get Supabase configuration from environment variables
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
   
   console.log('Proxy function called:', {
-    functionPath,
+    originalPath: path,
+    extractedFunction: functionPath,
     hasUrl: !!supabaseUrl,
     hasKey: !!supabaseAnonKey,
     method: httpMethod
@@ -49,7 +61,10 @@ exports.handler = async (event, context) => {
   
   try {
     // Forward the request to Supabase Edge Function
-    const response = await fetch(`${supabaseUrl}/functions/v1/${functionPath}`, {
+    const targetUrl = `${supabaseUrl}/functions/v1/${functionPath}`;
+    console.log('Proxying to:', targetUrl);
+    
+    const response = await fetch(targetUrl, {
       method: httpMethod,
       headers: {
         ...headers,
