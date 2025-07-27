@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { shouldRedirectToSubscription } from '@/utils/subscriptionUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -11,8 +12,9 @@ import VendorDashboard from '@/components/dashboard/VendorDashboard';
 import SubscriptionGuard from '@/components/subscription/SubscriptionGuard';
 
 const Index = () => {
-  const { user, isLoading, subscriptionData } = useAuth();
+  const { user, isLoading } = useAuth();
   const { isDemo, demoRole } = useDemoMode();
+  const { subscription } = useSubscriptionManager();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -34,13 +36,14 @@ const Index = () => {
       });
       
       // Check if user should be redirected to subscription setup
-      if (shouldRedirectToSubscription(user, subscriptionData, location.pathname)) {
+      // For new users or users without subscription, redirect to subscription page
+      if (!isDemo && !subscription.subscribed && subscription.status !== 'trial' && subscription.status !== 'loading') {
         console.log('🆕 User needs subscription setup, redirecting to subscription');
         navigate('/subscription', { replace: true });
         return;
       }
     }
-  }, [user, isLoading, navigate, isDemo, demoRole, subscriptionData, location.pathname]);
+  }, [user, isLoading, navigate, isDemo, demoRole, subscription, location.pathname]);
 
   if (isLoading) {
     console.log('⏳ Dashboard loading...');

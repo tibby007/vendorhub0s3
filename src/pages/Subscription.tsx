@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,22 +11,20 @@ import SubscriptionPlans from '@/components/subscription/SubscriptionPlans';
 import { needsSubscriptionSetup } from '@/utils/subscriptionUtils';
 
 const Subscription = () => {
-  const { user, isLoading, subscriptionData } = useAuth();
+  const { user, isLoading } = useAuth();
+  const { subscription } = useSubscriptionManager();
   const navigate = useNavigate();
   const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     if (!isLoading && user) {
       // Check if this is a new user who needs to set up subscription
-      const needsSetup = needsSubscriptionSetup(user, subscriptionData);
+      const needsSetup = !subscription.subscribed && subscription.status !== 'trial' && subscription.status !== 'active';
       setIsNewUser(needsSetup);
       
-      // If user already has subscription, show billing status instead
-      if (!needsSetup && (subscriptionData?.subscribed || subscriptionData?.trial_active)) {
-        console.log('User has existing subscription, staying on subscription page');
-      }
+      console.log('Subscription page - subscription status:', subscription.status, 'subscribed:', subscription.subscribed, 'needsSetup:', needsSetup);
     }
-  }, [user, isLoading, subscriptionData]);
+  }, [user, isLoading, subscription]);
 
   if (isLoading) {
     return (

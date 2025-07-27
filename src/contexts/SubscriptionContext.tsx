@@ -138,7 +138,20 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (subscriptionError) {
         console.error('[SubscriptionContext] Subscription error:', subscriptionError);
-        throw new Error(subscriptionError.message || 'Failed to check subscription');
+        // Don't throw error for new users - treat as no subscription
+        console.log('[SubscriptionContext] Treating as new user with no subscription');
+        const newUserState: Partial<SubscriptionState> = {
+          subscribed: false,
+          tier: null,
+          status: 'expired', // They need to set up subscription
+          endDate: null,
+          priceId: null,
+          billingStatus: null,
+          planType: null,
+          trialEnd: null,
+        };
+        dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: newUserState });
+        return;
       }
 
       // Fetch partner data for billing info
@@ -193,16 +206,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (isCacheValid()) {
         dispatch({ type: 'SET_LOADING', payload: false });
       } else {
-        // Provide fallback state for better UX
+        // For new users or network errors, provide a clean state that will route to subscription setup
+        console.log('[SubscriptionContext] Setting fallback state for new user');
         const fallbackState: Partial<SubscriptionState> = {
           subscribed: false,
           tier: null,
-          status: 'trial', // Default to trial for better UX
+          status: 'expired', // This will trigger redirect to subscription setup
           endDate: null,
           priceId: null,
-          billingStatus: 'trialing',
+          billingStatus: null,
           planType: null,
-          trialEnd: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3-day trial
+          trialEnd: null,
         };
         dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: fallbackState });
       }
