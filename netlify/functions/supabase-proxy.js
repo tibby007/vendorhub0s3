@@ -39,7 +39,8 @@ exports.handler = async (event, context) => {
     extractedFunction: functionPath,
     hasUrl: !!supabaseUrl,
     hasKey: !!supabaseAnonKey,
-    method: httpMethod
+    method: httpMethod,
+    hasAuthHeader: !!(headers.authorization || headers.Authorization)
   });
   
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -64,12 +65,16 @@ exports.handler = async (event, context) => {
     const targetUrl = `${supabaseUrl}/functions/v1/${functionPath}`;
     console.log('Proxying to:', targetUrl);
     
+    // Pass through the authorization header from the client
+    const authHeader = headers.authorization || headers.Authorization;
+    
     const response = await fetch(targetUrl, {
       method: httpMethod,
       headers: {
         ...headers,
-        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Authorization': authHeader || `Bearer ${supabaseAnonKey}`,
         'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
       },
       body: body,
     });
