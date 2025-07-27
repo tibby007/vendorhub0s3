@@ -106,20 +106,20 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     console.log('[SubscriptionContext] fetchSubscriptionData called. forceRefresh:', forceRefresh);
     console.log('[SubscriptionContext] Current session:', session);
     if (!session) {
-      console.warn('[SubscriptionContext] No session present. Skipping subscription fetch.');
+      console.warn('[SubscriptionContext] Early return: No session present. Skipping subscription fetch.');
       dispatch({ type: 'RESET' });
       return;
     }
 
     // Use cache if valid and not forcing refresh
     if (!forceRefresh && isCacheValid()) {
-      console.log('[SubscriptionContext] Using cached subscription data.');
+      console.log('[SubscriptionContext] Early return: Using cached subscription data.');
       return;
     }
 
     // Prevent multiple simultaneous requests
     if (isRequestInFlight.current) {
-      console.warn('[SubscriptionContext] Request already in flight. Skipping.');
+      console.warn('[SubscriptionContext] Early return: Request already in flight. Skipping.');
       return;
     }
 
@@ -127,7 +127,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     isRequestInFlight.current = true;
 
     try {
-      console.log('[SubscriptionContext] Fetching subscription data from check-subscription function...');
+      console.log('[SubscriptionContext] About to call check-subscription function');
       // Fetch subscription data from check-subscription edge function
       const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('check-subscription', {
         headers: {
