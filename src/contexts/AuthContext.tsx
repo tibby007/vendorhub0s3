@@ -57,108 +57,107 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log('🔄 AuthContext effect triggered:', { 
-      currentUserEmail: user?.email, 
-      loading 
+    console.log('🔄 AuthContext initializing auth listener');
+
+    // Set up real authentication listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Auth state change:', event, !!session);
+      setSession(session);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        try {
+          // Use users table instead of user_profiles since it doesn't exist
+          const authUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+            role: session.user.user_metadata?.role || 'Vendor',
+            avatar_url: session.user.user_metadata?.avatar_url,
+            created_at: session.user.created_at,
+            user_metadata: session.user.user_metadata
+          };
+          setUser(authUser);
+          console.log('✅ Real user set:', authUser);
+        } catch (error) {
+          console.error('Error setting user data:', error);
+          const fallbackUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+            role: 'Vendor',
+            avatar_url: session.user.user_metadata?.avatar_url,
+            created_at: session.user.created_at,
+            user_metadata: session.user.user_metadata
+          };
+          setUser(fallbackUser);
+          console.log('✅ Fallback user set:', fallbackUser);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        console.log('🚫 User signed out');
+      }
+      setLoading(false);
     });
 
-    // Check for demo credentials directly (simple check without circular dependency)
-    const demoCredentials = sessionStorage.getItem('demoCredentials');
-    if (demoCredentials) {
-      try {
-        const credentials = JSON.parse(demoCredentials);
-        if (credentials.isDemoMode && credentials.role) {
-          console.log('🎭 Demo credentials detected, setting up demo user:', credentials.role);
-          
-          const mockUser = credentials.role === 'Partner Admin' ? 
-            { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
-            { ...mockVendorUser, user_metadata: {} };
-          
-          setUser(mockUser);
-          setSession(null);
-          setLoading(false);
-          console.log('✅ Demo user set:', mockUser);
-          return;
-        }
-      } catch (error) {
-        console.warn('Failed to parse demo credentials:', error);
-      }
-    }
+    return () => {
+      console.log('🧹 Cleaning up auth listener');
+      subscription.unsubscribe();
+    };
+  }, []);
 
-    // If not in demo mode, clear demo user
-    if (!demoCredentials && user && (user.email === 'partner@demo.com' || user.email === 'vendor@demo.com')) {
-      console.log('🚫 Clearing demo user, not in demo mode');
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
-    // Handle real authentication only if not in demo mode
-    if (!demoCredentials) {
-      console.log('🔐 Setting up real auth listener');
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 Auth state change:', event, !!session);
-        setSession(session);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          try {
-            // Use users table instead of user_profiles since it doesn't exist
-            const authUser = {
-              id: session.user.id,
-              email: session.user.email || '',
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-              role: session.user.user_metadata?.role || 'Vendor',
-              avatar_url: session.user.user_metadata?.avatar_url,
-              created_at: session.user.created_at,
-              user_metadata: session.user.user_metadata
-            };
-            setUser(authUser);
-            console.log('✅ Real user set:', authUser);
-          } catch (error) {
-            console.error('Error setting user data:', error);
-            const fallbackUser = {
-              id: session.user.id,
-              email: session.user.email || '',
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-              role: 'Vendor',
-              avatar_url: session.user.user_metadata?.avatar_url,
-              created_at: session.user.created_at,
-              user_metadata: session.user.user_metadata
-            };
-            setUser(fallbackUser);
-            console.log('✅ Fallback user set:', fallbackUser);
+  // Separate effect for demo mode initialization
+  useEffect(() => {
+    const initializeDemoMode = () => {
+      const demoCredentials = sessionStorage.getItem('demoCredentials');
+      if (demoCredentials) {
+        try {
+          const credentials = JSON.parse(demoCredentials);
+          if (credentials.isDemoMode && credentials.role) {
+            console.log('🎭 Demo credentials detected, setting up demo user:', credentials.role);
+            
+            const mockUser = credentials.role === 'Partner Admin' ? 
+              { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
+              { ...mockVendorUser, user_metadata: {} };
+            
+            setUser(mockUser);
+            setSession(null);
+            setLoading(false);
+            console.log('✅ Demo user set:', mockUser);
           }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          console.log('🚫 User signed out');
+        } catch (error) {
+          console.warn('Failed to parse demo credentials:', error);
         }
-        setLoading(false);
-      });
+      }
+    };
 
-      return () => {
-        console.log('🧹 Cleaning up auth listener');
-        subscription.unsubscribe();
-      };
-    }
-  }, [user]);
+    // Initialize on mount
+    initializeDemoMode();
+  }, []);
 
   // Listen for demo mode changes
   useEffect(() => {
     const handleDemoModeChange = () => {
       console.log('🔄 Demo mode changed event received');
       // Force re-evaluation by checking storage directly
-      const demoSession = SecureStorage.getSecureItem('demoSession');
-      if (demoSession && demoSession.role) {
-        console.log('🎭 Demo mode activated via event, setting up user for role:', demoSession.role);
-        const mockUser = demoSession.role === 'Partner Admin' ? 
-          { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
-          { ...mockVendorUser, user_metadata: {} };
-        
-        setUser(mockUser);
-        setSession(null);
-        setLoading(false);
-        console.log('✅ Demo user set via event:', mockUser);
-      } else if (!demoSession) {
+      const demoCredentials = sessionStorage.getItem('demoCredentials');
+      if (demoCredentials) {
+        try {
+          const credentials = JSON.parse(demoCredentials);
+          if (credentials.isDemoMode && credentials.role) {
+            console.log('🎭 Demo mode activated via event, setting up user for role:', credentials.role);
+            const mockUser = credentials.role === 'Partner Admin' ? 
+              { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
+              { ...mockVendorUser, user_metadata: {} };
+            
+            setUser(mockUser);
+            setSession(null);
+            setLoading(false);
+            console.log('✅ Demo user set via event:', mockUser);
+          }
+        } catch (error) {
+          console.warn('Failed to parse demo credentials:', error);
+        }
+      } else {
         console.log('🚫 Demo mode deactivated via event');
         if (user && (user.email === 'partner@demo.com' || user.email === 'vendor@demo.com')) {
           setUser(null);
@@ -169,7 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     window.addEventListener('demo-mode-changed', handleDemoModeChange);
     return () => window.removeEventListener('demo-mode-changed', handleDemoModeChange);
-  }, [user]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
