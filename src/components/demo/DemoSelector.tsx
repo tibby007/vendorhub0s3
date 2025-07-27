@@ -1,23 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { User, Building2, ArrowLeft } from 'lucide-react';
+import { User, Building2, ArrowLeft, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { startDemoMode } from '@/hooks/useDemoMode';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 const DemoSelector = () => {
   const navigate = useNavigate();
+  const { startDemoMode, isValidating } = useDemoMode();
+  const [isStarting, setIsStarting] = useState(false);
 
-  const handleDemoSelect = (role: 'Partner Admin' | 'Vendor') => {
-    // Set demo mode in session storage
-    startDemoMode(role);
+  const handleDemoSelect = async (role: 'Partner Admin' | 'Vendor') => {
+    setIsStarting(true);
     
-    toast.success(`${role} demo started! Explore all features with sample data.`);
-    
-    // Navigate directly to dashboard
-    navigate('/');
+    try {
+      // Start secure demo mode
+      const success = await startDemoMode(role);
+      
+      if (success) {
+        toast.success(`${role} demo started! Explore all features with sample data.`);
+        // Navigate directly to dashboard
+        navigate('/');
+      } else {
+        toast.error('Failed to start demo. Please try again.');
+      }
+    } catch (error) {
+      console.error('Demo start error:', error);
+      toast.error('Failed to start demo. Please try again.');
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   return (
@@ -64,8 +78,16 @@ const DemoSelector = () => {
                 onClick={() => handleDemoSelect('Partner Admin')}
                 className="w-full bg-vendor-green-600 hover:bg-vendor-green-700"
                 size="lg"
+                disabled={isStarting || isValidating}
               >
-                Start Partner Admin Demo
+                {isStarting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Starting Demo...
+                  </>
+                ) : (
+                  'Start Partner Admin Demo'
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -95,8 +117,16 @@ const DemoSelector = () => {
                 onClick={() => handleDemoSelect('Vendor')}
                 className="w-full bg-vendor-gold-600 hover:bg-vendor-gold-700"
                 size="lg"
+                disabled={isStarting || isValidating}
               >
-                Start Vendor Demo
+                {isStarting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Starting Demo...
+                  </>
+                ) : (
+                  'Start Vendor Demo'
+                )}
               </Button>
             </CardContent>
           </Card>

@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { validateFile, sanitizeFilename } from '@/lib/validation';
-import { AlertCircle, Shield, Upload } from 'lucide-react';
+import { sanitizeFilename } from '@/lib/validation';
+import { FileValidationService } from '@/utils/fileValidation';
+import { AlertCircle, Shield, Upload, Loader2 } from 'lucide-react';
 
 interface SecureFileUploadProps {
   id: string;
@@ -13,64 +14,106 @@ interface SecureFileUploadProps {
   multiple?: boolean;
   onFileChange: (files: File[] | File | null) => void;
   maxFiles?: number;
+  checkDimensions?: boolean;
+  maxWidth?: number;
+  maxHeight?: number;
+  strictMode?: boolean;
 }
 
 const SecureFileUpload = ({ 
   id, 
   label, 
-  accept = ".pdf,.jpg,.jpeg,.png", 
+  accept = ".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx,.pptx", 
   multiple = false,
   onFileChange,
-  maxFiles = 5
+  maxFiles = 5,
+  checkDimensions = false,
+  maxWidth,
+  maxHeight,
+  strictMode = false
 }: SecureFileUploadProps) => {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const errors: string[] = [];
+    const warnings: string[] = [];
     const validFiles: File[] = [];
 
-    // Check file count
-    if (multiple && files.length > maxFiles) {
-      errors.push(`Maximum ${maxFiles} files allowed`);
+    setIsValidating(true);
+    setValidationErrors([]);
+    setValidationWarnings([]);
+
+    try {
+      // Check file count
+      if (multiple && files.length > maxFiles) {
+        errors.push(`Maximum ${maxFiles} files allowed`);
+        setValidationErrors(errors);
+        return;
+      }
+
+      // Validate each file with enhanced security
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        try {
+          const validation = await FileValidationService.validateFile(file, {
+            checkDimensions,
+            maxWidth,
+            maxHeight,
+            strictMode
+          });
+
+          if (!validation.isValid) {
+            validation.errors.forEach(error => {
+              errors.push(`File ${i + 1}: ${error}`);
+            });
+          } else {
+            // Add warnings
+            validation.warnings.forEach(warning => {
+              warnings.push(`File ${i + 1}: ${warning}`);
+            });
+
+            // Sanitize filename for security
+            const sanitizedName = sanitizeFilename(file.name);
+            const sanitizedFile = new File([file], sanitizedName, { type: file.type });
+            validFiles.push(sanitizedFile);
+          }
+        } catch (error) {
+          errors.push(`File ${i + 1}: ${error instanceof Error ? error.message : 'Validation failed'}`);
+        }
+      }
+
       setValidationErrors(errors);
-      return;
-    }
+      setValidationWarnings(warnings);
 
-    // Validate each file
-    files.forEach((file, index) => {
-      const validation = validateFile(file);
-      
-      if (!validation.success) {
-        validation.error.errors.forEach(error => {
-          errors.push(`File ${index + 1}: ${error.message}`);
-        });
+      if (errors.length === 0) {
+        // Update uploaded files list for display
+        setUploadedFiles(validFiles.map(f => f.name));
+        
+        // Pass valid files to parent
+        if (multiple) {
+          onFileChange(validFiles);
+        } else {
+          onFileChange(validFiles[0] || null);
+        }
       } else {
-        // Sanitize filename for security
-        const sanitizedName = sanitizeFilename(file.name);
-        const sanitizedFile = new File([file], sanitizedName, { type: file.type });
-        validFiles.push(sanitizedFile);
+        // Clear file input on validation error
+        e.target.value = '';
+        onFileChange(multiple ? [] : null);
+        setUploadedFiles([]);
       }
-    });
-
-    setValidationErrors(errors);
-
-    if (errors.length === 0) {
-      // Update uploaded files list for display
-      setUploadedFiles(validFiles.map(f => f.name));
-      
-      // Pass valid files to parent
-      if (multiple) {
-        onFileChange(validFiles);
-      } else {
-        onFileChange(validFiles[0] || null);
-      }
-    } else {
-      // Clear file input on validation error
+    } catch (error) {
+      errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setValidationErrors(errors);
       e.target.value = '';
       onFileChange(multiple ? [] : null);
       setUploadedFiles([]);
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -93,8 +136,14 @@ const SecureFileUpload = ({
         
         <div className="text-xs text-gray-600 flex items-center gap-1">
           <Shield className="w-3 h-3" />
-          Secure upload • Max 10MB • PDF, JPEG, PNG only
+          Enhanced secure upload • Max 50MB • PDF, DOC, DOCX, XLSX, PPTX, JPEG, PNG
           {multiple && ` • Max ${maxFiles} files`}
+          {isValidating && (
+            <span className="flex items-center gap-1 text-blue-600">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Validating...
+            </span>
+          )}
         </div>
       </div>
 
@@ -106,6 +155,20 @@ const SecureFileUpload = ({
             <ul className="mt-1 list-disc list-inside">
               {validationErrors.map((error, index) => (
                 <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {validationWarnings.length > 0 && (
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-yellow-800">
+            <strong>Upload Warning:</strong>
+            <ul className="mt-1 list-disc list-inside">
+              {validationWarnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
               ))}
             </ul>
           </AlertDescription>

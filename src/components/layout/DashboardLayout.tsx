@@ -3,6 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, Building2 } from 'lucide-react';
+import DemoSessionTimer from '@/components/demo/DemoSessionTimer';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -45,6 +46,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <main>
+        <DemoSessionTimer />
         {children}
       </main>
     </div>
