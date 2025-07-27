@@ -68,18 +68,39 @@ exports.handler = async (event, context) => {
     // Pass through the authorization header from the client
     const authHeader = headers.authorization || headers.Authorization;
     
+    // Debug the auth header
+    console.log('Auth header details:', {
+      hasAuth: !!authHeader,
+      authPrefix: authHeader ? authHeader.substring(0, 20) + '...' : 'none',
+      contentType: headers['content-type'],
+    });
+    
+    // Build headers for Supabase
+    const supabaseHeaders = {
+      'Authorization': authHeader || `Bearer ${supabaseAnonKey}`,
+      'Content-Type': 'application/json',
+      'apikey': supabaseAnonKey,
+    };
+    
+    console.log('Sending to Supabase with headers:', {
+      hasAuth: !!supabaseHeaders.Authorization,
+      hasApiKey: !!supabaseHeaders.apikey,
+    });
+    
     const response = await fetch(targetUrl, {
       method: httpMethod,
-      headers: {
-        ...headers,
-        'Authorization': authHeader || `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json',
-        'apikey': supabaseAnonKey,
-      },
+      headers: supabaseHeaders,
       body: body,
     });
     
     const data = await response.text();
+    
+    console.log('Supabase response:', {
+      status: response.status,
+      statusText: response.statusText,
+      hasData: !!data,
+      dataPreview: data.substring(0, 100) + (data.length > 100 ? '...' : '')
+    });
     
     return {
       statusCode: response.status,
