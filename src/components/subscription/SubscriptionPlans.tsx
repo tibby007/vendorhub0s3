@@ -112,7 +112,9 @@ const SubscriptionPlans = () => {
         priceId,
         isAnnual,
         useDirect,
-        hasSession: !!session
+        hasSession: !!session,
+        sessionValid: !!(session?.access_token),
+        tokenPrefix: session?.access_token ? session.access_token.substring(0, 20) + '...' : 'none'
       });
       
       const { data, error } = await invokeFunction('create-checkout', {
