@@ -95,6 +95,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const sessionRef = useRef<Session | null>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const isRequestInFlight = useRef(false);
+  const initializedRef = useRef(false);
 
   const isCacheValid = useCallback(() => {
     if (state.lastUpdated === 0) return false;
@@ -270,10 +271,26 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [refresh]);
 
-  // Set the global session handler
+  // Set the global session handler and check for existing session
   useEffect(() => {
+    console.log('[SubscriptionContext] Setting up global session handler');
     globalSetSession = setSession;
+    
+    // Check if there's already a session available (in case AuthContext initialized first)
+    if (!initializedRef.current) {
+      import('@/integrations/supabase/client').then(({ supabase }) => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session && !sessionRef.current) {
+            console.log('[SubscriptionContext] Found existing session, initializing');
+            setSession(session);
+          }
+          initializedRef.current = true;
+        });
+      });
+    }
+    
     return () => {
+      console.log('[SubscriptionContext] Cleaning up global session handler');
       globalSetSession = null;
     };
   }, [setSession]);
