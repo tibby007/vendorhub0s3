@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscriptionManager } from '@/contexts/SubscriptionContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lock, CreditCard, RefreshCw, AlertCircle } from 'lucide-react';
@@ -20,9 +21,10 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   fallbackMessage,
   showTrialAccess = false
 }) => {
-  const { user, subscriptionData, isLoading, refreshSubscription, session } = useAuth();
+  const { user } = useAuth();
+  const { subscription, refresh, isTrialUser, isActiveSubscriber } = useSubscriptionManager();
 
-  if (isLoading) {
+  if (subscription.isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center space-y-4">
@@ -34,9 +36,8 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   }
 
   // Check if user has required subscription or is in trial period
-  const hasSubscription = subscriptionData?.subscribed;
-  const isTrialUser = !subscriptionData?.subscribed && subscriptionData?.subscription_end;
-  const userTier = subscriptionData?.subscription_tier;
+  const hasSubscription = subscription.subscribed;
+  const userTier = subscription.tier;
 
   // Tier hierarchy for comparison
   const tierLevels = { 'Basic': 1, 'Pro': 2, 'Premium': 3 };
@@ -47,7 +48,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   const hasAccess = hasSubscription || isTrialUser;
 
   // If subscription data is not loaded yet and we're not loading, show retry option
-  if (!subscriptionData && !isLoading) {
+  if (!subscription.lastUpdated && !subscription.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">
@@ -71,7 +72,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
 
             <div className="space-y-2 pt-4">
               <Button 
-                onClick={() => refreshSubscription(true)}
+                onClick={() => refresh(true)}
                 className="w-full"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -99,22 +100,39 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   if (!hasAccess) {
     if (showTrialAccess) {
       return (
-        <div className="space-y-4">
-          <div className="bg-vendor-green-50 border border-vendor-green-200 rounded-lg p-4">
-            <h3 className="text-lg font-medium text-vendor-green-900 mb-2">Welcome to VendorHub!</h3>
-            <p className="text-vendor-green-700 mb-3">You're using trial access. Start your subscription to unlock all features.</p>
-            <Button asChild className="bg-vendor-green-600 hover:bg-vendor-green-700">
-              <Link to="/subscription">
-                <CreditCard className="w-4 h-4 mr-2" />
-                Start Subscription
-              </Link>
-            </Button>
-          </div>
-          {children}
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+          <Card className="max-w-md w-full">
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 bg-vendor-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CreditCard className="w-8 h-8 text-vendor-green-600" />
+              </div>
+              <CardTitle className="text-xl">Start Your Free Trial</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <p className="text-gray-600">
+                {fallbackMessage || "Get started with VendorHub today and explore all our features with a free trial."}
+              </p>
+              
+              <div className="space-y-2 pt-4">
+                <Button asChild className="w-full">
+                  <Link to="/subscription">
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Start Free Trial
+                  </Link>
+                </Button>
+                
+                <Button variant="outline" asChild className="w-full">
+                  <Link to="/auth">
+                    Back to Login
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       );
     }
-    
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">
@@ -126,35 +144,20 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-gray-600">
-              {fallbackMessage || 
-               `This feature requires a ${requiredTier} subscription or higher to access.`}
+              {fallbackMessage || `This feature requires a ${requiredTier} subscription or higher.`}
             </p>
             
-            {!hasSubscription && !isTrialUser ? (
-              <p className="text-sm text-gray-500">
-                You currently don't have an active subscription.
-              </p>
-            ) : isTrialUser ? (
-              <p className="text-sm text-gray-500">
-                Your trial period has ended. Please upgrade to continue using this feature.
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500">
-                Your current plan ({userTier}) doesn't include access to this feature.
-              </p>
-            )}
-
             <div className="space-y-2 pt-4">
               <Button asChild className="w-full">
                 <Link to="/subscription">
                   <CreditCard className="w-4 h-4 mr-2" />
-                  View Subscription Plans
+                  View Plans
                 </Link>
               </Button>
               
               <Button variant="outline" asChild className="w-full">
                 <Link to="/dashboard">
-                  Return to Dashboard
+                  Back to Dashboard
                 </Link>
               </Button>
             </div>
@@ -164,6 +167,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
     );
   }
 
+  // User has access, render children
   return <>{children}</>;
 };
 

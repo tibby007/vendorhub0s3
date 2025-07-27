@@ -5,18 +5,20 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Clock, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSubscriptionManager } from '@/contexts/SubscriptionContext';
 
 interface TrialBannerProps {
-  trialEnd: string;
+  trialEnd?: string;
   planType?: string;
   onUpgrade?: () => void;
 }
 
 const TrialBanner: React.FC<TrialBannerProps> = ({ 
-  trialEnd, 
+  trialEnd: propTrialEnd, 
   planType = 'basic',
   onUpgrade 
 }) => {
+  const { subscription, isTrialUser, daysRemaining } = useSubscriptionManager();
   const [timeRemaining, setTimeRemaining] = useState<{
     days: number;
     hours: number;
@@ -26,12 +28,32 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
   
   const [trialProgress, setTrialProgress] = useState(0);
   const [isExpired, setIsExpired] = useState(false);
+  const [isValidDate, setIsValidDate] = useState(false);
   const navigate = useNavigate();
+
+  // Use prop trialEnd if provided, otherwise use from subscription context
+  const trialEnd = propTrialEnd || subscription.trialEnd || subscription.endDate;
 
   useEffect(() => {
     const calculateTimeRemaining = () => {
+      if (!trialEnd) {
+        console.warn('No trial end date provided to TrialBanner');
+        setIsValidDate(false);
+        return;
+      }
+
+      const endDate = new Date(trialEnd);
+      
+      // Check if the date is valid
+      if (isNaN(endDate.getTime())) {
+        console.error('Invalid trial end date:', trialEnd);
+        setIsValidDate(false);
+        return;
+      }
+
+      setIsValidDate(true);
       const now = new Date().getTime();
-      const end = new Date(trialEnd).getTime();
+      const end = endDate.getTime();
       const difference = end - now;
 
       if (difference <= 0) {
@@ -68,6 +90,11 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
     }
   };
 
+  // Don't show banner if not a trial user or if date is invalid
+  if (!isTrialUser || !isValidDate) {
+    return null;
+  }
+
   if (isExpired) {
     return (
       <Card className="border-red-200 bg-red-50">
@@ -102,75 +129,113 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
         : 'border-green-300 bg-green-50'
     }`}>
       <CardHeader className="pb-3">
-        <CardTitle className={`flex items-center gap-2 ${
-          isCritical ? 'text-red-700' : isWarning ? 'text-yellow-700' : 'text-green-700'
-        }`}>
-          {isCritical ? (
-            <AlertTriangle className="w-5 h-5" />
-          ) : isWarning ? (
-            <Clock className="w-5 h-5" />
-          ) : (
-            <CheckCircle className="w-5 h-5" />
-          )}
-          {isCritical ? 'Trial Ending Soon!' : isWarning ? 'Trial Ending Today' : 'Trial Active'}
-        </CardTitle>
-        <CardDescription className={
-          isCritical ? 'text-red-600' : isWarning ? 'text-yellow-600' : 'text-green-600'
-        }>
-          {isCritical 
-            ? 'Your trial ends in less than 6 hours. Upgrade now to avoid losing access.'
-            : isWarning 
-            ? 'Your trial ends today. Consider upgrading to continue using all features.'
-            : 'You have a 3-day trial to explore VendorHub features.'
-          }
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Trial Progress */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Trial Progress</span>
-            <span className="font-medium">{Math.round(trialProgress)}%</span>
-          </div>
-          <Progress value={trialProgress} className="h-2" />
-        </div>
-
-        {/* Time Remaining */}
-        <div className="grid grid-cols-4 gap-2 text-center">
-          <div className="bg-white rounded-lg p-2 border">
-            <div className="text-lg font-bold text-gray-900">{timeRemaining.days}</div>
-            <div className="text-xs text-gray-500">Days</div>
-          </div>
-          <div className="bg-white rounded-lg p-2 border">
-            <div className="text-lg font-bold text-gray-900">{timeRemaining.hours}</div>
-            <div className="text-xs text-gray-500">Hours</div>
-          </div>
-          <div className="bg-white rounded-lg p-2 border">
-            <div className="text-lg font-bold text-gray-900">{timeRemaining.minutes}</div>
-            <div className="text-xs text-gray-500">Minutes</div>
-          </div>
-          <div className="bg-white rounded-lg p-2 border">
-            <div className="text-lg font-bold text-gray-900">{timeRemaining.seconds}</div>
-            <div className="text-xs text-gray-500">Seconds</div>
-          </div>
-        </div>
-
-        {/* Plan Info */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="capitalize">
-              {planType} Plan
+            <CheckCircle className={`w-5 h-5 ${
+              isCritical ? 'text-red-600' : isWarning ? 'text-yellow-600' : 'text-green-600'
+            }`} />
+            <CardTitle className={`text-lg ${
+              isCritical ? 'text-red-700' : isWarning ? 'text-yellow-700' : 'text-green-700'
+            }`}>
+              Trial Active
+            </CardTitle>
+            <Badge variant="outline" className={
+              isCritical ? 'border-red-300 text-red-700' : 
+              isWarning ? 'border-yellow-300 text-yellow-700' : 
+              'border-green-300 text-green-700'
+            }>
+              {planType.charAt(0).toUpperCase() + planType.slice(1)} Plan
             </Badge>
-            <span className="text-sm text-gray-600">3-day trial</span>
           </div>
           <Button 
-            onClick={handleUpgrade} 
-            size="sm"
-            className={isCritical ? 'bg-red-600 hover:bg-red-700' : ''}
+            size="sm" 
+            onClick={handleUpgrade}
+            className={
+              isCritical ? 'bg-red-600 hover:bg-red-700' : 
+              isWarning ? 'bg-yellow-600 hover:bg-yellow-700' : 
+              'bg-green-600 hover:bg-green-700'
+            }
           >
             <Zap className="w-4 h-4 mr-2" />
             Upgrade
           </Button>
+        </div>
+        <CardDescription className={
+          isCritical ? 'text-red-600' : isWarning ? 'text-yellow-600' : 'text-green-600'
+        }>
+          3-day trial to explore VendorHub features
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {/* Progress Bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Trial Progress</span>
+            <span className="text-gray-600">{Math.round(trialProgress)}%</span>
+          </div>
+          <Progress 
+            value={trialProgress} 
+            className={`h-2 ${
+              isCritical ? 'bg-red-100' : isWarning ? 'bg-yellow-100' : 'bg-green-100'
+            }`}
+          />
+        </div>
+
+        {/* Countdown Timer */}
+        <div className="bg-white rounded-lg p-4 border">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className={`w-4 h-4 ${
+              isCritical ? 'text-red-600' : isWarning ? 'text-yellow-600' : 'text-green-600'
+            }`} />
+            <span className="text-sm font-medium text-gray-700">Time Remaining</span>
+          </div>
+          
+          <div className="grid grid-cols-4 gap-3">
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${
+                isCritical ? 'text-red-600' : isWarning ? 'text-yellow-600' : 'text-green-600'
+              }`}>
+                {timeRemaining.days}
+              </div>
+              <div className="text-xs text-gray-500">Days</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${
+                isCritical ? 'text-red-600' : isWarning ? 'text-yellow-600' : 'text-green-600'
+              }`}>
+                {timeRemaining.hours.toString().padStart(2, '0')}
+              </div>
+              <div className="text-xs text-gray-500">Hours</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${
+                isCritical ? 'text-red-600' : isWarning ? 'text-yellow-600' : 'text-green-600'
+              }`}>
+                {timeRemaining.minutes.toString().padStart(2, '0')}
+              </div>
+              <div className="text-xs text-gray-500">Minutes</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${
+                isCritical ? 'text-red-600' : isWarning ? 'text-yellow-600' : 'text-green-600'
+              }`}>
+                {timeRemaining.seconds.toString().padStart(2, '0')}
+              </div>
+              <div className="text-xs text-gray-500">Seconds</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Trial Features */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="font-medium text-gray-900 mb-2">Trial Includes:</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            <li>• Up to 3 vendor submissions</li>
+            <li>• Basic vendor management tools</li>
+            <li>• Standard support</li>
+            <li>• 5GB storage space</li>
+          </ul>
         </div>
       </CardContent>
     </Card>
