@@ -20,7 +20,6 @@ const Pricing = () => {
       name: "VendorHub Basic",
       monthlyPrice: 97,
       annualPrice: 970,
-      setupFee: 297,
       description: "Perfect for small partner networks",
       features: [
         "Up to 3 vendors",
@@ -39,7 +38,6 @@ const Pricing = () => {
       name: "VendorHub Pro",
       monthlyPrice: 197,
       annualPrice: 1970,
-      setupFee: 497,
       description: "Ideal for growing businesses",
       features: [
         "Up to 7 vendors",
@@ -60,7 +58,6 @@ const Pricing = () => {
       name: "VendorHub Premium",
       monthlyPrice: 397,
       annualPrice: 3970,
-      setupFee: 797,
       description: "For enterprise-scale operations",
       features: [
         "Unlimited vendors",
@@ -88,7 +85,6 @@ const Pricing = () => {
           tierId: tier.id,
           tierName: tier.name,
           isAnnual,
-          setupFee: tier.setupFee,
           price: isAnnual ? tier.annualPrice : tier.monthlyPrice
         }));
         navigate('/auth?intent=subscription');
@@ -111,11 +107,10 @@ const Pricing = () => {
         return;
       }
 
-      // Proceed with setup fee checkout
+      // Proceed with checkout
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           tier: tier.id,
-          isSetupFee: true,
           isAnnual: isAnnual
         },
         headers: {
@@ -197,9 +192,6 @@ const Pricing = () => {
                     </div>
                   )}
                 </div>
-                <div className="text-sm text-gray-500 mt-2">
-                  + ${tier.setupFee} setup fee
-                </div>
                 <CardDescription className="mt-2">{tier.description}</CardDescription>
               </CardHeader>
               
@@ -229,18 +221,7 @@ const Pricing = () => {
           ))}
         </div>
 
-        {/* Setup Fee Notice */}
-        <div className="text-center mt-12">
-          <Card className="inline-block p-6 bg-gradient-to-r from-vendor-gold-50 to-vendor-gold-100 border-vendor-gold-200 shadow-lg">
-            <div className="flex items-center gap-3">
-              <Star className="w-6 h-6 text-vendor-gold-600" />
-              <div>
-                <p className="font-medium text-vendor-gold-900">All Plans Include Setup & Onboarding</p>
-                <p className="text-sm text-vendor-gold-700">One-time setup fee covers full platform configuration and training</p>
-              </div>
-            </div>
-          </Card>
-        </div>
+        {/* Remove Setup Fee Notice */}
       </div>
     </section>
   );
