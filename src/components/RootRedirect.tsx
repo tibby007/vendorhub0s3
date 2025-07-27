@@ -11,6 +11,14 @@ const RootRedirect = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    console.log('🔄 RootRedirect effect triggered:', { 
+      isDemo, 
+      demoRole, 
+      hasUser: !!user, 
+      userEmail: user?.email, 
+      isLoading 
+    });
+
     // Check for auth tokens or auth-related parameters
     const access_token = searchParams.get('access_token');
     const refresh_token = searchParams.get('refresh_token');
@@ -25,15 +33,15 @@ const RootRedirect = () => {
       return;
     }
 
-    // Wait for auth to finish loading before making redirect decisions
+    // PRIORITY 1: Check for demo mode first - demo mode takes precedence over everything
+    if (isDemo && demoRole) {
+      console.log('🎭 Demo mode active at root, redirecting to dashboard immediately. Demo role:', demoRole);
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
+    // PRIORITY 2: If demo mode is not active, wait for auth loading to finish
     if (!isLoading) {
-      // Check for demo mode first - if demo mode is active, redirect to dashboard immediately
-      if (isDemo && demoRole) {
-        console.log('🎭 Demo mode active at root, redirecting to dashboard. Demo role:', demoRole);
-        navigate('/dashboard', { replace: true });
-        return;
-      }
-      
       if (user) {
         console.log('🏠 User authenticated at root, redirecting to dashboard:', user.email);
         // Immediate redirect to dashboard for authenticated users
@@ -44,6 +52,8 @@ const RootRedirect = () => {
         console.log('🏠 No user at root, redirecting to landing');
         navigate('/landing', { replace: true });
       }
+    } else {
+      console.log('⏳ Auth still loading, waiting...');
     }
   }, [user, isLoading, navigate, searchParams, isDemo, demoRole]);
 

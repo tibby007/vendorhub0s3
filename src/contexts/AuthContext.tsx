@@ -58,16 +58,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Handle demo mode
+    console.log('🔄 AuthContext effect triggered:', { 
+      isDemo, 
+      demoRole, 
+      currentUserEmail: user?.email, 
+      loading 
+    });
+
+    // Handle demo mode - IMMEDIATE response
     if (isDemo && demoRole) {
       console.log('🎭 Setting up demo user for role:', demoRole);
       const mockUser = demoRole === 'Partner Admin' ? 
         { ...mockPartnerUser, user_metadata: {}, partnerId: 'demo-partner-123' } : 
         { ...mockVendorUser, user_metadata: {} };
+      
+      // Set user and immediately clear loading state
       setUser(mockUser);
       setSession(null); // No real session in demo mode
       setLoading(false);
-      console.log('✅ Demo user set:', mockUser);
+      console.log('✅ Demo user set immediately:', mockUser);
       return;
     }
 
@@ -79,41 +88,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Handle real authentication
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        try {
-          // Use users table instead of user_profiles since it doesn't exist
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-            role: session.user.user_metadata?.role || 'Vendor',
-            avatar_url: session.user.user_metadata?.avatar_url,
-            created_at: session.user.created_at,
-            user_metadata: session.user.user_metadata
-          });
-        } catch (error) {
-          console.error('Error setting user data:', error);
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-            role: 'Vendor',
-            avatar_url: session.user.user_metadata?.avatar_url,
-            created_at: session.user.created_at,
-            user_metadata: session.user.user_metadata
-          });
+    // Handle real authentication only if not in demo mode
+    if (!isDemo) {
+      console.log('🔐 Setting up real auth listener');
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth state change:', event, !!session);
+        setSession(session);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          try {
+            // Use users table instead of user_profiles since it doesn't exist
+            const authUser = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+              role: session.user.user_metadata?.role || 'Vendor',
+              avatar_url: session.user.user_metadata?.avatar_url,
+              created_at: session.user.created_at,
+              user_metadata: session.user.user_metadata
+            };
+            setUser(authUser);
+            console.log('✅ Real user set:', authUser);
+          } catch (error) {
+            console.error('Error setting user data:', error);
+            const fallbackUser = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+              role: 'Vendor',
+              avatar_url: session.user.user_metadata?.avatar_url,
+              created_at: session.user.created_at,
+              user_metadata: session.user.user_metadata
+            };
+            setUser(fallbackUser);
+            console.log('✅ Fallback user set:', fallbackUser);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          console.log('🚫 User signed out');
         }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+        setLoading(false);
+      });
 
-    return () => subscription.unsubscribe();
+      return () => {
+        console.log('🧹 Cleaning up auth listener');
+        subscription.unsubscribe();
+      };
+    }
   }, [isDemo, demoRole]);
 
   const login = async (email: string, password: string) => {
