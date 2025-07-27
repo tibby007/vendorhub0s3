@@ -23,10 +23,27 @@ exports.handler = async (event, context) => {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
   
+  console.log('Proxy function called:', {
+    functionPath,
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseAnonKey,
+    method: httpMethod
+  });
+  
   if (!supabaseUrl || !supabaseAnonKey) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Missing Supabase configuration' }),
+      body: JSON.stringify({ 
+        error: 'Missing Supabase configuration',
+        details: {
+          hasUrl: !!supabaseUrl,
+          hasKey: !!supabaseAnonKey
+        }
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      }
     };
   }
   
@@ -57,7 +74,16 @@ exports.handler = async (event, context) => {
     console.error('Error proxying to Supabase:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to proxy request' }),
+      body: JSON.stringify({ 
+        error: 'Failed to proxy request',
+        details: error.message,
+        functionPath,
+        supabaseUrl
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      }
     };
   }
 };

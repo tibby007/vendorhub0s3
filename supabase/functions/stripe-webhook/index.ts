@@ -21,7 +21,8 @@ serve(async (req) => {
   let event;
   try {
     const body = await req.text();
-    event = stripe.webhooks.constructEvent(body, sig!, webhookSecret!);
+    // Use constructEventAsync for Deno compatibility
+    event = await stripe.webhooks.constructEventAsync(body, sig!, webhookSecret!);
   } catch (err) {
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
