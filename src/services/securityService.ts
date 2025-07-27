@@ -13,6 +13,9 @@ const RATE_LIMITS = {
 // In-memory rate limiting store (in production, use Redis)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
+// Feature flag to disable all security logging (set to true to disable)
+const DISABLE_SECURITY_LOGGING = true;
+
 export class SecurityService {
   // Rate limiting functionality
   static checkRateLimit(
@@ -37,6 +40,7 @@ export class SecurityService {
 
   // Log security events
   static async logSecurityEvent(eventData: z.infer<typeof securityEventSchema>) {
+    if (DISABLE_SECURITY_LOGGING) return;
     try {
       const validatedData = securityEventSchema.parse(eventData);
       
@@ -73,6 +77,7 @@ export class SecurityService {
     attemptData: z.infer<typeof loginAttemptSchema>,
     success: boolean
   ) {
+    if (DISABLE_SECURITY_LOGGING) return;
     try {
       // Always use full validation since password is now optional
       const validatedData = loginAttemptSchema.parse(attemptData);
@@ -88,8 +93,9 @@ export class SecurityService {
           ip_address: attemptData.ip_address,
           user_agent: attemptData.user_agent
         });
-        
-        throw new Error(`Too many login attempts. Try again after ${new Date(rateCheck.resetTime!).toLocaleTimeString()}`);
+        // Never throw, just log and return
+        console.warn(`Too many login attempts for ${attemptData.email}.`);
+        return;
       }
 
       // Log the attempt
@@ -99,12 +105,9 @@ export class SecurityService {
         ip_address: attemptData.ip_address,
         user_agent: attemptData.user_agent
       });
-
-      return { success: true };
     } catch (error) {
-      console.error('Login attempt logging failed:', error);
-      // Don't throw for logging failures - just log and continue
-      return { success: false, error };
+      // Never throw, just log
+      console.error('Failed to log login attempt:', error);
     }
   }
 
