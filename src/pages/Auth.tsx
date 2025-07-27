@@ -60,9 +60,10 @@ const Auth = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    // Redirect authenticated users to dashboard
+    // Redirect authenticated users to dashboard or subscription
     if (!isLoading && user) {
-      console.log('🏠 User authenticated, redirecting to dashboard from Auth page');
+      console.log('🏠 User authenticated, checking redirect from Auth page');
+      // For now, always redirect to dashboard - the dashboard will handle subscription redirect
       navigate('/dashboard', { replace: true });
     }
   }, [user, isLoading, navigate]);

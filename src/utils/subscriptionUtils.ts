@@ -1,0 +1,36 @@
+// Check if user needs to set up subscription
+export const needsSubscriptionSetup = (user: any, subscriptionData: any): boolean => {
+  if (!user) return false;
+  
+  // Demo users don't need subscription setup
+  if (user.email?.includes('demo-') || user.email?.includes('@demo.com')) {
+    return false;
+  }
+  
+  // If user has active subscription or trial, they don't need setup
+  if (subscriptionData?.subscribed || subscriptionData?.trial_active) {
+    return false;
+  }
+  
+  // Check if user is newly created (less than 5 minutes old)
+  const userCreatedAt = new Date(user.created_at);
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const isNewUser = userCreatedAt > fiveMinutesAgo;
+  
+  return isNewUser || !subscriptionData;
+};
+
+// Check if user should be redirected to subscription page
+export const shouldRedirectToSubscription = (user: any, subscriptionData: any, currentPath: string): boolean => {
+  // Don't redirect if already on subscription page
+  if (currentPath === '/subscription' || currentPath === '/checkout') {
+    return false;
+  }
+  
+  // Don't redirect if on auth page
+  if (currentPath === '/auth' || currentPath === '/landing') {
+    return false;
+  }
+  
+  return needsSubscriptionSetup(user, subscriptionData);
+};

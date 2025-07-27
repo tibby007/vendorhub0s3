@@ -2,7 +2,8 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { shouldRedirectToSubscription } from '@/utils/subscriptionUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import SuperAdminDashboard from '@/components/dashboard/SuperAdminDashboard';
 import PartnerAdminDashboard from '@/components/dashboard/PartnerAdminDashboard';
@@ -13,6 +14,7 @@ const Index = () => {
   const { user, isLoading, subscriptionData } = useAuth();
   const { isDemo, demoRole } = useDemoMode();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // In demo mode, don't redirect to auth
@@ -30,8 +32,15 @@ const Index = () => {
         role: user.role, 
         email: user.email 
       });
+      
+      // Check if user should be redirected to subscription setup
+      if (shouldRedirectToSubscription(user, subscriptionData, location.pathname)) {
+        console.log('🆕 User needs subscription setup, redirecting to subscription');
+        navigate('/subscription', { replace: true });
+        return;
+      }
     }
-  }, [user, isLoading, navigate, isDemo, demoRole]);
+  }, [user, isLoading, navigate, isDemo, demoRole, subscriptionData, location.pathname]);
 
   if (isLoading) {
     console.log('⏳ Dashboard loading...');
