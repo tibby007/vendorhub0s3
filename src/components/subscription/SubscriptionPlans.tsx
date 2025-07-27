@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/utils/netlifyFunctions';
 import { Users, Zap, Star } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { SubscriptionPlan } from '@/types/subscription';
@@ -103,7 +103,7 @@ const SubscriptionPlans = () => {
     try {
       const priceId = isAnnual ? plan.annualPriceId : plan.monthlyPriceId;
       
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const { data, error } = await invokeFunction('create-checkout', {
         body: {
           priceId,
           tier: plan.name.replace('VendorHub ', ''),
