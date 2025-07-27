@@ -40,7 +40,8 @@ exports.handler = async (event, context) => {
     hasUrl: !!supabaseUrl,
     hasKey: !!supabaseAnonKey,
     method: httpMethod,
-    hasAuthHeader: !!(headers.authorization || headers.Authorization)
+    hasAuthHeader: !!(headers.authorization || headers.Authorization),
+    urlValue: supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'undefined'
   });
   
   if (!supabaseUrl || !supabaseAnonKey) {
