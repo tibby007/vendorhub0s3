@@ -12,6 +12,7 @@ import SubscriptionWidget from '@/components/dashboard/SubscriptionWidget';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { mockPartnerStats } from '@/data/mockPartnerData';
 import TrialBanner from '@/components/subscription/TrialBanner';
+import TrialCountdown from '@/components/subscription/TrialCountdown';
 
 const PartnerAdminDashboard = () => {
   const { user } = useAuth();
@@ -126,8 +127,13 @@ const PartnerAdminDashboard = () => {
     }
   ];
 
+  const isTrial = (subscription.status === 'trialing' || (!subscription.subscribed && subscription.trialEnd && new Date(subscription.trialEnd) > new Date()));
+
   return (
     <div className="space-y-6">
+      {isTrial && subscription.trialEnd && (
+        <TrialCountdown trialEnd={subscription.trialEnd} />
+      )}
       {/* Trial Banner - Show for trial users */}
       {subscription.endDate && !subscription.subscribed && (
         <TrialBanner 
