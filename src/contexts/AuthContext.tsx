@@ -180,15 +180,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    if (isDemo) {
-      // Clear demo mode
+    console.log('🚪 Logout triggered, demo mode:', isDemo);
+    
+    if (isDemo || sessionStorage.getItem('demoCredentials')) {
+      console.log('🎭 Clearing demo mode');
+      // Clear all demo mode storage
       sessionStorage.removeItem('demo_mode');
-      sessionStorage.removeItem('demo_role');
+      sessionStorage.removeItem('demo_role'); 
+      sessionStorage.removeItem('demoCredentials');
+      sessionStorage.removeItem('isDemoMode');
+      sessionStorage.removeItem('demoSessionActive');
+      localStorage.removeItem('last_demo_time');
+      
+      // Clear demo user
       setUser(null);
       setSession(null);
+      
+      // Trigger demo mode change event
+      window.dispatchEvent(new Event('demo-mode-changed'));
+      
+      // Navigate to demo page
+      window.location.href = '/demo';
       return;
     }
     
+    console.log('🔐 Performing real logout');
     await supabase.auth.signOut();
   };
 
