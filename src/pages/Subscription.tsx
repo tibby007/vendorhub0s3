@@ -49,15 +49,21 @@ const Subscription = () => {
       if (selectedPlan && needsSetup) {
         try {
           const planData = JSON.parse(selectedPlan);
-          console.log('🎯 Found stored plan selection, proceeding to checkout:', planData);
+          console.log('🎯 Found stored plan selection, proceeding to Stripe checkout:', planData);
           console.log('📋 Plan details - tierId:', planData.tierId, 'tierName:', planData.tierName, 'isAnnual:', planData.isAnnual);
           
           // Clear the stored plan
           sessionStorage.removeItem('selectedPlan');
           
-          // Immediately redirect to checkout instead of using events and delays
-          // This prevents flashing and makes the flow smoother
-          navigate('/subscription?auto=true&plan=' + encodeURIComponent(JSON.stringify(planData)), { replace: true });
+          // Show loading while redirecting to auto checkout
+          setIsNewUser(false); // Prevent showing the subscription page
+          
+          // Use the auto checkout flow from SubscriptionPlans component
+          setTimeout(() => {
+            navigate('/subscription?auto=true&plan=' + encodeURIComponent(JSON.stringify(planData)), { replace: true });
+          }, 100); // Small delay to ensure state is set
+          
+          return; // Exit early to show loading
         } catch (error) {
           console.error('Error parsing stored plan:', error);
         }
@@ -71,6 +77,19 @@ const Subscription = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-vendor-green-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading subscription information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading when redirecting to auto checkout
+  const selectedPlan = sessionStorage.getItem('selectedPlan');
+  if (selectedPlan && !isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-vendor-green-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to checkout...</p>
         </div>
       </div>
     );
