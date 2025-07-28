@@ -23,8 +23,8 @@ const SubscriptionPlans = () => {
       description: 'Perfect for small teams getting started',
       monthlyPrice: 97,
       annualPrice: 97 * 12 * 0.83, // 17% savings
-      monthlyPriceId: 'price_1Rc1dbB1YJBVEg8wlVQbLAIR',
-      annualPriceId: 'price_1Rc1e7B1YJBVEg8wjKH1HiZ0',
+      monthlyPriceId: 'price_1RpnAlB1YJBVEg8wCN2IXtYJ',
+      annualPriceId: 'price_1RpnBKB1YJBVEg8wbbe6nbYG',
       maxVendors: 3,
       icon: <Users className="w-6 h-6" />,
       features: [
@@ -45,8 +45,8 @@ const SubscriptionPlans = () => {
       description: 'Ideal for growing businesses',
       monthlyPrice: 197,
       annualPrice: 197 * 12 * 0.83, // 17% savings
-      monthlyPriceId: 'price_1Rc1eXB1YJBVEg8wXyhCVw7X',
-      annualPriceId: 'price_1Rc1etB1YJBVEg8wbEgve1jj',
+      monthlyPriceId: 'price_1RpnBjB1YJBVEg8wXBbCplTi',
+      annualPriceId: 'price_1RpnC1B1YJBVEg8wGElD9KAG',
       maxVendors: 7,
       popular: true,
       icon: <Zap className="w-6 h-6" />,
@@ -67,10 +67,10 @@ const SubscriptionPlans = () => {
       id: 'premium',
       name: 'VendorHub Premium',
       description: 'For enterprise-scale operations',
-      monthlyPrice: 397,
-      annualPrice: 397 * 12 * 0.83, // 17% savings
-      monthlyPriceId: 'price_1Rc1fkB1YJBVEg8wqjcXMzEK',
-      annualPriceId: 'price_1Rc1fkB1YJBVEg8wSBzyX6WQ',
+      monthlyPrice: 497,
+      annualPrice: 497 * 12 * 0.83, // 17% savings
+      monthlyPriceId: 'price_1RpnCLB1YJBVEg8wI01MZIi1',
+      annualPriceId: 'price_1RpnCYB1YJBVEg8wWiT9eQNc',
       maxVendors: null,
       icon: <Star className="w-6 h-6" />,
       features: [

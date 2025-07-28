@@ -37,18 +37,27 @@ serve(async (req) => {
     const { priceId, tier, isSetupFee, isAnnual } = await req.json();
     if (!tier) throw new Error("Tier is required");
     
-    logStep("Request data", { priceId, tier, isSetupFee, isAnnual });
+    const origin = req.headers.get("origin");
+    logStep("Request data", { priceId, tier, isSetupFee, isAnnual, origin });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2023-10-16" 
     });
 
-    // Check if customer exists
+    // Check if customer exists, create if not
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Found existing customer", { customerId });
+    } else {
+      // Create new customer
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.user_metadata?.name || user.email.split('@')[0],
+      });
+      customerId = customer.id;
+      logStep("Created new customer", { customerId });
     }
 
     // Check if this is a setup fee checkout
@@ -78,8 +87,8 @@ serve(async (req) => {
           },
         ],
         mode: "payment",
-        success_url: `${req.headers.get("origin")}/setup-complete?plan=${tier}&annual=${isAnnual}`,
-        cancel_url: `${req.headers.get("origin")}/pricing`,
+        success_url: `${req.headers.get("origin") || "https://vendorhubos.com"}/setup-complete?plan=${tier}&annual=${isAnnual}`,
+        cancel_url: `${req.headers.get("origin") || "https://vendorhubos.com"}/pricing`,
         metadata: {
           plan_type: tier,
           is_annual: isAnnual.toString(),
@@ -104,8 +113,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/dashboard?subscription=success`,
-      cancel_url: `${req.headers.get("origin")}/dashboard?subscription=cancelled`,
+      success_url: `${req.headers.get("origin") || "https://vendorhubos.com"}/dashboard?subscription=success`,
+      cancel_url: `${req.headers.get("origin") || "https://vendorhubos.com"}/dashboard?subscription=cancelled`,
       subscription_data: {
         trial_period_days: 3,
       },
