@@ -110,15 +110,21 @@ const PartnerSettings = () => {
     setIsSaving(true);
     try {
       // Update or create partner record
+      const upsertData: any = {
+        name: profile.name,
+        contact_email: profile.contact_email,
+        contact_phone: profile.contact_phone,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Only include id if it exists (for updates)
+      if (profile.id) {
+        upsertData.id = profile.id;
+      }
+      
       const { data, error } = await supabase
         .from('partners')
-        .upsert({
-          id: profile.id || undefined,
-          name: profile.name,
-          contact_email: profile.contact_email,
-          contact_phone: profile.contact_phone,
-          updated_at: new Date().toISOString()
-        }, {
+        .upsert(upsertData, {
           onConflict: 'contact_email'
         })
         .select()

@@ -55,21 +55,22 @@ const VendorManagement = () => {
   });
 
   useEffect(() => {
+    const canManage = canManageVendors();
     console.log('🔄 VendorManagement effect triggered', { 
       user: !!user, 
       userId: user?.id, 
       role: user?.role,
-      canManage: canManageVendors(),
+      canManage,
       isDemo 
     });
     
-    if ((user && canManageVendors()) || isDemo) {
+    if ((user && canManage) || isDemo) {
       console.log('✅ Fetching vendors for user:', user?.id || 'demo');
       fetchVendors();
     } else {
       console.log('❌ Cannot manage vendors or no user');
     }
-  }, [user, canManageVendors, isDemo]);
+  }, [user?.id, currentRole, isDemo]); // Fixed dependencies
 
   const fetchVendors = async () => {
     setIsLoading(true);
