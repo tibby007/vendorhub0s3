@@ -22,6 +22,7 @@ const Index = () => {
     // Check for subscription success parameter
     const urlParams = new URLSearchParams(location.search);
     const subscriptionSuccess = urlParams.get('subscription');
+    const sessionId = urlParams.get('session_id');
     
     // In demo mode, don't redirect to auth
     if (isDemo && demoRole) {
@@ -41,7 +42,7 @@ const Index = () => {
       console.log('📊 Subscription status:', subscription.status, 'subscribed:', subscription.subscribed, 'isLoading:', subscription.isLoading);
       
       // If user just completed subscription, don't redirect them back
-      if (subscriptionSuccess === 'success') {
+      if (subscriptionSuccess === 'success' || sessionId) {
         console.log('🎉 User just completed subscription checkout, staying on dashboard');
         // Clean up URL params and force subscription refresh
         navigate('/dashboard', { replace: true });

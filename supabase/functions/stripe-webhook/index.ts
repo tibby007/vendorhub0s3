@@ -44,22 +44,45 @@ serve(async (req) => {
       customerEmail: session.customer_email 
     });
     
+    const trialEndDate = new Date(subscription.trial_end * 1000).toISOString();
+    
     // Upsert trial status in subscribers table
-    const { data, error } = await supabase.from("subscribers").upsert({
+    const { data: subscriberData, error: subscriberError } = await supabase.from("subscribers").upsert({
       email: session.customer_email,
       stripe_customer_id: session.customer,
       stripe_subscription_id: session.subscription,
-      trial_end: new Date(subscription.trial_end * 1000).toISOString(),
+      trial_end: trialEndDate,
       subscribed: false,
       subscription_tier: capitalizedTier,
-      subscription_end: new Date(subscription.trial_end * 1000).toISOString(),
+      subscription_end: trialEndDate,
       status: "trialing"
     }, { onConflict: "email" });
     
-    if (error) {
-      logStep("Error saving subscription data", { error: error.message });
+    if (subscriberError) {
+      logStep("Error saving subscriber data", { error: subscriberError.message });
     } else {
-      logStep("Successfully saved subscription data", { data });
+      logStep("Successfully saved subscriber data", { data: subscriberData });
+    }
+
+    // Also create/update partner record for consistency
+    const vendorLimit = planType === 'basic' ? 3 : (planType === 'pro' ? 7 : 999);
+    const { data: partnerData, error: partnerError } = await supabase.from("partners").upsert({
+      contact_email: session.customer_email,
+      name: session.customer_details?.name || session.customer_email.split('@')[0],
+      plan_type: planType,
+      billing_status: 'trialing',
+      trial_end: trialEndDate,
+      current_period_end: trialEndDate,
+      vendor_limit: vendorLimit,
+      storage_limit: 5368709120,
+      storage_used: 0,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'contact_email' });
+    
+    if (partnerError) {
+      logStep("Error saving partner data", { error: partnerError.message });
+    } else {
+      logStep("Successfully saved partner data", { data: partnerData });
     }
   }
 
