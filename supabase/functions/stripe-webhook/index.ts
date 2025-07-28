@@ -41,8 +41,36 @@ serve(async (req) => {
     
     const subscription = await stripe.subscriptions.retrieve(session.subscription);
     
-    // Extract plan type from metadata, default to 'basic' if not found
-    const planType = session.metadata?.plan_type || 'basic';
+    // Also log subscription details to see if metadata is there
+    logStep("SUBSCRIPTION DEBUG", {
+      subscriptionId: subscription.id,
+      subscriptionMetadata: subscription.metadata,
+      priceId: subscription.items.data[0]?.price?.id,
+      priceNickname: subscription.items.data[0]?.price?.nickname
+    });
+    
+    // Extract plan type from metadata, with fallback to price ID mapping
+    let planType = session.metadata?.plan_type;
+    
+    // If no metadata, try to infer from price ID
+    if (!planType) {
+      const priceId = subscription.items.data[0]?.price?.id;
+      logStep("NO METADATA FOUND, trying price ID mapping", { priceId });
+      
+      // Map price IDs to tiers
+      const priceToTierMap = {
+        'price_1RpnAlB1YJBVEg8wCN2IXtYJ': 'basic', // Basic monthly
+        'price_1RpnBKB1YJBVEg8wbbe6nbYG': 'basic', // Basic annual
+        'price_1RpnBjB1YJBVEg8wXBbCplTi': 'pro',   // Pro monthly
+        'price_1RpnC1B1YJBVEg8wGElD9KAG': 'pro',   // Pro annual
+        'price_1RpnCLB1YJBVEg8wI01MZIi1': 'premium', // Premium monthly
+        'price_1RpnCYB1YJBVEg8wWiT9eQNc': 'premium'  // Premium annual
+      };
+      
+      planType = priceToTierMap[priceId] || 'basic';
+      logStep("MAPPED PRICE TO TIER", { priceId, mappedTier: planType });
+    }
+    
     const capitalizedTier = planType.charAt(0).toUpperCase() + planType.slice(1);
     
     logStep("Extracted plan data", { 

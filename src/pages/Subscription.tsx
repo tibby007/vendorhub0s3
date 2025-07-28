@@ -19,7 +19,13 @@ const Subscription = () => {
   useEffect(() => {
     if (!isLoading && user) {
       // Check if this is a new user who needs to set up subscription
-      const needsSetup = !subscription.subscribed && subscription.status !== 'trial' && subscription.status !== 'active';
+      // Don't show setup if user has trial, active, or trialing status
+      const hasSubscriptionAccess = subscription.subscribed || 
+                                   subscription.status === 'trial' || 
+                                   subscription.status === 'active' ||
+                                   subscription.status === 'trialing' ||
+                                   subscription.billingStatus === 'trialing';
+      const needsSetup = !hasSubscriptionAccess;
       setIsNewUser(needsSetup);
       
       console.log('Subscription page - subscription status:', subscription.status, 'subscribed:', subscription.subscribed, 'needsSetup:', needsSetup);

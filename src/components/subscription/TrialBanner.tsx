@@ -15,7 +15,7 @@ interface TrialBannerProps {
 
 const TrialBanner: React.FC<TrialBannerProps> = ({ 
   trialEnd: propTrialEnd, 
-  planType = 'basic',
+  planType,
   onUpgrade 
 }) => {
   const { subscription, isTrialUser, daysRemaining } = useSubscriptionManager();
@@ -33,6 +33,9 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
 
   // Use prop trialEnd if provided, otherwise use from subscription context
   const trialEnd = propTrialEnd || subscription.trialEnd || subscription.endDate;
+  
+  // Use subscription tier if available, otherwise use prop, with fallback to 'basic'
+  const currentPlanType = subscription.tier || planType || 'basic';
 
   useEffect(() => {
     const calculateTimeRemaining = () => {
@@ -100,6 +103,11 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
     console.warn('[TrialBanner] No trial end date available, not rendering');
     return null;
   }
+  
+  // Don't render until subscription context has loaded to avoid showing wrong tier
+  if (subscription.isLoading) {
+    return null;
+  }
 
   if (isExpired) {
     return (
@@ -150,7 +158,7 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
               isWarning ? 'border-yellow-300 text-yellow-700' : 
               'border-green-300 text-green-700'
             }>
-              {planType.charAt(0).toUpperCase() + planType.slice(1)} Plan
+              {currentPlanType.charAt(0).toUpperCase() + currentPlanType.slice(1)} Plan
             </Badge>
           </div>
           <Button 

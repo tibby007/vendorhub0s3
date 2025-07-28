@@ -136,7 +136,6 @@ const PartnerAdminDashboard = () => {
         {(isTrial || (subscription.endDate && !subscription.subscribed)) && (
           <TrialBanner 
             trialEnd={subscription.endDate || subscription.trialEnd}
-            planType={subscription.tier?.toLowerCase() || 'basic'}
             onUpgrade={() => navigate('/subscription')}
           />
         )}

@@ -35,7 +35,10 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const { priceId, tier, isSetupFee, isAnnual } = await req.json();
-    if (!tier) throw new Error("Tier is required");
+    if (!tier) {
+      logStep("ERROR: Tier is missing from request", { priceId, tier, isSetupFee, isAnnual });
+      throw new Error("Tier is required");
+    }
     
     const origin = req.headers.get("origin");
     logStep("Request data", { priceId, tier, isSetupFee, isAnnual, origin });
@@ -125,12 +128,16 @@ serve(async (req) => {
         trial_period_days: 3,
       },
       metadata: {
-        plan_type: tier || 'basic',
+        plan_type: tier,
         flow_step: 'subscription'
       }
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    logStep("Checkout session created", { 
+      sessionId: session.id, 
+      url: session.url,
+      metadataSet: { plan_type: tier, flow_step: 'subscription' }
+    });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
