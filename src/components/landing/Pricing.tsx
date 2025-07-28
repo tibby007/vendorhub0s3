@@ -82,12 +82,16 @@ const Pricing = () => {
       
       if (!session) {
         // Store plan selection and redirect to auth
-        sessionStorage.setItem('selectedPlan', JSON.stringify({
+        const planData = {
           tierId: tier.id,
           tierName: tier.name,
           isAnnual,
           price: isAnnual ? tier.annualPrice : tier.monthlyPrice
-        }));
+        };
+        sessionStorage.setItem('selectedPlan', JSON.stringify(planData));
+        console.log('💾 [Landing] Stored plan selection for later:', planData);
+        console.log('🔍 [Landing] SessionStorage after storing:', Object.keys(sessionStorage));
+        console.log('✅ [Landing] Verification - can retrieve plan:', sessionStorage.getItem('selectedPlan'));
         navigate('/auth?intent=subscription');
         return;
       }
