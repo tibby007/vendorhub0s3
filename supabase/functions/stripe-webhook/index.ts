@@ -29,18 +29,38 @@ serve(async (req) => {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+    logStep("Processing checkout.session.completed", { sessionId: session.id });
     const subscription = await stripe.subscriptions.retrieve(session.subscription);
+    
+    // Extract plan type from metadata, default to 'basic' if not found
+    const planType = session.metadata?.plan_type || 'basic';
+    const capitalizedTier = planType.charAt(0).toUpperCase() + planType.slice(1);
+    
+    logStep("Extracted plan data", { 
+      planType, 
+      capitalizedTier,
+      customerId: session.customer,
+      subscriptionId: session.subscription,
+      customerEmail: session.customer_email 
+    });
+    
     // Upsert trial status in subscribers table
-    await supabase.from("subscribers").upsert({
+    const { data, error } = await supabase.from("subscribers").upsert({
       email: session.customer_email,
       stripe_customer_id: session.customer,
       stripe_subscription_id: session.subscription,
       trial_end: new Date(subscription.trial_end * 1000).toISOString(),
       subscribed: false,
-      subscription_tier: "Basic",
+      subscription_tier: capitalizedTier,
       subscription_end: new Date(subscription.trial_end * 1000).toISOString(),
       status: "trialing"
     }, { onConflict: "email" });
+    
+    if (error) {
+      logStep("Error saving subscription data", { error: error.message });
+    } else {
+      logStep("Successfully saved subscription data", { data });
+    }
   }
 
   if (event.type === "invoice.paid") {

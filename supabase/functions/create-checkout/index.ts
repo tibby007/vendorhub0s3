@@ -113,8 +113,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin") || "https://vendorhubos.com"}/dashboard?subscription=success`,
-      cancel_url: `${req.headers.get("origin") || "https://vendorhubos.com"}/dashboard?subscription=cancelled`,
+      success_url: `${req.headers.get("origin") || "https://vendorhubos.com"}/dashboard?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.get("origin") || "https://vendorhubos.com"}/subscription?cancelled=true`,
       subscription_data: {
         trial_period_days: 3,
       },
