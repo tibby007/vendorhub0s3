@@ -298,7 +298,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [setSession]);
 
   // Computed properties
-  const isTrialUser = state.billingStatus === 'trialing';
+  const isTrialUser = state.status === 'trial' || state.billingStatus === 'trialing';
   const isActiveSubscriber = state.subscribed && state.status === 'active';
   
   const daysRemaining = React.useMemo(() => {
