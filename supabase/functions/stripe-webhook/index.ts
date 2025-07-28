@@ -125,12 +125,59 @@ serve(async (req) => {
 
   if (event.type === "invoice.paid") {
     const invoice = event.data.object;
-    // Set status to active and update subscription_end
-    await supabase.from("subscribers").update({
+    logStep("Processing invoice.paid", { invoiceId: invoice.id, customerId: invoice.customer });
+    
+    // Update subscribers table
+    const { error: subError } = await supabase.from("subscribers").update({
       subscribed: true,
       status: "active",
       subscription_end: new Date(invoice.lines.data[0].period.end * 1000).toISOString()
     }).eq("stripe_customer_id", invoice.customer);
+    
+    if (subError) {
+      logStep("Error updating subscriber", { error: subError.message });
+    }
+    
+    // Also update partners table to ensure consistency
+    const { data: subscriberData } = await supabase
+      .from("subscribers")
+      .select("email, subscription_tier")
+      .eq("stripe_customer_id", invoice.customer)
+      .single();
+      
+    if (subscriberData) {
+      const { error: partnerError } = await supabase.from("partners").update({
+        billing_status: "active",
+        plan_type: subscriberData.subscription_tier?.toLowerCase() || 'basic',
+        current_period_end: new Date(invoice.lines.data[0].period.end * 1000).toISOString(),
+        updated_at: new Date().toISOString()
+      }).eq("contact_email", subscriberData.email);
+      
+      if (partnerError) {
+        logStep("Error updating partner", { error: partnerError.message });
+      } else {
+        logStep("Successfully updated partner to active status");
+      }
+      
+      // Update user metadata to link partner_id
+      const { data: partner } = await supabase
+        .from("partners")
+        .select("id")
+        .eq("contact_email", subscriberData.email)
+        .single();
+        
+      if (partner) {
+        const { data: { users } } = await supabase.auth.admin.listUsers();
+        const user = users.find(u => u.email === subscriberData.email);
+        
+        if (user && !user.user_metadata?.partner_id) {
+          await supabase.auth.admin.updateUserById(user.id, {
+            user_metadata: { ...user.user_metadata, partner_id: partner.id }
+          });
+          logStep("Updated user metadata with partner_id", { userId: user.id, partnerId: partner.id });
+        }
+      }
+    }
   }
 
   return new Response("ok", { status: 200 });

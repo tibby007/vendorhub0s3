@@ -18,14 +18,26 @@ const Subscription = () => {
 
   useEffect(() => {
     if (!isLoading && user) {
+      // Check if user just completed payment
+      const urlParams = new URLSearchParams(window.location.search);
+      const success = urlParams.get('success');
+      const sessionId = urlParams.get('session_id');
+      
+      if ((success === 'true' || sessionId) && !subscription.isLoading) {
+        console.log('Payment success detected, redirecting to dashboard...');
+        navigate('/dashboard?subscription=success', { replace: true });
+        return;
+      }
+      
       // Check if this is a new user who needs to set up subscription
       // Don't show setup if user has trial, active, or trialing status
       const hasSubscriptionAccess = subscription.subscribed || 
                                    subscription.status === 'trial' || 
                                    subscription.status === 'active' ||
                                    subscription.status === 'trialing' ||
-                                   subscription.billingStatus === 'trialing';
-      const needsSetup = !hasSubscriptionAccess;
+                                   subscription.billingStatus === 'trialing' ||
+                                   subscription.billingStatus === 'active';
+      const needsSetup = !hasSubscriptionAccess && subscription.status !== 'loading';
       setIsNewUser(needsSetup);
       
       console.log('Subscription page - subscription status:', subscription.status, 'subscribed:', subscription.subscribed, 'needsSetup:', needsSetup);

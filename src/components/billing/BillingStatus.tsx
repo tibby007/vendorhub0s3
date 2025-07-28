@@ -40,18 +40,48 @@ const BillingStatus = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('partners')
-        .select('plan_type, billing_status, trial_end, current_period_end, vendor_limit, storage_limit, storage_used, stripe_customer_id')
-        .eq('id', user.partnerId || user.id)
+      // First try to get from subscribers table for most up-to-date info
+      const { data: subscriberData } = await supabase
+        .from('subscribers')
+        .select('subscription_tier, status, trial_end, subscription_end, stripe_customer_id')
+        .eq('email', user.email)
         .maybeSingle();
+
+      // Then get partner data - check by partner_id or email
+      const partnerId = user.user_metadata?.partner_id || (user as any).partner_id;
+      let query = supabase
+        .from('partners')
+        .select('plan_type, billing_status, trial_end, current_period_end, vendor_limit, storage_limit, storage_used, stripe_customer_id');
+      
+      if (partnerId) {
+        query = query.eq('id', partnerId);
+      } else {
+        query = query.eq('contact_email', user.email);
+      }
+      
+      const { data, error } = await query.maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
       
-      // If no data (new user), set null and component will handle gracefully
-      setBillingData(data);
+      // Merge data from both sources, preferring subscriber data for accuracy
+      if (data || subscriberData) {
+        setBillingData({
+          plan_type: subscriberData?.subscription_tier?.toLowerCase() || data?.plan_type || 'basic',
+          billing_status: subscriberData?.status === 'active' ? 'active' : 
+                         subscriberData?.status === 'trialing' ? 'trialing' : 
+                         data?.billing_status || 'trialing',
+          trial_end: subscriberData?.trial_end || data?.trial_end,
+          current_period_end: subscriberData?.subscription_end || data?.current_period_end,
+          vendor_limit: data?.vendor_limit || 3,
+          storage_limit: data?.storage_limit || 5368709120,
+          storage_used: data?.storage_used || 0,
+          stripe_customer_id: subscriberData?.stripe_customer_id || data?.stripe_customer_id
+        });
+      } else {
+        setBillingData(null);
+      }
     } catch (error) {
       console.error('Error fetching billing data:', error);
       // Only show error toast for actual errors, not missing data

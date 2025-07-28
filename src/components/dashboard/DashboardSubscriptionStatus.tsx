@@ -21,11 +21,28 @@ const DashboardSubscriptionStatus: React.FC<DashboardSubscriptionStatusProps> = 
       if (!user?.id) return;
 
       try {
-        const { data, error } = await supabase
-          .from('partners')
+        // First check subscribers table for latest subscription info
+        const { data: subscriberData, error: subscriberError } = await supabase
+          .from('subscribers')
           .select('*')
-          .eq('id', user.id)
+          .eq('email', user.email)
           .maybeSingle();
+
+        if (subscriberData) {
+          console.log('[DashboardSubscriptionStatus] Subscriber data:', subscriberData);
+        }
+
+        // Then check partners table - use partner_id if available, otherwise check by email
+        const partnerId = user.user_metadata?.partner_id || user.partner_id;
+        let query = supabase.from('partners').select('*');
+        
+        if (partnerId) {
+          query = query.eq('id', partnerId);
+        } else {
+          query = query.eq('contact_email', user.email);
+        }
+        
+        const { data, error } = await query.maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
           console.warn('Error fetching partner data:', error);
@@ -33,12 +50,23 @@ const DashboardSubscriptionStatus: React.FC<DashboardSubscriptionStatusProps> = 
           return;
         }
         
-        if (!data) {
+        if (!data && !subscriberData) {
           // No subscription found - new user
           setSubscriptionStatus('no_subscription');
         } else {
-          setPartnerData(data);
-          const status = data.billing_status;
+          // Merge data from both sources, preferring subscriber data for accuracy
+          const mergedData = {
+            ...data,
+            plan_type: subscriberData?.subscription_tier?.toLowerCase() || data?.plan_type,
+            billing_status: subscriberData?.status === 'active' ? 'active' : 
+                           subscriberData?.status === 'trialing' ? 'trial' : 
+                           data?.billing_status || 'trial',
+            trial_end: subscriberData?.trial_end || data?.trial_end,
+            current_period_end: subscriberData?.subscription_end || data?.current_period_end
+          };
+          
+          setPartnerData(mergedData);
+          const status = mergedData.billing_status;
           if (status === 'active' || status === 'trial' || status === 'past_due') {
             setSubscriptionStatus(status);
           } else {
@@ -52,6 +80,28 @@ const DashboardSubscriptionStatus: React.FC<DashboardSubscriptionStatusProps> = 
     };
 
     checkSubscription();
+    
+    // Subscribe to changes in subscribers table
+    const subscription = supabase
+      .channel('subscription-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscribers',
+          filter: `email=eq.${user?.email}`
+        },
+        () => {
+          console.log('[DashboardSubscriptionStatus] Subscription data changed, refreshing...');
+          checkSubscription();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [user]);
 
   const handleStartSubscription = () => {
@@ -166,7 +216,9 @@ const DashboardSubscriptionStatus: React.FC<DashboardSubscriptionStatusProps> = 
           <div className="flex items-center space-x-2 text-green-800">
             <CheckCircle className="h-5 w-5" />
             <span>
-              {partnerData?.plan_type?.charAt(0)?.toUpperCase() + partnerData?.plan_type?.slice(1)} Plan Active
+              {partnerData?.plan_type ? 
+                partnerData.plan_type.charAt(0).toUpperCase() + partnerData.plan_type.slice(1) : 
+                'VendorHub'} Plan Active
             </span>
           </div>
           <Badge variant="default" className="bg-green-600">Active</Badge>

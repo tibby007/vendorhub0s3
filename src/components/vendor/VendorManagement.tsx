@@ -404,9 +404,11 @@ const VendorManagement = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
+    // Clear error when user starts typing - use setTimeout to avoid state update conflicts
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setTimeout(() => {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }, 0);
     }
   };
 
@@ -427,6 +429,7 @@ const VendorManagement = () => {
           onChange={(e) => handleInputChange('vendor_name', e.target.value)}
           className={errors.vendor_name ? 'border-red-500' : ''}
           placeholder="Enter vendor name"
+          autoComplete="off"
         />
         {errors.vendor_name && (
           <p className="text-sm text-red-600 flex items-center gap-1">
@@ -446,6 +449,7 @@ const VendorManagement = () => {
           disabled={!!editingVendor}
           className={errors.contact_email ? 'border-red-500' : ''}
           placeholder="vendor@example.com"
+          autoComplete="off"
         />
         {errors.contact_email && (
           <p className="text-sm text-red-600 flex items-center gap-1">
@@ -470,6 +474,7 @@ const VendorManagement = () => {
           value={formData.contact_phone}
           onChange={(e) => handleInputChange('contact_phone', e.target.value)}
           placeholder="(555) 123-4567"
+          autoComplete="off"
         />
       </div>
       

@@ -100,12 +100,12 @@ const PartnerSettings = () => {
           name: partnerData.name,
           contact_email: partnerData.contact_email,
           contact_phone: partnerData.contact_phone || '',
-          company_logo: '',
-          brand_color: '#10B981',
-          notification_email: true,
-          notification_sms: false,
-          auto_approval: false,
-          approval_threshold: 1000
+          company_logo: partnerData.company_logo || '',
+          brand_color: partnerData.brand_color || '#10B981',
+          notification_email: partnerData.notification_email ?? true,
+          notification_sms: partnerData.notification_sms ?? false,
+          auto_approval: partnerData.auto_approval ?? false,
+          approval_threshold: partnerData.approval_threshold || 1000
         });
       } else {
         console.log('[PartnerSettings] No partner data found, using user data as fallback');
@@ -150,6 +150,12 @@ const PartnerSettings = () => {
         name: profile.name || user?.name || 'New Partner',
         contact_email: profile.contact_email || user?.email,
         contact_phone: profile.contact_phone || '',
+        company_logo: profile.company_logo || null,
+        brand_color: profile.brand_color || '#10B981',
+        notification_email: profile.notification_email,
+        notification_sms: profile.notification_sms,
+        auto_approval: profile.auto_approval,
+        approval_threshold: profile.approval_threshold,
         plan_type: existingSubscriber?.subscription_tier?.toLowerCase() || 'basic',
         billing_status: existingSubscriber?.status || 'trialing',
         vendor_limit: existingSubscriber?.subscription_tier?.toLowerCase() === 'pro' ? 7 : 

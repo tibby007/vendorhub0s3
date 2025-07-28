@@ -55,7 +55,9 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
     tierLevels[userTier as keyof typeof tierLevels] >= tierLevels[requiredTier];
 
   // Allow access for trial users (they should have basic access during trial)
-  const hasAccess = hasSubscription || isTrialUser || subscription.status === 'trial';
+  // Also allow access if billing status shows active/trialing
+  const hasAccess = hasSubscription || isTrialUser || subscription.status === 'trial' || 
+                   subscription.billingStatus === 'active' || subscription.billingStatus === 'trialing';
 
   // If subscription data is not loaded yet and we're not loading, show retry option
   // BUT: Don't show error for new users who legitimately have no subscription yet
