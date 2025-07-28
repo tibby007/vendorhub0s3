@@ -23,6 +23,27 @@ const Subscription = () => {
       setIsNewUser(needsSetup);
       
       console.log('Subscription page - subscription status:', subscription.status, 'subscribed:', subscription.subscribed, 'needsSetup:', needsSetup);
+      
+      // Check if user came from landing page with a selected plan
+      const selectedPlan = sessionStorage.getItem('selectedPlan');
+      if (selectedPlan && needsSetup) {
+        try {
+          const planData = JSON.parse(selectedPlan);
+          console.log('🎯 Found stored plan selection, proceeding to checkout:', planData);
+          
+          // Clear the stored plan
+          sessionStorage.removeItem('selectedPlan');
+          
+          // Redirect to checkout with the selected plan
+          // This should trigger the SubscriptionPlans component to auto-proceed
+          setTimeout(() => {
+            const event = new CustomEvent('autoSelectPlan', { detail: planData });
+            window.dispatchEvent(event);
+          }, 1000);
+        } catch (error) {
+          console.error('Error parsing stored plan:', error);
+        }
+      }
     }
   }, [user, isLoading, subscription]);
 

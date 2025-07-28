@@ -30,6 +30,15 @@ serve(async (req) => {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     logStep("Processing checkout.session.completed", { sessionId: session.id });
+    
+    // Debug: Log the entire session object to see metadata
+    logStep("FULL SESSION DEBUG", { 
+      sessionId: session.id,
+      metadata: session.metadata,
+      customer_email: session.customer_email,
+      subscription: session.subscription
+    });
+    
     const subscription = await stripe.subscriptions.retrieve(session.subscription);
     
     // Extract plan type from metadata, default to 'basic' if not found

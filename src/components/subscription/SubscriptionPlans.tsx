@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { invokeFunction } from '@/utils/netlifyFunctions';
@@ -148,6 +148,29 @@ const SubscriptionPlans = () => {
       setLoadingPlan(null);
     }
   };
+
+  // Listen for auto-select plan event from subscription page  
+  useEffect(() => {
+    const handleAutoSelectPlan = (event: CustomEvent) => {
+      const planData = event.detail;
+      console.log('🚀 Auto-proceeding to checkout with plan:', planData);
+      
+      // Find the matching plan
+      const plan = plans.find(p => p.id === planData.tierId);
+      if (plan) {
+        setIsAnnual(planData.isAnnual);
+        // Auto-trigger subscription
+        setTimeout(() => {
+          handleSubscribe(plan);
+        }, 500);
+      }
+    };
+
+    window.addEventListener('autoSelectPlan', handleAutoSelectPlan as EventListener);
+    return () => {
+      window.removeEventListener('autoSelectPlan', handleAutoSelectPlan as EventListener);
+    };
+  }, [handleSubscribe, plans]);
 
   return (
     <div className="space-y-8">
