@@ -98,7 +98,7 @@ serve(async (req) => {
     if (subscriberError) {
       logStep("Error saving subscriber data", { error: subscriberError.message });
     } else {
-      logStep("Successfully saved subscriber data", { data: subscriberData });
+      logStep("Successfully saved subscriber data", { data: subscriberData, tier_set: capitalizedTier });
     }
 
     // Also create/update partner record for consistency
@@ -165,7 +165,11 @@ serve(async (req) => {
     if (subError) {
       logStep("Error updating subscriber", { error: subError.message });
     } else {
-      logStep("Updated subscriber to active", { tier: capitalizedTier });
+      logStep("Successfully updated subscriber to active", { 
+        tier: capitalizedTier, 
+        customerId: invoice.customer,
+        subscriptionId: invoice.subscription 
+      });
     }
     
     // Also update partners table to ensure consistency

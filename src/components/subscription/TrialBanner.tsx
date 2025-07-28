@@ -37,6 +37,18 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
   // Use subscription tier if available, otherwise use prop, with fallback to 'basic'
   // Also check planType from subscription context
   const currentPlanType = subscription.tier || subscription.planType || planType || 'basic';
+  
+  // Debug logging to see what values we're getting
+  useEffect(() => {
+    console.log('[TrialBanner] Subscription data:', {
+      tier: subscription.tier,
+      planType: subscription.planType,
+      propPlanType: planType,
+      finalPlanType: currentPlanType,
+      subscriptionStatus: subscription.status,
+      billingStatus: subscription.billingStatus
+    });
+  }, [subscription.tier, subscription.planType, planType, currentPlanType, subscription.status, subscription.billingStatus]);
 
   useEffect(() => {
     const calculateTimeRemaining = () => {
@@ -93,12 +105,32 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
     const sessionId = urlParams.get('session_id');
     
     if ((subscriptionSuccess === 'success' || sessionId) && refresh) {
-      console.log('[TrialBanner] Payment success detected, refreshing subscription data');
+      console.log('[TrialBanner] Payment success detected, refreshing subscription data multiple times');
+      
+      // Refresh immediately
+      refresh(true);
+      
+      // Refresh again after 2 seconds
       setTimeout(() => {
-        refresh(true); // Force refresh
-      }, 2000); // Wait 2 seconds for webhook to process
+        console.log('[TrialBanner] Second refresh after payment');
+        refresh(true);
+      }, 2000);
+      
+      // Refresh again after 5 seconds to catch any delayed webhook processing
+      setTimeout(() => {
+        console.log('[TrialBanner] Third refresh after payment');
+        refresh(true);
+      }, 5000);
     }
   }, [refresh]);
+  
+  // Also refresh when subscription tier changes
+  useEffect(() => {
+    if (subscription.tier && subscription.tier !== 'Basic' && refresh) {
+      console.log('[TrialBanner] Non-basic tier detected, refreshing to ensure latest data');
+      refresh(true);
+    }
+  }, [subscription.tier, refresh]);
 
   const handleUpgrade = () => {
     if (onUpgrade) {
