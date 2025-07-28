@@ -109,11 +109,17 @@ const PartnerSettings = () => {
 
     setIsSaving(true);
     try {
-      // Update or create partner record
+      // Update or create partner record with all required fields
       const upsertData: any = {
-        name: profile.name,
-        contact_email: profile.contact_email,
-        contact_phone: profile.contact_phone,
+        name: profile.name || user?.name || 'New Partner',
+        contact_email: profile.contact_email || user?.email,
+        contact_phone: profile.contact_phone || '',
+        plan_type: 'basic', // Default plan
+        billing_status: 'trialing',
+        vendor_limit: 3,
+        storage_limit: 5368709120, // 5GB in bytes
+        storage_used: 0,
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
       

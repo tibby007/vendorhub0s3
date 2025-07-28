@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, User, Shield, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Shield, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { useNavigate } from 'react-router-dom';
 import VendorLimitIndicator from './VendorLimitIndicator';
@@ -520,9 +520,15 @@ const VendorManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Vendor Management</h2>
-          <p className="text-gray-600">Manage your vendors and their access</p>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Vendor Management</h2>
+            <p className="text-gray-600">Manage your vendors and their access</p>
+          </div>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
           setIsCreateDialogOpen(open);

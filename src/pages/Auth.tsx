@@ -60,13 +60,23 @@ const Auth = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    // Redirect authenticated users to dashboard or subscription
+    // Redirect authenticated users to subscription setup for new users
     if (!isLoading && user) {
       console.log('🏠 User authenticated, checking redirect from Auth page');
-      // For now, always redirect to dashboard - the dashboard will handle subscription redirect
-      navigate('/dashboard', { replace: true });
+      
+      // Check if user came from landing page with plan selection
+      const selectedPlan = sessionStorage.getItem('selectedPlan');
+      const intent = searchParams.get('intent');
+      
+      if (selectedPlan || intent === 'subscription') {
+        console.log('🎯 New user needs subscription setup, redirecting to subscription');
+        navigate('/subscription', { replace: true });
+      } else {
+        console.log('🏠 Existing user, redirecting to dashboard');
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, searchParams]);
 
   // Show loading while checking auth status
   if (isLoading) {
