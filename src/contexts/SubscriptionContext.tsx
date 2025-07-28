@@ -173,7 +173,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       let status: SubscriptionState['status'] = 'loading';
       if (subscriptionData?.subscribed) {
         status = 'active';
-      } else if (partnerData?.billing_status === 'trialing') {
+      } else if (subscriptionData?.trial_active || partnerData?.billing_status === 'trialing') {
         status = 'trial';
       } else {
         status = 'expired';

@@ -98,16 +98,32 @@ serve(async (req) => {
       }
     }
 
-    // Also check subscribers table for trial status
+    // Also check subscribers table for trial status (including webhook-created records)
     const { data: subscriberData, error: subscriberError } = await supabaseClient
       .from('subscribers')
       .select('*')
       .eq('email', user.email)
       .maybeSingle();
 
-    if (subscriberData && !subscriberError && !subscriberData.subscribed) {
-      logStep("Found trial subscriber data", { subscriberData });
+    if (subscriberData && !subscriberError) {
+      logStep("Found subscriber data", { subscriberData });
       
+      // Check if user has an active subscription (paid)
+      if (subscriberData.subscribed && subscriberData.stripe_subscription_id) {
+        logStep("User has active paid subscription");
+        return new Response(JSON.stringify({
+          subscribed: true,
+          subscription_tier: subscriberData.subscription_tier || 'Basic',
+          subscription_end: subscriberData.subscription_end,
+          trial_active: false,
+          stripe_subscription_id: subscriberData.stripe_subscription_id
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      
+      // Check if user is in trial period (webhook created or manual trial)
       if (subscriberData.subscription_end) {
         const trialEnd = new Date(subscriberData.subscription_end);
         const now = new Date();
@@ -118,7 +134,8 @@ serve(async (req) => {
             subscribed: false,
             subscription_tier: subscriberData.subscription_tier || 'Basic',
             subscription_end: subscriberData.subscription_end,
-            trial_active: true
+            trial_active: true,
+            stripe_subscription_id: subscriberData.stripe_subscription_id
           }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 200,
