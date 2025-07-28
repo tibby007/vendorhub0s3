@@ -90,8 +90,14 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
     }
   };
 
-  // Don't show banner if not a trial user or if date is invalid
-  if (!isTrialUser || !isValidDate) {
+  // Don't show banner if not a trial user, if date is invalid, or if already subscribed
+  if (!isTrialUser || !isValidDate || subscription.subscribed) {
+    return null;
+  }
+  
+  // Additional safety check - don't render if essential data is missing
+  if (!trialEnd) {
+    console.warn('[TrialBanner] No trial end date available, not rendering');
     return null;
   }
 

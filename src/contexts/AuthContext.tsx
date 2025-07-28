@@ -64,7 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth state change:', event, !!session);
       setSession(session);
-      setGlobalSession(session); // Sync session with SubscriptionContext
+      // Debounce session sync to prevent race conditions
+      setTimeout(() => setGlobalSession(session), 100);
       
       if (event === 'SIGNED_IN' && session?.user) {
         try {
@@ -185,7 +186,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user_metadata: data.user.user_metadata
     });
     setSession(data.session);
-    setGlobalSession(data.session); // <-- Add this line
+    // Debounce session sync for login
+    setTimeout(() => setGlobalSession(data.session), 100);
   };
 
   const logout = async () => {

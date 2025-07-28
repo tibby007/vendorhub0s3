@@ -78,8 +78,8 @@ function subscriptionReducer(state: SubscriptionState, action: SubscriptionActio
 
 export const SubscriptionContext = createContext<SubscriptionManager | undefined>(undefined);
 
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes - increased for better performance
-const DEBOUNCE_DELAY = 1000; // 1 second
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - production stability
+const DEBOUNCE_DELAY = 2000; // 2 seconds - prevent API flooding
 
 // Global session management
 let globalSetSession: ((session: Session | null) => void) | null = null;
@@ -90,8 +90,19 @@ export const setGlobalSession = (session: Session | null) => {
   }
 };
 
+// Add instance tracking to prevent multiple initializations
+let providerInstanceCount = 0;
+
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('[SubscriptionContext] SubscriptionProvider initializing');
+  const instanceId = useRef(++providerInstanceCount);
+  
+  // Only log for the first instance to reduce console noise
+  if (instanceId.current === 1) {
+    console.log('[SubscriptionContext] SubscriptionProvider initializing');
+  } else {
+    console.warn(`[SubscriptionContext] Multiple provider instances detected (${instanceId.current})`);
+  }
+  
   const [state, dispatch] = useReducer(subscriptionReducer, initialState);
   const sessionRef = useRef<Session | null>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
@@ -119,11 +130,20 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    // Prevent multiple simultaneous requests
+    // Prevent multiple simultaneous requests with additional safeguard
     if (isRequestInFlight.current) {
       console.warn('[SubscriptionContext] Early return: Request already in flight. Skipping.');
       return;
     }
+    
+    // Additional rate limiting - max 1 request per 5 seconds
+    const now = Date.now();
+    const lastRequest = sessionStorage.getItem('last_subscription_request');
+    if (lastRequest && (now - parseInt(lastRequest)) < 5000) {
+      console.warn('[SubscriptionContext] Rate limited: Too many requests. Using cache.');
+      return;
+    }
+    sessionStorage.setItem('last_subscription_request', now.toString());
 
     dispatch({ type: 'SET_LOADING', payload: true });
     isRequestInFlight.current = true;
@@ -196,13 +216,30 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error('[SubscriptionContext] Error fetching subscription data:', err);
       
       // Enhanced error handling - if rate limited, use cached data longer
-      if (errorMessage.includes('rate') || errorMessage.includes('limit')) {
-        console.warn('[SubscriptionContext] Rate limited, extending cache duration');
+      if (errorMessage.includes('rate') || errorMessage.includes('limit') || errorMessage.includes('network') || errorMessage.includes('timeout')) {
+        console.warn('[SubscriptionContext] Network/rate limit error, extending cache duration');
         if (state.lastUpdated > 0) {
-          // Keep using existing data for rate limit errors
+          // Keep using existing data for network/rate limit errors
           dispatch({ type: 'SET_LOADING', payload: false });
           return;
         }
+      }
+      
+      // For database connection errors, provide graceful fallback
+      if (errorMessage.includes('database') || errorMessage.includes('connection')) {
+        console.error('[SubscriptionContext] Database error detected, providing trial access');
+        const emergencyTrialState: Partial<SubscriptionState> = {
+          subscribed: false,
+          tier: 'Basic',
+          status: 'trial',
+          endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days
+          priceId: null,
+          billingStatus: 'trialing',
+          planType: 'basic',
+          trialEnd: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+        };
+        dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: emergencyTrialState });
+        return;
       }
       
       // If we have cached data, keep using it on error

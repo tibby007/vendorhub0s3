@@ -63,6 +63,15 @@ const Index = () => {
       // If subscription hasn't been checked yet (initial load), trigger a refresh
       if (subscription.status === 'loading' && subscription.lastUpdated === 0) {
         console.log('🔄 Initial subscription check needed, refreshing...');
+        // Prevent infinite loops - max 3 attempts
+        const attemptCount = sessionStorage.getItem('subscription_check_attempts') || '0';
+        if (parseInt(attemptCount) >= 3) {
+          console.warn('🚫 Max subscription check attempts reached, allowing dashboard access');
+          sessionStorage.removeItem('subscription_check_attempts');
+          return;
+        }
+        sessionStorage.setItem('subscription_check_attempts', (parseInt(attemptCount) + 1).toString());
+        
         // Small delay to ensure session is available
         setTimeout(() => {
           console.log('🔄 Triggering subscription refresh');
@@ -70,6 +79,8 @@ const Index = () => {
           import('@/integrations/supabase/client').then(({ supabase }) => {
             supabase.functions.invoke('check-subscription').then(({ data, error }) => {
               console.log('📊 Direct subscription check result:', { data, error });
+              // Clear attempt counter on success
+              sessionStorage.removeItem('subscription_check_attempts');
               // Only redirect if user has no subscription AND no active trial
               if (error || (!data?.subscribed && !data?.trial_active)) {
                 console.log('🆕 New user detected, redirecting to subscription');
@@ -79,6 +90,10 @@ const Index = () => {
               } else if (data?.subscribed) {
                 console.log('✅ User has active subscription, staying on dashboard');
               }
+            }).catch(err => {
+              console.error('🚨 Subscription check failed:', err);
+              // Allow access on persistent errors to prevent blocking
+              console.log('🆘 Allowing dashboard access due to persistent errors');
             });
           });
         }, 1000);
@@ -92,7 +107,7 @@ const Index = () => {
         return;
       }
     }
-  }, [user, isLoading, navigate, isDemo, demoRole, subscription, location.pathname]);
+  }, [user, isLoading, navigate, isDemo, demoRole, subscription.status, subscription.subscribed, subscription.isLoading, location.search]); // Stable references only
 
   if (isLoading || subscription.isLoading) {
     console.log('⏳ Dashboard loading...');

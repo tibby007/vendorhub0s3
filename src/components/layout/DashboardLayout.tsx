@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, Building2 } from 'lucide-react';
 import DemoSessionTimer from '@/components/demo/DemoSessionTimer';
-import TrialBanner from '@/components/subscription/TrialBanner';
+// TrialBanner removed - now handled by individual dashboards to avoid duplicate rendering
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -48,9 +48,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       {/* Main Content */}
       <main>
         <DemoSessionTimer />
-        <div className="px-6 py-4">
-          <TrialBanner />
-        </div>
         {children}
       </main>
     </div>
