@@ -40,16 +40,19 @@ export const updateStorageUsage = async (partnerId: string, fileSize: number, is
   }
 };
 
-export const formatStorageSize = (bytes: number): string => {
+export const formatStorageSize = (bytes: number | null): string => {
+  const safeBytes = bytes || 0;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  if (bytes === 0) return '0 Bytes';
-  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)).toString());
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  if (safeBytes === 0) return '0 Bytes';
+  const i = parseInt(Math.floor(Math.log(safeBytes) / Math.log(1024)).toString());
+  return Math.round(safeBytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 };
 
-export const getStorageUsagePercentage = (used: number, limit: number): number => {
-  if (limit === 0) return 0;
-  return Math.min((used / limit) * 100, 100);
+export const getStorageUsagePercentage = (used: number | null, limit: number | null): number => {
+  const safeUsed = used || 0;
+  const safeLimit = limit || 0;
+  if (safeLimit === 0) return 0;
+  return Math.min((safeUsed / safeLimit) * 100, 100);
 };
 
 // New security functions for hybrid storage model

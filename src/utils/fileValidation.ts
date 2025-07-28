@@ -172,9 +172,10 @@ export const validateFileUpload = async (file: File): Promise<File> => {
     throw new Error('Invalid file name detected.');
   }
 
-  // Sanitize filename for additional security
-  if (!/^[a-zA-Z0-9._\-\s]+$/.test(fileName)) {
-    throw new Error('File name contains invalid characters.');
+  // Sanitize filename for additional security - allow alphanumeric and common symbols
+  // Allow: letters, numbers, spaces, dots, hyphens, underscores, parentheses, brackets, and common symbols
+  if (!/^[a-zA-Z0-9._\-\s()\[\]@#$%&+=!~]+$/.test(fileName)) {
+    throw new Error('File name contains invalid characters. Only letters, numbers, spaces, and common symbols are allowed.');
   }
 
   // Find matching file signature for the MIME type
