@@ -43,8 +43,16 @@ const Index = () => {
       // If user just completed subscription, don't redirect them back
       if (subscriptionSuccess === 'success') {
         console.log('🎉 User just completed subscription checkout, staying on dashboard');
-        // Clean up URL params
+        // Clean up URL params and force subscription refresh
         navigate('/dashboard', { replace: true });
+        // Force refresh subscription data after successful payment
+        setTimeout(async () => {
+          import('@/integrations/supabase/client').then(({ supabase }) => {
+            supabase.functions.invoke('check-subscription').then(({ data, error }) => {
+              console.log('🔄 Post-checkout subscription refresh:', { data, error });
+            });
+          });
+        }, 2000); // Wait 2 seconds for webhook to process
         return;
       }
       

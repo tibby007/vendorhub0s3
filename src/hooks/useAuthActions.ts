@@ -75,7 +75,12 @@ export const useAuthActions = ({
   const logout = async () => {
     try {
       console.log('🚪 Logging out user');
-      const { error } = await supabase.auth.signOut();
+      
+      // Clear all local storage and session storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       if (error) {
         console.error('❌ Logout error:', error);
         throw error;
@@ -86,10 +91,21 @@ export const useAuthActions = ({
       clearCache();
       clearProfileCache();
       
+      // Also clear any subscription context state
+      if (window.setGlobalSession) {
+        window.setGlobalSession(null);
+      }
+      
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out",
       });
+      
+      // Force a page reload to ensure complete state cleanup
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 100);
+      
     } catch (error) {
       console.error('❌ Logout error:', error);
       toast({

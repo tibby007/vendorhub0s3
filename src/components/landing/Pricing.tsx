@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import BillingToggle from '@/components/subscription/BillingToggle';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { invokeFunction } from '@/utils/netlifyFunctions';
 
 const Pricing = () => {
   const navigate = useNavigate();
@@ -30,8 +31,8 @@ const Pricing = () => {
       ],
       popular: false,
       buttonText: "Start 3-Day Free Trial",
-      monthlyPriceId: "price_1Rc1dbB1YJBVEg8wlVQbLAIR",
-      annualPriceId: "price_basic_annual"
+      monthlyPriceId: "price_1RpnAlB1YJBVEg8wCN2IXtYJ",
+      annualPriceId: "price_1RpnBKB1YJBVEg8wbbe6nbYG"
     },
     {
       id: "pro",
@@ -50,8 +51,8 @@ const Pricing = () => {
       ],
       popular: true,
       buttonText: "Start 3-Day Free Trial",
-      monthlyPriceId: "price_1Rc1eXB1YJBVEg8wXyhCVw7X",
-      annualPriceId: "price_pro_annual"
+      monthlyPriceId: "price_1RpnBjB1YJBVEg8wXBbCplTi",
+      annualPriceId: "price_1RpnC1B1YJBVEg8wGElD9KAG"
     },
     {
       id: "premium",
@@ -70,8 +71,8 @@ const Pricing = () => {
       ],
       popular: false,
       buttonText: "Start 3-Day Free Trial",
-      monthlyPriceId: "price_1Rc1fkB1YJBVEg8wqjcXMzEK",
-      annualPriceId: "price_premium_annual"
+      monthlyPriceId: "price_1RpnCLB1YJBVEg8wI01MZIi1",
+      annualPriceId: "price_1RpnCYB1YJBVEg8wWiT9eQNc"
     }
   ];
 
@@ -108,8 +109,10 @@ const Pricing = () => {
       }
 
       // Proceed with checkout
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const priceId = isAnnual ? tier.annualPriceId : tier.monthlyPriceId;
+      const { data, error } = await invokeFunction('create-checkout', {
         body: {
+          priceId,
           tier: tier.id,
           isAnnual: isAnnual
         },
