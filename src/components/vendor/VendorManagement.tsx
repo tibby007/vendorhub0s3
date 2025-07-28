@@ -17,6 +17,7 @@ import { Plus, Edit2, Trash2, User, Shield, AlertCircle, ArrowLeft } from 'lucid
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { useNavigate } from 'react-router-dom';
 import VendorLimitIndicator from './VendorLimitIndicator';
+import VendorCSVUpload from './VendorCSVUpload';
 
 interface Vendor {
   id: string;
@@ -554,6 +555,9 @@ const VendorManagement = () => {
 
       {/* Vendor Limit Indicator */}
       <VendorLimitIndicator vendorCount={vendors.length} />
+
+      {/* CSV Upload for Pro/Premium users */}
+      <VendorCSVUpload onUploadComplete={fetchVendors} />
 
       <Card>
         <CardHeader>
