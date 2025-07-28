@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { invokeFunction } from '@/utils/netlifyFunctions';
 import { Users, Zap, Star } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -13,6 +13,7 @@ import AdditionalFeatures from './AdditionalFeatures';
 const SubscriptionPlans = () => {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isAnnual, setIsAnnual] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
@@ -89,6 +90,9 @@ const SubscriptionPlans = () => {
   ];
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
+    console.log('🎯 handleSubscribe called with plan:', { id: plan.id, name: plan.name });
+    console.log('🎯 isAnnual state:', isAnnual);
+    
     if (!session) {
       toast({
         title: "Authentication Required",
@@ -102,6 +106,7 @@ const SubscriptionPlans = () => {
     setLoadingPlan(plan.id);
     try {
       const priceId = isAnnual ? plan.annualPriceId : plan.monthlyPriceId;
+      console.log('💳 Using priceId:', priceId, 'for plan:', plan.id);
       
       // Check if we should use direct mode
       const urlParams = new URLSearchParams(window.location.search);
@@ -130,13 +135,8 @@ const SubscriptionPlans = () => {
 
       if (error) throw error;
 
-      // Open Stripe checkout in a new tab
-      window.open(data.url, '_blank');
-      
-      toast({
-        title: "Redirecting to Checkout",
-        description: "Opening Stripe checkout in a new tab...",
-      });
+      // Redirect to Stripe checkout in the same window (better UX)
+      window.location.href = data.url;
     } catch (error) {
       console.error('Error creating checkout:', error);
       toast({
@@ -149,28 +149,39 @@ const SubscriptionPlans = () => {
     }
   };
 
-  // Listen for auto-select plan event from subscription page  
+  // Check for auto-checkout from URL parameters (smoother than events)
   useEffect(() => {
-    const handleAutoSelectPlan = (event: CustomEvent) => {
-      const planData = event.detail;
-      console.log('🚀 Auto-proceeding to checkout with plan:', planData);
-      
-      // Find the matching plan
-      const plan = plans.find(p => p.id === planData.tierId);
-      if (plan) {
-        setIsAnnual(planData.isAnnual);
-        // Auto-trigger subscription
-        setTimeout(() => {
+    const autoCheckout = searchParams.get('auto');
+    const planParam = searchParams.get('plan');
+    
+    if (autoCheckout === 'true' && planParam && session) {
+      try {
+        const planData = JSON.parse(decodeURIComponent(planParam));
+        console.log('🚀 Auto-proceeding to checkout with plan from URL:', planData);
+        console.log('🔍 Available plans:', plans.map(p => ({ id: p.id, name: p.name })));
+        
+        // Find the matching plan
+        const plan = plans.find(p => p.id === planData.tierId);
+        console.log('🎯 Found matching plan:', plan ? { id: plan.id, name: plan.name } : 'NOT FOUND');
+        
+        if (plan) {
+          setIsAnnual(planData.isAnnual);
+          console.log('💡 Setting isAnnual to:', planData.isAnnual);
+          console.log('🚀 About to call handleSubscribe with plan:', plan.id);
+          
+          // Clear URL parameters to prevent re-triggering
+          navigate('/subscription', { replace: true });
+          
+          // Immediately proceed to checkout (no delays)
           handleSubscribe(plan);
-        }, 500);
+        } else {
+          console.error('❌ Could not find plan with tierId:', planData.tierId);
+        }
+      } catch (error) {
+        console.error('Error parsing plan from URL:', error);
       }
-    };
-
-    window.addEventListener('autoSelectPlan', handleAutoSelectPlan as EventListener);
-    return () => {
-      window.removeEventListener('autoSelectPlan', handleAutoSelectPlan as EventListener);
-    };
-  }, [handleSubscribe, plans]);
+    }
+  }, [searchParams, session, plans, navigate, handleSubscribe]);
 
   return (
     <div className="space-y-8">

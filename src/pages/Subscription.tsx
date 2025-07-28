@@ -26,20 +26,20 @@ const Subscription = () => {
       
       // Check if user came from landing page with a selected plan
       const selectedPlan = sessionStorage.getItem('selectedPlan');
+      console.log('🔍 Checking for stored plan:', selectedPlan);
+      
       if (selectedPlan && needsSetup) {
         try {
           const planData = JSON.parse(selectedPlan);
           console.log('🎯 Found stored plan selection, proceeding to checkout:', planData);
+          console.log('📋 Plan details - tierId:', planData.tierId, 'tierName:', planData.tierName, 'isAnnual:', planData.isAnnual);
           
           // Clear the stored plan
           sessionStorage.removeItem('selectedPlan');
           
-          // Redirect to checkout with the selected plan
-          // This should trigger the SubscriptionPlans component to auto-proceed
-          setTimeout(() => {
-            const event = new CustomEvent('autoSelectPlan', { detail: planData });
-            window.dispatchEvent(event);
-          }, 1000);
+          // Immediately redirect to checkout instead of using events and delays
+          // This prevents flashing and makes the flow smoother
+          navigate('/subscription?auto=true&plan=' + encodeURIComponent(JSON.stringify(planData)), { replace: true });
         } catch (error) {
           console.error('Error parsing stored plan:', error);
         }

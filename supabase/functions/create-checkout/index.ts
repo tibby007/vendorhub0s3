@@ -39,6 +39,12 @@ serve(async (req) => {
     
     const origin = req.headers.get("origin");
     logStep("Request data", { priceId, tier, isSetupFee, isAnnual, origin });
+    logStep("TIER DEBUG", { 
+      tier_received: tier, 
+      tier_type: typeof tier,
+      tier_lowercase: tier?.toLowerCase(),
+      will_set_metadata_to: tier || 'basic'
+    });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2023-10-16" 
