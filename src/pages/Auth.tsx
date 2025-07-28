@@ -66,6 +66,11 @@ const Auth = () => {
       
       // Check if user came from landing page with plan selection
       const selectedPlan = sessionStorage.getItem('selectedPlan');
+      console.log('🔍 [Auth.tsx] Checking for selected plan:', { 
+        selectedPlan, 
+        hasSelectedPlan: !!selectedPlan,
+        sessionStorageKeys: Object.keys(sessionStorage)
+      });
       
       if (selectedPlan) {
         console.log('🎯 User has selected plan, proceeding DIRECTLY to Stripe checkout');
