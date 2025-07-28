@@ -60,18 +60,41 @@ const PartnerSettings = () => {
 
     setIsLoading(true);
     try {
-      // First, try to get from partners table
-      const { data: partnerData, error: partnerError } = await supabase
-        .from('partners')
-        .select('*')
-        .eq('contact_email', user.email)
-        .maybeSingle();
+      console.log('[PartnerSettings] Fetching profile for user:', { id: user.id, email: user.email, partner_id: (user as any).partner_id });
+      
+      // First, try to get from partners table using partner_id if available
+      let partnerData = null;
+      let partnerError = null;
+      
+      if ((user as any).partner_id) {
+        console.log('[PartnerSettings] User has partner_id, querying by id:', (user as any).partner_id);
+        const result = await supabase
+          .from('partners')
+          .select('*')
+          .eq('id', (user as any).partner_id)
+          .maybeSingle();
+        
+        partnerData = result.data;
+        partnerError = result.error;
+      } else {
+        console.log('[PartnerSettings] No partner_id, querying by contact_email:', user.email);
+        const result = await supabase
+          .from('partners')
+          .select('*')
+          .eq('contact_email', user.email)
+          .maybeSingle();
+        
+        partnerData = result.data;
+        partnerError = result.error;
+      }
 
       if (partnerError && partnerError.code !== 'PGRST116') {
+        console.error('[PartnerSettings] Database error:', partnerError);
         throw partnerError;
       }
 
       if (partnerData) {
+        console.log('[PartnerSettings] Found partner data:', partnerData);
         setProfile({
           id: partnerData.id,
           name: partnerData.name,
@@ -85,6 +108,7 @@ const PartnerSettings = () => {
           approval_threshold: 1000
         });
       } else {
+        console.log('[PartnerSettings] No partner data found, using user data as fallback');
         // Use user data as fallback
         setProfile(prev => ({
           ...prev,
@@ -96,7 +120,7 @@ const PartnerSettings = () => {
       console.error('Error fetching partner profile:', error);
       toast({
         title: "Error",
-        description: "Failed to load partner settings",
+        description: `Failed to load partner settings: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -109,37 +133,87 @@ const PartnerSettings = () => {
 
     setIsSaving(true);
     try {
-      // Update or create partner record with all required fields
+      console.log('[PartnerSettings] Saving profile:', profile);
+      console.log('[PartnerSettings] Current user:', { id: user.id, email: user.email, partner_id: (user as any).partner_id });
+      
+      // Check if we have existing subscription data to preserve
+      const { data: existingSubscriber } = await supabase
+        .from('subscribers')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle();
+      
+      console.log('[PartnerSettings] Existing subscriber data:', existingSubscriber);
+      
+      // Prepare upsert data with all required fields, preserving subscription info
       const upsertData: any = {
         name: profile.name || user?.name || 'New Partner',
         contact_email: profile.contact_email || user?.email,
         contact_phone: profile.contact_phone || '',
-        plan_type: 'basic', // Default plan
-        billing_status: 'trialing',
-        vendor_limit: 3,
-        storage_limit: 5368709120, // 5GB in bytes
+        plan_type: existingSubscriber?.subscription_tier?.toLowerCase() || 'basic',
+        billing_status: existingSubscriber?.status || 'trialing',
+        vendor_limit: existingSubscriber?.subscription_tier?.toLowerCase() === 'pro' ? 7 : 
+                     existingSubscriber?.subscription_tier?.toLowerCase() === 'premium' ? 999999 : 3,
+        storage_limit: existingSubscriber?.subscription_tier?.toLowerCase() === 'pro' ? 26843545600 : 
+                      existingSubscriber?.subscription_tier?.toLowerCase() === 'premium' ? 107374182400 : 5368709120,
         storage_used: 0,
-        created_at: new Date().toISOString(),
+        trial_end: existingSubscriber?.trial_end || null,
+        current_period_end: existingSubscriber?.subscription_end || null,
+        stripe_customer_id: existingSubscriber?.stripe_customer_id || null,
+        stripe_subscription_id: existingSubscriber?.stripe_subscription_id || null,
         updated_at: new Date().toISOString()
       };
       
-      // Only include id if it exists (for updates)
-      if (profile.id) {
-        upsertData.id = profile.id;
-      }
+      console.log('[PartnerSettings] Upsert data prepared:', upsertData);
       
-      const { data, error } = await supabase
-        .from('partners')
-        .upsert(upsertData, {
-          onConflict: 'contact_email'
-        })
-        .select()
-        .single();
+      // Try to update existing record first if we have an ID
+      if (profile.id) {
+        console.log('[PartnerSettings] Updating existing partner with ID:', profile.id);
+        upsertData.id = profile.id;
+        
+        const { data, error } = await supabase
+          .from('partners')
+          .upsert(upsertData, { onConflict: 'id' })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) {
+          console.error('[PartnerSettings] Update failed:', error);
+          throw error;
+        }
+        
+        console.log('[PartnerSettings] Update successful:', data);
+      } else {
+        // Create new record
+        console.log('[PartnerSettings] Creating new partner record');
+        upsertData.created_at = new Date().toISOString();
+        
+        const { data, error } = await supabase
+          .from('partners')
+          .insert(upsertData)
+          .select()
+          .single();
 
-      if (!profile.id) {
+        if (error) {
+          console.error('[PartnerSettings] Insert failed:', error);
+          throw error;
+        }
+        
+        console.log('[PartnerSettings] Insert successful:', data);
         setProfile(prev => ({ ...prev, id: data.id }));
+        
+        // Update user's partner_id if not set
+        if (!(user as any).partner_id) {
+          console.log('[PartnerSettings] Updating user partner_id to:', data.id);
+          const { error: userUpdateError } = await supabase
+            .from('users')
+            .update({ partner_id: data.id })
+            .eq('id', user.id);
+          
+          if (userUpdateError) {
+            console.error('[PartnerSettings] Failed to update user partner_id:', userUpdateError);
+          }
+        }
       }
 
       toast({
