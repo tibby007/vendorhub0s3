@@ -126,6 +126,10 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin") || "https://vendorhubos.com"}/subscription?cancelled=true`,
       subscription_data: {
         trial_period_days: 3,
+        metadata: {
+          plan_type: tier,
+          flow_step: 'subscription'
+        }
       },
       metadata: {
         plan_type: tier,

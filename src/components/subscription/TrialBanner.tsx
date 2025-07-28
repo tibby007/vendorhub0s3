@@ -18,7 +18,7 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
   planType,
   onUpgrade 
 }) => {
-  const { subscription, isTrialUser, daysRemaining } = useSubscriptionManager();
+  const { subscription, isTrialUser, daysRemaining, refresh } = useSubscriptionManager();
   const [timeRemaining, setTimeRemaining] = useState<{
     days: number;
     hours: number;
@@ -35,7 +35,8 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
   const trialEnd = propTrialEnd || subscription.trialEnd || subscription.endDate;
   
   // Use subscription tier if available, otherwise use prop, with fallback to 'basic'
-  const currentPlanType = subscription.tier || planType || 'basic';
+  // Also check planType from subscription context
+  const currentPlanType = subscription.tier || subscription.planType || planType || 'basic';
 
   useEffect(() => {
     const calculateTimeRemaining = () => {
@@ -84,6 +85,20 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
 
     return () => clearInterval(timer);
   }, [trialEnd]);
+
+  // Force refresh subscription data after potential payment
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const subscriptionSuccess = urlParams.get('subscription');
+    const sessionId = urlParams.get('session_id');
+    
+    if ((subscriptionSuccess === 'success' || sessionId) && refresh) {
+      console.log('[TrialBanner] Payment success detected, refreshing subscription data');
+      setTimeout(() => {
+        refresh(true); // Force refresh
+      }, 2000); // Wait 2 seconds for webhook to process
+    }
+  }, [refresh]);
 
   const handleUpgrade = () => {
     if (onUpgrade) {

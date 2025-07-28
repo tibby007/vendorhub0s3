@@ -127,15 +127,45 @@ serve(async (req) => {
     const invoice = event.data.object;
     logStep("Processing invoice.paid", { invoiceId: invoice.id, customerId: invoice.customer });
     
+    // Get the subscription to access its metadata
+    const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+    logStep("Retrieved subscription for invoice", { 
+      subscriptionId: subscription.id, 
+      subscriptionMetadata: subscription.metadata,
+      priceId: subscription.items.data[0]?.price?.id 
+    });
+    
+    // Get subscription tier from subscription metadata or price ID mapping
+    let subscriptionTier = subscription.metadata?.plan_type;
+    if (!subscriptionTier) {
+      // Fallback to price ID mapping
+      const priceToTierMap = {
+        'price_1RpnAlB1YJBVEg8wCN2IXtYJ': 'basic',
+        'price_1RpnBKB1YJBVEg8wbbe6nbYG': 'basic',
+        'price_1RpnBjB1YJBVEg8wXBbCplTi': 'pro',
+        'price_1RpnC1B1YJBVEg8wGElD9KAG': 'pro',
+        'price_1RpnCLB1YJBVEg8wI01MZIi1': 'premium',
+        'price_1RpnCYB1YJBVEg8wWiT9eQNc': 'premium'
+      };
+      const priceId = subscription.items.data[0]?.price?.id;
+      subscriptionTier = priceToTierMap[priceId] || 'basic';
+      logStep("Mapped price to tier", { priceId, mappedTier: subscriptionTier });
+    }
+    
+    const capitalizedTier = subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1);
+    
     // Update subscribers table
     const { error: subError } = await supabase.from("subscribers").update({
       subscribed: true,
       status: "active",
+      subscription_tier: capitalizedTier,
       subscription_end: new Date(invoice.lines.data[0].period.end * 1000).toISOString()
     }).eq("stripe_customer_id", invoice.customer);
     
     if (subError) {
       logStep("Error updating subscriber", { error: subError.message });
+    } else {
+      logStep("Updated subscriber to active", { tier: capitalizedTier });
     }
     
     // Also update partners table to ensure consistency
@@ -148,7 +178,7 @@ serve(async (req) => {
     if (subscriberData) {
       const { error: partnerError } = await supabase.from("partners").update({
         billing_status: "active",
-        plan_type: subscriberData.subscription_tier?.toLowerCase() || 'basic',
+        plan_type: subscriberData.subscription_tier?.toLowerCase() || subscriptionTier,
         current_period_end: new Date(invoice.lines.data[0].period.end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       }).eq("contact_email", subscriberData.email);
