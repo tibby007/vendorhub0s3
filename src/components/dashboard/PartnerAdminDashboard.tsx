@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { supabase } from '@/integrations/supabase/client';
-import DashboardSubscriptionStatus from '@/components/dashboard/DashboardSubscriptionStatus';
 import SubscriptionWidget from '@/components/dashboard/SubscriptionWidget';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { mockPartnerStats } from '@/data/mockPartnerData';
@@ -141,9 +140,6 @@ const PartnerAdminDashboard = () => {
         )}
       </div>
 
-      {/* Subscription Status */}
-      <DashboardSubscriptionStatus user={user} />
-      
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-vendor-green-600 to-vendor-green-700 rounded-lg p-6 text-white">
         <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name || 'Partner Admin'}!</h1>

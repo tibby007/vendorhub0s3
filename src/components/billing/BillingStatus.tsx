@@ -158,7 +158,7 @@ const BillingStatus = () => {
 
   const isTrialing = billingData.billing_status === 'trialing';
   const trialDaysLeft = isTrialing && billingData.trial_end 
-    ? Math.ceil((new Date(billingData.trial_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    ? Math.floor((new Date(billingData.trial_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : 0;
 
   return (

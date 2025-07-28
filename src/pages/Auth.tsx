@@ -60,16 +60,21 @@ const Auth = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    // Redirect authenticated users to subscription setup for new users
+    // Redirect authenticated users
     if (!isLoading && user) {
       console.log('🏠 User authenticated, checking redirect from Auth page');
+      
+      // Check if this is a new user (just confirmed email)
+      const type = searchParams.get('type');
+      const isNewUser = type === 'signup' || type === 'magiclink' || type === 'email';
       
       // Check if user came from landing page with plan selection
       const selectedPlan = sessionStorage.getItem('selectedPlan');
       const intent = searchParams.get('intent');
       
-      if (selectedPlan || intent === 'subscription') {
-        console.log('🎯 New user needs subscription setup, redirecting to subscription');
+      // ALWAYS redirect new users to subscription setup
+      if (isNewUser || selectedPlan || intent === 'subscription' || !user.user_metadata?.has_completed_setup) {
+        console.log('🎯 New user detected, redirecting to subscription setup');
         navigate('/subscription', { replace: true });
       } else {
         console.log('🏠 Existing user, redirecting to dashboard');
