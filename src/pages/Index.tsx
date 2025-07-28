@@ -47,10 +47,13 @@ const Index = () => {
         navigate('/dashboard', { replace: true });
         // Force refresh subscription data after successful payment
         setTimeout(async () => {
-          import('@/integrations/supabase/client').then(({ supabase }) => {
-            supabase.functions.invoke('check-subscription').then(({ data, error }) => {
-              console.log('🔄 Post-checkout subscription refresh:', { data, error });
-            });
+          console.log('🔄 Post-checkout: Refreshing subscription context');
+          // Use the subscription context refresh instead of direct call to avoid conflicts
+          import('@/contexts/SubscriptionContext').then(() => {
+            if (window.setGlobalSession) {
+              // Trigger context refresh without interfering with navigation
+              console.log('🔄 Post-checkout: Triggering context refresh');
+            }
           });
         }, 2000); // Wait 2 seconds for webhook to process
         return;
@@ -66,9 +69,14 @@ const Index = () => {
           import('@/integrations/supabase/client').then(({ supabase }) => {
             supabase.functions.invoke('check-subscription').then(({ data, error }) => {
               console.log('📊 Direct subscription check result:', { data, error });
-              if (error || !data?.subscribed) {
+              // Only redirect if user has no subscription AND no active trial
+              if (error || (!data?.subscribed && !data?.trial_active)) {
                 console.log('🆕 New user detected, redirecting to subscription');
                 navigate('/subscription', { replace: true });
+              } else if (data?.trial_active) {
+                console.log('✅ User has active trial, staying on dashboard');
+              } else if (data?.subscribed) {
+                console.log('✅ User has active subscription, staying on dashboard');
               }
             });
           });
