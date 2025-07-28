@@ -51,6 +51,10 @@ serve(async (req) => {
     
     // Extract plan type from metadata, with fallback to price ID mapping
     let planType = session.metadata?.plan_type;
+    logStep("CHECKOUT SESSION METADATA DEBUG", { 
+      sessionMetadata: session.metadata,
+      plan_type_from_metadata: session.metadata?.plan_type 
+    });
     
     // If no metadata, try to infer from price ID
     if (!planType) {
