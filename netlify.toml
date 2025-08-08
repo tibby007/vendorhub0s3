@@ -43,8 +43,8 @@
     # Prevent XSS attacks
     X-XSS-Protection = "1; mode=block"
     
-    # Control permissions
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(self)"
+    # Control permissions - Allow payment for Stripe integration
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=*"
 
 # Additional security for API endpoints
 [[headers]]

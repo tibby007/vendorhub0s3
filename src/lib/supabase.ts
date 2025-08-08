@@ -4,7 +4,11 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing required Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.');
+  console.error('Missing required Supabase environment variables.');
+  console.error('Please set the following environment variables in Netlify:');
+  console.error('- VITE_SUPABASE_URL: Your Supabase project URL');
+  console.error('- VITE_SUPABASE_ANON_KEY: Your Supabase anon key');
+  throw new Error('Missing required Supabase environment variables. Please configure them in your deployment settings.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
