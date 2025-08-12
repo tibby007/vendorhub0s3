@@ -67,22 +67,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     
     try {
-      const { data, error } = await supabase
+      // First, get the user data
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .select(`
-          *,
-          organization:organizations(*)
-        `)
+        .select('*')
         .eq('id', userId)
         .single();
 
-      console.log('User profile fetch result:', { data, error });
+      console.log('User data fetch result:', { userData, userError });
       
-      if (error) throw error;
-      setUserProfile(data);
+      if (userError) throw userError;
+      
+      // Then get the organization data separately
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', userData.organization_id)
+        .single();
+        
+      console.log('Organization data fetch result:', { orgData, orgError });
+      
+      // Combine the data (even if org fetch fails)
+      const profileData = {
+        ...userData,
+        organization: orgData || null
+      };
+      
+      console.log('Combined profile data:', profileData);
+      setUserProfile(profileData);
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      // Set loading to false even on error
       setUserProfile(null);
     } finally {
       console.log('Setting loading to false');
