@@ -23,8 +23,10 @@ export const LoginForm: React.FC = () => {
 
   // Redirect after successful login
   useEffect(() => {
+    console.log('Login effect:', { user: !!user, userProfile: !!userProfile });
     if (user && userProfile) {
       const from = (location.state as any)?.from?.pathname || '/dashboard';
+      console.log('Redirecting to:', from);
       navigate(from, { replace: true });
     }
   }, [user, userProfile, navigate, location]);

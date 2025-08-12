@@ -18,7 +18,7 @@ import { Resources } from './pages/Resources';
 import { Vendors } from './pages/Vendors';
 import { Settings } from './pages/Settings';
 
-// Component to handle redirects based on auth state
+// Component to handle redirects based on auth state (must be inside AuthProvider)
 const RedirectHandler: React.FC = () => {
   const { user, loading } = useAuth();
   
@@ -95,8 +95,8 @@ function App() {
               />
             </Route>
 
-            {/* Catch all route - redirect based on auth state */}
-            <Route path="*" element={<RedirectHandler />} />
+            {/* Catch all route - redirect to landing page */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
       </AuthProvider>
