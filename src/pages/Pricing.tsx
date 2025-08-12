@@ -193,14 +193,14 @@ export const Pricing: React.FC<PricingProps> = ({
 
           {/* Billing Toggle */}
           <div className="flex items-center justify-center mb-16">
-            <div className="relative bg-gray-100 rounded-full p-1 flex shadow-inner">
+            <div className="bg-gray-100 rounded-xl p-1 flex shadow-inner">
               <button
                 type="button"
                 className={`${
                   billingPeriod === 'monthly'
-                    ? 'bg-white text-gray-900 shadow-md'
-                    : 'text-gray-500 hover:text-gray-700'
-                } relative rounded-full py-3 px-8 text-sm font-semibold transition-all duration-300 flex items-center`}
+                    ? 'bg-white text-gray-900 shadow-lg'
+                    : 'text-gray-600 hover:text-gray-800'
+                } relative rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 flex items-center`}
                 onClick={() => setBillingPeriod('monthly')}
               >
                 <CreditCardIcon className="w-4 h-4 mr-2" />
@@ -211,8 +211,8 @@ export const Pricing: React.FC<PricingProps> = ({
                 className={`${
                   billingPeriod === 'annual'
                     ? 'bg-green-600 text-white shadow-lg'
-                    : 'text-gray-500 hover:text-gray-700'
-                } relative rounded-full py-3 px-8 text-sm font-semibold transition-all duration-300 ml-1 flex items-center`}
+                    : 'text-gray-600 hover:text-gray-800'
+                } relative rounded-lg py-3 px-6 text-sm font-semibold transition-all duration-200 flex items-center ml-1`}
                 onClick={() => setBillingPeriod('annual')}
               >
                 <BoltIcon className="w-4 h-4 mr-2" />
