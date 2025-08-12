@@ -23,20 +23,19 @@ export const DashboardLayout: React.FC = () => {
 
   const brokerNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Deals', href: '/deals', icon: FolderIcon },
-    { name: 'Vendors', href: '/vendors', icon: UserGroupIcon },
-    { name: 'Messages', href: '/messages', icon: ChatBubbleLeftRightIcon },
-    { name: 'Resources', href: '/resources', icon: DocumentTextIcon },
-    { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
-    { name: 'Settings', href: '/settings', icon: CogIcon },
+    { name: 'Deals', href: '/dashboard/deals', icon: FolderIcon },
+    { name: 'Vendors', href: '/dashboard/vendors', icon: UserGroupIcon },
+    { name: 'Messages', href: '/dashboard/messages', icon: ChatBubbleLeftRightIcon },
+    { name: 'Resources', href: '/dashboard/resources', icon: DocumentTextIcon },
+    { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
   ];
 
   const vendorNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Pre-Qualify', href: '/pre-qualify', icon: ChartBarIcon },
-    { name: 'My Deals', href: '/deals', icon: FolderIcon },
-    { name: 'Messages', href: '/messages', icon: ChatBubbleLeftRightIcon },
-    { name: 'Resources', href: '/resources', icon: DocumentTextIcon },
+    { name: 'Pre-Qualify', href: '/dashboard/pre-qualify', icon: ChartBarIcon },
+    { name: 'My Deals', href: '/dashboard/deals', icon: FolderIcon },
+    { name: 'Messages', href: '/dashboard/messages', icon: ChatBubbleLeftRightIcon },
+    { name: 'Resources', href: '/dashboard/resources', icon: DocumentTextIcon },
   ];
 
   const navigation = userProfile?.role === 'vendor' ? vendorNavigation : brokerNavigation;

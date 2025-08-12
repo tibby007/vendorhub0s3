@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { LandingPage } from './pages/LandingPage';
 import { BrokerSignup } from './pages/BrokerSignup';
@@ -17,6 +17,19 @@ import { Messages } from './pages/Messages';
 import { Resources } from './pages/Resources';
 import { Vendors } from './pages/Vendors';
 import { Settings } from './pages/Settings';
+
+// Component to handle redirects based on auth state
+const RedirectHandler: React.FC = () => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+    </div>;
+  }
+  
+  return <Navigate to={user ? "/dashboard" : "/"} replace />;
+};
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,8 +95,8 @@ function App() {
               />
             </Route>
 
-            {/* Catch all route - redirect to landing page instead of dashboard */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Catch all route - redirect based on auth state */}
+            <Route path="*" element={<RedirectHandler />} />
           </Routes>
         </Router>
       </AuthProvider>

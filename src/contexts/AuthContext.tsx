@@ -33,7 +33,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -47,7 +46,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -63,42 +61,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
-    console.log('Fetching user profile for:', userId);
     setLoading(true);
     
     try {
-      console.log('About to query users table...');
-      
-      // Add timeout to prevent hanging
-      const userPromise = supabase
+      // Get user data
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
-        
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), 10000)
-      );
-      
-      const { data: userData, error: userError } = await Promise.race([
-        userPromise,
-        timeoutPromise
-      ]) as any;
-
-      console.log('User data fetch result:', { userData, userError });
       
       if (userError) throw userError;
       
-      console.log('About to query organizations table...');
-      
-      // Then get the organization data separately
+      // Get organization data
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
         .select('*')
         .eq('id', userData.organization_id)
         .single();
-        
-      console.log('Organization data fetch result:', { orgData, orgError });
       
       // Combine the data (even if org fetch fails)
       const profileData = {
@@ -106,13 +86,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         organization: orgData || null
       };
       
-      console.log('Combined profile data:', profileData);
       setUserProfile(profileData);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       setUserProfile(null);
     } finally {
-      console.log('Setting loading to false');
       setLoading(false);
     }
   };
@@ -120,19 +98,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (credentials: LoginCredentials) => {
     try {
       setLoading(true);
-      console.log('Attempting sign in for:', credentials.email);
       const { error } = await supabase.auth.signInWithPassword(credentials);
       if (error) {
-        console.error('Sign in error:', error);
         return { error: error.message };
       }
-      console.log('Sign in successful');
       return {};
     } catch (error) {
-      console.error('Unexpected sign in error:', error);
       return { error: 'An unexpected error occurred' };
-    } finally {
-      // Don't set loading to false here, let the auth state change handle it
     }
   };
 
@@ -185,8 +157,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     resetPassword,
   };
-
-  console.log('Auth context state:', { user: !!user, userProfile: !!userProfile, loading });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
