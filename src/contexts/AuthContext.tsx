@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserProfile(session.user.id, session.user.email);
       } else {
         setLoading(false);
       }
@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        await fetchUserProfile(session.user.id);
+        await fetchUserProfile(session.user.id, session.user.email);
       } else {
         setUserProfile(null);
         setLoading(false);
@@ -60,13 +60,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
-    console.log('Fetching user profile for:', userId);
+  const fetchUserProfile = async (userId: string, email?: string) => {
+    console.log('Fetching user profile for:', userId, 'email:', email);
     setLoading(true);
     
     try {
-      // Get user email to determine profile type
-      const userEmail = user?.email || '';
+      // Get user email to determine profile type - use passed email or current user email
+      const userEmail = email || user?.email || '';
+      console.log('Using email for profile:', userEmail);
       
       // TEMPORARY: Create mock profiles based on login email
       let mockProfile;
@@ -155,6 +156,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
       
       if (isTestCredential) {
+        // First sign out any existing session
+        await supabase.auth.signOut();
+        setSession(null);
+        
         // Create a mock user session for testing
         const mockUser = {
           id: 'test-user-' + Date.now(),
@@ -168,9 +173,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user_metadata: {}
         };
         
-        // Set the mock user
+        // Set the mock user and fetch the appropriate profile
         setUser(mockUser as any);
-        await fetchUserProfile(mockUser.id);
+        await fetchUserProfile(mockUser.id, credentials.email);
         
         setLoading(false);
         return {};
