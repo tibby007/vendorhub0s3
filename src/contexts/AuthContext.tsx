@@ -65,33 +65,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     
     try {
-      // TEMPORARY: Create a mock user profile to bypass the hanging query
-      const mockProfile = {
-        id: userId,
-        organization_id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
-        email: 'ctibbs2@outlook.com',
-        role: 'broker' as const,
-        first_name: 'Cheryl',
-        last_name: 'Tibbs',
-        phone: undefined,
-        is_active: true,
-        last_login: undefined,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        organization: {
-          id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
-          name: 'Admin Organization',
-          subscription_tier: 'enterprise' as const,
-          brand_colors: { primary: '#22C55E', secondary: '#F97316' },
-          logo_url: undefined,
-          contact_info: {},
-          settings: {},
-          stripe_customer_id: undefined,
-          stripe_subscription_id: undefined,
+      // Get user email to determine profile type
+      const userEmail = user?.email || '';
+      
+      // TEMPORARY: Create mock profiles based on login email
+      let mockProfile;
+      
+      if (userEmail === 'vendor@test.com' || userEmail.includes('vendor')) {
+        // Vendor profile
+        mockProfile = {
+          id: userId,
+          organization_id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
+          email: userEmail,
+          role: 'vendor' as const,
+          first_name: 'Test',
+          last_name: 'Vendor',
+          phone: '(555) 123-4567',
+          is_active: true,
+          last_login: undefined,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      };
+          updated_at: new Date().toISOString(),
+          organization: {
+            id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
+            name: 'ABC Equipment Sales',
+            subscription_tier: 'pro' as const,
+            brand_colors: { primary: '#22C55E', secondary: '#F97316' },
+            logo_url: undefined,
+            contact_info: {},
+            settings: {},
+            stripe_customer_id: undefined,
+            stripe_subscription_id: undefined,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        };
+      } else {
+        // Broker profile (default)
+        mockProfile = {
+          id: userId,
+          organization_id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
+          email: userEmail || 'ctibbs2@outlook.com',
+          role: 'broker' as const,
+          first_name: 'Cheryl',
+          last_name: 'Tibbs',
+          phone: undefined,
+          is_active: true,
+          last_login: undefined,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          organization: {
+            id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
+            name: 'VendorHub Finance',
+            subscription_tier: 'enterprise' as const,
+            brand_colors: { primary: '#22C55E', secondary: '#F97316' },
+            logo_url: undefined,
+            contact_info: {},
+            settings: {},
+            stripe_customer_id: undefined,
+            stripe_subscription_id: undefined,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        };
+      }
       
       console.log('Using mock profile (temporary):', mockProfile);
       setUserProfile(mockProfile);
