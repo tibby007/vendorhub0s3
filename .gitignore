@@ -47,3 +47,4 @@ out/
 # Temporary files
 tmp/
 temp/
+.env
