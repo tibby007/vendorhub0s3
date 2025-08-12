@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -11,13 +11,24 @@ import type { LoginCredentials } from '../../types';
 export const LoginForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signIn } = useAuth();
+  const { signIn, user, userProfile } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginCredentials>();
+
+  // Redirect after successful login
+  useEffect(() => {
+    if (user && userProfile) {
+      const from = (location.state as any)?.from?.pathname || '/dashboard';
+      console.log('Redirecting to:', from);
+      navigate(from, { replace: true });
+    }
+  }, [user, userProfile, navigate, location]);
 
   const onSubmit = async (data: LoginCredentials) => {
     setLoading(true);
