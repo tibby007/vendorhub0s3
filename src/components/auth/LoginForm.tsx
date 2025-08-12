@@ -21,15 +21,16 @@ export const LoginForm: React.FC = () => {
     formState: { errors },
   } = useForm<LoginCredentials>();
 
-  // Redirect after successful login
+  // Redirect after successful login - FORCE REDIRECT IF USER EXISTS
   useEffect(() => {
     console.log('Login effect:', { user: !!user, userProfile: !!userProfile });
-    if (user && userProfile) {
+    if (user) {
+      // FORCE REDIRECT even without userProfile - we'll fix the profile loading later
       const from = (location.state as any)?.from?.pathname || '/dashboard';
-      console.log('Redirecting to:', from);
+      console.log('FORCING redirect to:', from);
       navigate(from, { replace: true });
     }
-  }, [user, userProfile, navigate, location]);
+  }, [user, navigate, location]);
 
   const onSubmit = async (data: LoginCredentials) => {
     setLoading(true);

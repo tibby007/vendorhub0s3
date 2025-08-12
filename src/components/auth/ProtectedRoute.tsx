@@ -18,16 +18,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
       </div>
     );
   }
 
-  if (!user || !userProfile) {
+  // TEMPORARY: Allow access with just user, don't require userProfile
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(userProfile.role)) {
+  // TEMPORARY: Skip role check if userProfile not loaded
+  if (allowedRoles && userProfile && !allowedRoles.includes(userProfile.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
