@@ -67,16 +67,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     
     try {
-      // First, get the user data
-      const { data: userData, error: userError } = await supabase
+      console.log('About to query users table...');
+      
+      // Add timeout to prevent hanging
+      const userPromise = supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
+        
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Query timeout')), 10000)
+      );
+      
+      const { data: userData, error: userError } = await Promise.race([
+        userPromise,
+        timeoutPromise
+      ]) as any;
 
       console.log('User data fetch result:', { userData, userError });
       
       if (userError) throw userError;
+      
+      console.log('About to query organizations table...');
       
       // Then get the organization data separately
       const { data: orgData, error: orgError } = await supabase
