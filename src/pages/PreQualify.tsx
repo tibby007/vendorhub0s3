@@ -220,7 +220,7 @@ export const PreQualify: React.FC = () => {
               </Button>
               {result.result !== 'red' && (
                 <Button 
-                  onClick={() => window.location.href = '/deals/new'}
+                  onClick={() => window.location.href = '/dashboard/application'}
                   className="bg-primary hover:bg-primary/90"
                 >
                   Submit Full Application

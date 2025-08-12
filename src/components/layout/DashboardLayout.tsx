@@ -10,6 +10,7 @@ import {
   UserGroupIcon,
   ChartBarIcon,
   ArrowRightOnRectangleIcon,
+  PlusCircleIcon,
 } from '@heroicons/react/24/outline';
 
 export const DashboardLayout: React.FC = () => {
@@ -33,6 +34,7 @@ export const DashboardLayout: React.FC = () => {
   const vendorNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Pre-Qualify', href: '/dashboard/pre-qualify', icon: ChartBarIcon },
+    { name: 'New Application', href: '/dashboard/application', icon: PlusCircleIcon },
     { name: 'My Deals', href: '/dashboard/deals', icon: FolderIcon },
     { name: 'Messages', href: '/dashboard/messages', icon: ChatBubbleLeftRightIcon },
     { name: 'Resources', href: '/dashboard/resources', icon: DocumentTextIcon },
