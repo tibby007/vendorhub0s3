@@ -143,12 +143,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (credentials: LoginCredentials) => {
     try {
       setLoading(true);
+      
+      // Mock authentication for test credentials
+      const testCredentials = [
+        { email: 'vendor@test.com', password: 'any' },
+        { email: 'any@email.com', password: 'any' }
+      ];
+      
+      const isTestCredential = testCredentials.some(
+        cred => cred.email === credentials.email && cred.password === credentials.password
+      );
+      
+      if (isTestCredential) {
+        // Create a mock user session for testing
+        const mockUser = {
+          id: 'test-user-' + Date.now(),
+          email: credentials.email,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          aud: 'authenticated',
+          role: 'authenticated',
+          email_confirmed_at: new Date().toISOString(),
+          app_metadata: {},
+          user_metadata: {}
+        };
+        
+        // Set the mock user
+        setUser(mockUser as any);
+        await fetchUserProfile(mockUser.id);
+        
+        setLoading(false);
+        return {};
+      }
+      
+      // For non-test credentials, use Supabase
       const { error } = await supabase.auth.signInWithPassword(credentials);
       if (error) {
+        setLoading(false);
         return { error: error.message };
       }
       return {};
     } catch (error) {
+      setLoading(false);
       return { error: 'An unexpected error occurred' };
     }
   };

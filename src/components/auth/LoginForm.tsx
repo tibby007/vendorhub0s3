@@ -136,26 +136,6 @@ export const LoginForm: React.FC = () => {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
 
-            {/* Test Credentials */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="text-xs text-gray-500 mb-3 text-center">Test Credentials:</div>
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <div className="font-medium text-blue-800 mb-1">Broker Access:</div>
-                  <div className="text-blue-600">
-                    <div>Email: any@email.com</div>
-                    <div>Password: any</div>
-                  </div>
-                </div>
-                <div className="bg-green-50 p-3 rounded-lg">
-                  <div className="font-medium text-green-800 mb-1">Vendor Access:</div>
-                  <div className="text-green-600">
-                    <div>Email: vendor@test.com</div>
-                    <div>Password: any</div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <div className="text-center">
               <div className="text-sm text-gray-600 mb-4">
