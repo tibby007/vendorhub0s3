@@ -61,24 +61,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
+    console.log('Fetching user profile for:', userId);
     setLoading(true);
     
     try {
       // Get user data
+      console.log('Fetching user data...');
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
       
+      console.log('User data result:', { userData, userError });
+      
       if (userError) throw userError;
       
       // Get organization data
+      console.log('Fetching organization data...');
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
         .select('*')
         .eq('id', userData.organization_id)
         .single();
+      
+      console.log('Organization data result:', { orgData, orgError });
       
       // Combine the data (even if org fetch fails)
       const profileData = {
@@ -86,11 +93,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         organization: orgData || null
       };
       
+      console.log('Setting user profile:', profileData);
       setUserProfile(profileData);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       setUserProfile(null);
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };
