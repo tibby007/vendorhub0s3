@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -46,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -61,6 +63,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
+    console.log('Fetching user profile for:', userId);
+    setLoading(true);
+    
     try {
       const { data, error } = await supabase
         .from('users')
@@ -71,22 +76,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
+      console.log('User profile fetch result:', { data, error });
+      
       if (error) throw error;
       setUserProfile(data);
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      // Set loading to false even on error
+      setUserProfile(null);
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };
 
   const signIn = async (credentials: LoginCredentials) => {
     try {
+      setLoading(true);
+      console.log('Attempting sign in for:', credentials.email);
       const { error } = await supabase.auth.signInWithPassword(credentials);
-      if (error) return { error: error.message };
+      if (error) {
+        console.error('Sign in error:', error);
+        return { error: error.message };
+      }
+      console.log('Sign in successful');
       return {};
     } catch (error) {
+      console.error('Unexpected sign in error:', error);
       return { error: 'An unexpected error occurred' };
+    } finally {
+      // Don't set loading to false here, let the auth state change handle it
     }
   };
 
@@ -98,27 +117,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.auth.signUp({
         email: credentials.email,
         password: credentials.password,
-        options: {
-          data: {
-            first_name: credentials.first_name,
-            last_name: credentials.last_name,
-            role: credentials.role,
-            organization_name: credentials.organization_name,
-            phone: credentials.phone,
-          },
-        },
       });
 
       if (error) return { error: error.message };
+
+      // The user will need to verify their email before they can sign in
       return {};
     } catch (error) {
       return { error: 'An unexpected error occurred' };
     }
   };
 
-
   const signOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setUserProfile(null);
+    setSession(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -126,6 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
+
       if (error) return { error: error.message };
       return {};
     } catch (error) {
@@ -143,6 +158,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     resetPassword,
   };
+
+  console.log('Auth context state:', { user: !!user, userProfile: !!userProfile, loading });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
