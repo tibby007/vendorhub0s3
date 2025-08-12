@@ -73,9 +73,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'broker' as const,
         first_name: 'Cheryl',
         last_name: 'Tibbs',
-        phone: null,
+        phone: undefined,
         is_active: true,
-        last_login: null,
+        last_login: undefined,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         organization: {
@@ -83,11 +83,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: 'Admin Organization',
           subscription_tier: 'enterprise' as const,
           brand_colors: { primary: '#22C55E', secondary: '#F97316' },
-          logo_url: null,
+          logo_url: undefined,
           contact_info: {},
           settings: {},
-          stripe_customer_id: null,
-          stripe_subscription_id: null,
+          stripe_customer_id: undefined,
+          stripe_subscription_id: undefined,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
