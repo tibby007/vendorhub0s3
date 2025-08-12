@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
-import { Deal, DealStatus, DEAL_STATUS_CONFIG } from '../types';
+import type { Deal, DealStatus } from '../types';
+import { DEAL_STATUS_CONFIG } from '../types';
 import { CreateDealModal } from '../components/deals/CreateDealModal';
 import { DealCard } from '../components/deals/DealCard';
 import { DealDetailsModal } from '../components/deals/DealDetailsModal';
@@ -22,7 +23,7 @@ const MOCK_DEALS: Deal[] = [
     id: '1',
     organization_id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
     vendor_id: 'vendor-1',
-    assigned_to: null,
+    assigned_to: undefined,
     status: 'submitted',
     customer_info: {
       full_name: 'John Smith',
@@ -67,7 +68,7 @@ const MOCK_DEALS: Deal[] = [
     id: '2',
     organization_id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
     vendor_id: 'vendor-2',
-    assigned_to: null,
+    assigned_to: undefined,
     status: 'credit_pulled',
     customer_info: {
       full_name: 'Sarah Johnson',

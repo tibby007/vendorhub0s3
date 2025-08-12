@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
-import { Deal, CustomerInfo, EquipmentInfo, FinancialInfo } from '../../types';
+import type { Deal, CustomerInfo, EquipmentInfo, FinancialInfo } from '../../types';
 
 interface CreateDealModalProps {
   isOpen: boolean;
@@ -105,7 +105,7 @@ export const CreateDealModal: React.FC<CreateDealModalProps> = ({
     const deal: Omit<Deal, 'id' | 'created_at' | 'last_updated' | 'submission_date'> = {
       organization_id: userProfile!.organization_id,
       vendor_id: userProfile?.role === 'vendor' ? userProfile.id : undefined,
-      assigned_to: null,
+      assigned_to: undefined,
       status: 'submitted',
       customer_info: customerInfo,
       equipment_info: equipmentInfo,

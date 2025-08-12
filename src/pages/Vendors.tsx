@@ -13,7 +13,7 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
-import { User } from '../types';
+import type { User } from '../types';
 import { InviteVendorModal } from '../components/vendors/InviteVendorModal';
 
 interface VendorWithStats extends User {
@@ -85,7 +85,7 @@ const MOCK_VENDORS: VendorWithStats[] = [
     last_name: 'Davis',
     phone: '(555) 369-2580',
     is_active: false,
-    last_login: null,
+    last_login: undefined,
     created_at: '2024-08-10T00:00:00Z',
     updated_at: '2024-08-10T00:00:00Z',
     deals_count: 0,
@@ -106,8 +106,8 @@ export const Vendors: React.FC = () => {
 
   const filteredVendors = vendors.filter(vendor => {
     const matchesSearch = 
-      vendor.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vendor.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vendor.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       vendor.email.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesFilter = filter === 'all' || vendor.status === filter;
@@ -167,9 +167,9 @@ export const Vendors: React.FC = () => {
       role: 'vendor',
       first_name: vendorData.firstName,
       last_name: vendorData.lastName,
-      phone: vendorData.phone || null,
+      phone: vendorData.phone || undefined,
       is_active: false,
-      last_login: null,
+      last_login: undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       deals_count: 0,
@@ -347,7 +347,7 @@ export const Vendors: React.FC = () => {
                         <div className="flex-shrink-0 h-10 w-10">
                           <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center">
                             <span className="text-sm font-medium text-white">
-                              {vendor.first_name.charAt(0)}{vendor.last_name.charAt(0)}
+                              {vendor.first_name?.charAt(0) || '?'}{vendor.last_name?.charAt(0) || '?'}
                             </span>
                           </div>
                         </div>

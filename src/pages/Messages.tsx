@@ -7,7 +7,7 @@ import {
   EllipsisVerticalIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
-import { Message, Deal } from '../types';
+import type { Message, Deal } from '../types';
 
 interface ConversationThread {
   id: string;

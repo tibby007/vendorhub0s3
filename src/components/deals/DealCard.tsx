@@ -7,7 +7,8 @@ import {
   ChevronRightIcon,
   EllipsisVerticalIcon
 } from '@heroicons/react/24/outline';
-import { Deal, DealStatus, DEAL_STATUS_CONFIG } from '../../types';
+import type { Deal, DealStatus } from '../../types';
+import { DEAL_STATUS_CONFIG } from '../../types';
 
 interface DealCardProps {
   deal: Deal;
