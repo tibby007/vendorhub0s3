@@ -2,12 +2,13 @@ const { createClient } = require('@supabase/supabase-js');
 const { Resend } = require('resend');
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const resendApiKey = process.env.VITE_RESEND_API_KEY;
 const appUrl = process.env.VITE_APP_URL || process.env.URL;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables');
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing required Supabase environment variables');
 }
 
 // Validate environment variables format
@@ -15,12 +16,23 @@ if (!supabaseUrl.startsWith('https://')) {
   throw new Error('Invalid Supabase URL format');
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+// Create a client for token validation using anon key (for auth.getUser)
+const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
   }
 });
+
+// Create a service client for admin operations (only if service key is available)
+const supabaseAdmin = supabaseServiceKey && supabaseServiceKey !== 'demo_service_role_key_for_development' 
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null;
 
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
@@ -94,9 +106,17 @@ exports.handler = async (event, context) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    console.log('🔍 Debug - Token validation starting...');
+    console.log('🔍 Debug - Token length:', token?.length);
+    console.log('🔍 Debug - Using auth client with URL:', supabaseUrl);
+    
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser(token);
+
+    console.log('🔍 Debug - Auth result:', { user: user?.id, error: userError?.message });
 
     if (userError || !user) {
+      console.log('❌ Token validation failed:', userError?.message);
       return {
         statusCode: 401,
         headers: {
@@ -106,9 +126,26 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Invalid or expired token' }),
       };
     }
+    
+    console.log('✅ Token validation successful for user:', user.id);
+
+    // Use admin client if available, otherwise use auth client with user context
+    let dbClient;
+    if (supabaseAdmin) {
+      dbClient = supabaseAdmin;
+      console.log('🔍 Debug - Using database client: admin (service key)');
+    } else {
+      // Set the user session for RLS context
+      await supabaseAuth.auth.setSession({
+        access_token: token,
+        refresh_token: 'dummy_refresh_token'
+      });
+      dbClient = supabaseAuth;
+      console.log('🔍 Debug - Using database client: auth (anon key with user session)');
+    }
 
     // Get broker's user profile
-    const { data: brokerProfile, error: profileError } = await supabase
+    const { data: brokerProfile, error: profileError } = await dbClient
       .from('users')
       .select('*, organizations(*)')
       .eq('id', user.id)
@@ -127,7 +164,7 @@ exports.handler = async (event, context) => {
     }
 
     // Check if vendor already exists or has pending invitation
-    const { data: existingVendor } = await supabase
+    const { data: existingVendor } = await dbClient
       .from('users')
       .select('id, role, organization_id')
       .eq('email', email)
@@ -156,7 +193,7 @@ exports.handler = async (event, context) => {
     }
 
     // Check for pending invitations
-    const { data: pendingInvitation } = await supabase
+    const { data: pendingInvitation } = await dbClient
       .from('invitations')
       .select('id')
       .eq('email', email)
@@ -177,7 +214,7 @@ exports.handler = async (event, context) => {
     }
 
     // Generate invitation token using the database function
-    const { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError } = await dbClient
       .rpc('generate_invitation_token', {
         p_organization_id: brokerProfile.organization_id,
         p_invited_by: brokerProfile.id,
