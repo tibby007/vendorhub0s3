@@ -111,7 +111,7 @@ exports.handler = async (event, context) => {
     const { data: brokerProfile, error: profileError } = await supabase
       .from('users')
       .select('*, organizations(*)')
-      .eq('auth_id', user.id)
+      .eq('id', user.id)
       .eq('role', 'broker')
       .single();
 
