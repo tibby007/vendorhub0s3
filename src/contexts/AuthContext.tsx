@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserProfile(session.user.id, session.user.email);
+        fetchUserProfile(session.user.id);
       } else {
         setLoading(false);
       }
@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        await fetchUserProfile(session.user.id, session.user.email);
+        await fetchUserProfile(session.user.id);
       } else {
         setUserProfile(null);
         setLoading(false);
@@ -60,83 +60,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string, email?: string) => {
-    console.log('Fetching user profile for:', userId, 'email:', email);
+  const fetchUserProfile = async (userId: string) => {
     setLoading(true);
     
     try {
-      // Get user email to determine profile type - use passed email or current user email
-      const userEmail = email || user?.email || '';
-      console.log('Using email for profile:', userEmail);
-      
-      // TEMPORARY: Create mock profiles based on login email
-      let mockProfile;
-      
-      if (userEmail === 'vendor@test.com' || userEmail.includes('vendor')) {
-        // Vendor profile
-        mockProfile = {
-          id: userId,
-          organization_id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
-          email: userEmail,
-          role: 'vendor' as const,
-          first_name: 'Test',
-          last_name: 'Vendor',
-          phone: '(555) 123-4567',
-          is_active: true,
-          last_login: undefined,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          organization: {
-            id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
-            name: 'ABC Equipment Sales',
-            subscription_tier: 'pro' as const,
-            brand_colors: { primary: '#22C55E', secondary: '#F97316' },
-            logo_url: undefined,
-            contact_info: {},
-            settings: {},
-            stripe_customer_id: undefined,
-            stripe_subscription_id: undefined,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        };
-      } else {
-        // Broker profile (default)
-        mockProfile = {
-          id: userId,
-          organization_id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
-          email: userEmail || 'ctibbs2@outlook.com',
-          role: 'broker' as const,
-          first_name: 'Cheryl',
-          last_name: 'Tibbs',
-          phone: undefined,
-          is_active: true,
-          last_login: undefined,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          organization: {
-            id: '3f977fec-56c6-4c47-9548-82e961b7a27e',
-            name: 'VendorHub Finance',
-            subscription_tier: 'enterprise' as const,
-            brand_colors: { primary: '#22C55E', secondary: '#F97316' },
-            logo_url: undefined,
-            contact_info: {},
-            settings: {},
-            stripe_customer_id: undefined,
-            stripe_subscription_id: undefined,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        };
+      // Fetch real user profile from database
+      const { data: userProfile, error } = await supabase
+        .from('users')
+        .select(`
+          *,
+          organization:organizations(*)
+        `)
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        setUserProfile(null);
+        return;
       }
-      
-      console.log('Using mock profile (temporary):', mockProfile);
-      setUserProfile(mockProfile);
+
+      setUserProfile(userProfile);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       setUserProfile(null);
     } finally {
-      console.log('Setting loading to false');
       setLoading(false);
     }
   };
@@ -145,43 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       
-      // Mock authentication for test credentials
-      const testCredentials = [
-        { email: 'vendor@test.com', password: 'any' },
-        { email: 'any@email.com', password: 'any' }
-      ];
-      
-      const isTestCredential = testCredentials.some(
-        cred => cred.email === credentials.email && cred.password === credentials.password
-      );
-      
-      if (isTestCredential) {
-        // First sign out any existing session
-        await supabase.auth.signOut();
-        setSession(null);
-        
-        // Create a mock user session for testing
-        const mockUser = {
-          id: 'test-user-' + Date.now(),
-          email: credentials.email,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          aud: 'authenticated',
-          role: 'authenticated',
-          email_confirmed_at: new Date().toISOString(),
-          app_metadata: {},
-          user_metadata: {}
-        };
-        
-        // Set the mock user and fetch the appropriate profile
-        setUser(mockUser as any);
-        await fetchUserProfile(mockUser.id, credentials.email);
-        
-        setLoading(false);
-        return {};
-      }
-      
-      // For non-test credentials, use Supabase
+      // Use Supabase authentication
       const { error } = await supabase.auth.signInWithPassword(credentials);
       if (error) {
         setLoading(false);
