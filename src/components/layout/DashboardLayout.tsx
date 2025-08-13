@@ -112,7 +112,7 @@ export const DashboardLayout: React.FC = () => {
           </div>
           
           {/* Role Switcher for Owner/Admin */}
-          {userProfile?.email === 'keenan@getmybusinesscredit.com' && (
+          {userProfile?.email === 'support@emergestack.dev' && (
             <div className="mt-2 flex gap-1">
               <button
                 onClick={switchToBrokerView}
