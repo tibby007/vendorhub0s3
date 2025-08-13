@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import type { User } from '../types';
 import { InviteVendorModal } from '../components/vendors/InviteVendorModal';
+import { AddVendorModal } from '../components/vendors/AddVendorModal';
 import { supabase } from '../lib/supabase';
 
 interface VendorWithStats extends User {
@@ -105,7 +106,9 @@ export const Vendors: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<VendorFilter>('all');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
@@ -161,6 +164,81 @@ export const Vendors: React.FC = () => {
         Inactive
       </span>
     );
+  };
+
+  const handleAddVendor = async (vendorData: { email: string; firstName: string; lastName: string; phone?: string; password: string }) => {
+    setIsAdding(true);
+    setInviteError(null);
+    setInviteSuccess(null);
+
+    try {
+      // Get the current user's session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Call the create-vendor Netlify function
+      const apiUrl = process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:8888/.netlify/functions/create-vendor'
+        : '/.netlify/functions/create-vendor';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          email: vendorData.email,
+          firstName: vendorData.firstName,
+          lastName: vendorData.lastName,
+          phone: vendorData.phone,
+          password: vendorData.password
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create vendor account');
+      }
+
+      // Add vendor to local state as active
+      const newVendor: VendorWithStats = {
+        id: result.user.id,
+        organization_id: userProfile!.organization_id,
+        email: vendorData.email,
+        role: 'vendor',
+        first_name: vendorData.firstName,
+        last_name: vendorData.lastName,
+        phone: vendorData.phone || undefined,
+        is_active: true,
+        last_login: undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        deals_count: 0,
+        total_volume: 0,
+        last_activity: new Date().toISOString(),
+        status: 'active'
+      };
+
+      setVendors([...vendors, newVendor]);
+      setIsAddModalOpen(false);
+      
+      // Show success message
+      setInviteSuccess(`Vendor account created successfully for ${vendorData.email}. They can now log in with their credentials.`);
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setInviteSuccess(null), 5000);
+
+    } catch (error) {
+      console.error('Failed to create vendor:', error);
+      setInviteError(error instanceof Error ? error.message : 'Failed to create vendor account');
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const handleInviteVendor = async (vendorData: { email: string; firstName: string; lastName: string; phone?: string; message?: string }) => {
@@ -269,13 +347,22 @@ export const Vendors: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
             <p className="text-gray-600 mt-1">Manage your vendor network and partnerships</p>
           </div>
-          <button
-            onClick={() => setIsInviteModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          >
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Invite Vendor
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setIsInviteModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              <EnvelopeIcon className="w-4 h-4 mr-2" />
+              Invite Vendor
+            </button>
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Add Vendor
+            </button>
+          </div>
         </div>
       </div>
 
@@ -519,13 +606,22 @@ export const Vendors: React.FC = () => {
                     : 'Get started by inviting your first vendor.'}
                 </p>
                 {!searchQuery && filter === 'all' && (
-                  <button
-                    onClick={() => setIsInviteModalOpen(true)}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-                  >
-                    <PlusIcon className="w-4 h-4 mr-2" />
-                    Invite Vendor
-                  </button>
+                  <div className="mt-4 flex space-x-3 justify-center">
+                    <button
+                      onClick={() => setIsInviteModalOpen(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                    >
+                      <EnvelopeIcon className="w-4 h-4 mr-2" />
+                      Invite Vendor
+                    </button>
+                    <button
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                    >
+                      <PlusIcon className="w-4 h-4 mr-2" />
+                      Add Vendor
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -539,6 +635,14 @@ export const Vendors: React.FC = () => {
         onClose={() => !isInviting && setIsInviteModalOpen(false)}
         onSubmit={handleInviteVendor}
         isLoading={isInviting}
+      />
+
+      {/* Add Vendor Modal */}
+      <AddVendorModal
+        isOpen={isAddModalOpen}
+        onClose={() => !isAdding && setIsAddModalOpen(false)}
+        onSubmit={handleAddVendor}
+        isLoading={isAdding}
       />
     </div>
   );
