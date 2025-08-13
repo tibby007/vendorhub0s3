@@ -200,29 +200,29 @@ exports.handler = async (event, context) => {
       authUserId = authData.user.id;
       console.log('✅ Auth user created with ID:', authUserId);
     } else {
-      // For development/demo, generate a mock UUID
-      authUserId = 'vendor-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
-      console.log('🔧 Demo mode: Using mock auth ID:', authUserId);
+      // For development/demo, generate a proper UUID format
+      // Simple UUID v4 generator for demo purposes
+      authUserId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+      console.log('🔧 Demo mode: Using mock UUID:', authUserId);
     }
 
-    // Create the user profile in the database
+    // Create the user profile in the database using database function to bypass RLS
     console.log('🔧 Creating user profile in database...');
-    const { data: newUser, error: userCreateError } = await dbClient
-      .from('users')
-      .insert({
-        id: authUserId,
-        organization_id: brokerProfile.organization_id,
-        email,
-        role: 'vendor',
-        first_name: firstName,
-        last_name: lastName,
-        phone: phone || null,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const { data: newUserData, error: userCreateError } = await (supabaseAdmin || supabaseAuth)
+      .rpc('create_vendor_user', {
+        p_id: authUserId,
+        p_organization_id: brokerProfile.organization_id,
+        p_email: email,
+        p_first_name: firstName,
+        p_last_name: lastName,
+        p_phone: phone || null
+      });
+    
+    const newUser = newUserData?.[0];
 
     if (userCreateError) {
       console.error('❌ Failed to create user profile:', userCreateError);
