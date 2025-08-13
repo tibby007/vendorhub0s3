@@ -144,15 +144,16 @@ exports.handler = async (event, context) => {
       console.log('🔍 Debug - Using database client: auth (anon key with user session)');
     }
 
-    // Get broker's user profile
-    const { data: brokerProfile, error: profileError } = await dbClient
-      .from('users')
-      .select('*, organizations(*)')
-      .eq('id', user.id)
-      .eq('role', 'broker')
-      .single();
+    // Get broker's user profile using database function to bypass RLS
+    const { data: brokerProfileData, error: profileError } = await (supabaseAdmin || supabaseAuth)
+      .rpc('get_user_profile', { user_id: user.id });
+    
+    const brokerProfile = brokerProfileData?.[0];
+    
+    console.log('🔍 Debug - Broker profile result:', { brokerProfile: !!brokerProfile, role: brokerProfile?.role, error: profileError });
 
-    if (profileError || !brokerProfile) {
+    if (profileError || !brokerProfile || brokerProfile.role !== 'broker') {
+      console.error('❌ Failed to get broker profile:', { profileError, brokerProfile: !!brokerProfile, role: brokerProfile?.role });
       return {
         statusCode: 403,
         headers: {
@@ -245,7 +246,7 @@ exports.handler = async (event, context) => {
         const emailResult = await resend.emails.send({
           from: 'VendorHub OS <noreply@vendorhub-os.com>',
           to: [email],
-          subject: `Invitation to join ${brokerProfile.organizations.name} on VendorHub OS`,
+          subject: `Invitation to join ${brokerProfile.organization_name} on VendorHub OS`,
           html: `
             <!DOCTYPE html>
             <html>
@@ -267,11 +268,11 @@ exports.handler = async (event, context) => {
                 <div class="container">
                     <div class="header">
                         <h1 style="margin: 0; font-size: 28px;">You're Invited!</h1>
-                        <p style="margin: 10px 0 0 0; opacity: 0.9;">Join ${brokerProfile.organizations.name} on VendorHub OS</p>
+                        <p style="margin: 10px 0 0 0; opacity: 0.9;">Join ${brokerProfile.organization_name} on VendorHub OS</p>
                     </div>
                     <div class="content">
                         <p>Hi ${firstName},</p>
-                        <p><strong>${brokerProfile.first_name} ${brokerProfile.last_name}</strong> from <strong>${brokerProfile.organizations.name}</strong> has invited you to join their vendor network on VendorHub OS.</p>
+                        <p><strong>${brokerProfile.first_name} ${brokerProfile.last_name}</strong> from <strong>${brokerProfile.organization_name}</strong> has invited you to join their vendor network on VendorHub OS.</p>
                         
                         ${message ? `<div class="message-box"><p><strong>Personal message from ${brokerProfile.first_name}:</strong></p><p><em>"${message}"</em></p></div>` : ''}
                         
@@ -294,7 +295,7 @@ exports.handler = async (event, context) => {
                         <p><strong>Important:</strong> This invitation expires in 72 hours. If you have any questions, please contact ${brokerProfile.first_name} directly.</p>
                     </div>
                     <div class="footer">
-                        <p>This invitation was sent by ${brokerProfile.organizations.name} via VendorHub OS</p>
+                        <p>This invitation was sent by ${brokerProfile.organization_name} via VendorHub OS</p>
                         <p>© 2024 VendorHub OS. All rights reserved.</p>
                     </div>
                 </div>
@@ -302,11 +303,11 @@ exports.handler = async (event, context) => {
             </html>
           `,
           text: `
-You're invited to join ${brokerProfile.organizations.name} on VendorHub OS
+You're invited to join ${brokerProfile.organization_name} on VendorHub OS
 
 Hi ${firstName},
 
-${brokerProfile.first_name} ${brokerProfile.last_name} from ${brokerProfile.organizations.name} has invited you to join their vendor network on VendorHub OS.
+${brokerProfile.first_name} ${brokerProfile.last_name} from ${brokerProfile.organization_name} has invited you to join their vendor network on VendorHub OS.
 
 ${message ? `Personal message from ${brokerProfile.first_name}: "${message}"` : ''}
 
@@ -322,7 +323,7 @@ ${invitationUrl}
 This invitation expires in 72 hours. If you have any questions, please contact ${brokerProfile.first_name} directly.
 
 ---
-This invitation was sent by ${brokerProfile.organizations.name} via VendorHub OS
+This invitation was sent by ${brokerProfile.organization_name} via VendorHub OS
 © 2024 VendorHub OS. All rights reserved.
           `
         });

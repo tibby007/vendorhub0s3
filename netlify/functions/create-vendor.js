@@ -119,16 +119,16 @@ exports.handler = async (event, context) => {
     
     console.log('🔍 Debug - Using database client:', supabaseAdmin ? 'admin (service key)' : 'auth (anon key with RLS)');
 
-    // Get broker's user profile
-    const { data: brokerProfile, error: profileError } = await dbClient
-      .from('users')
-      .select('*, organization:organizations(*)')
-      .eq('id', user.id)
-      .eq('role', 'broker')
-      .single();
+    // Get broker's user profile using database function to bypass RLS
+    const { data: brokerProfileData, error: profileError } = await (supabaseAdmin || supabaseAuth)
+      .rpc('get_user_profile', { user_id: user.id });
+    
+    const brokerProfile = brokerProfileData?.[0];
+    
+    console.log('🔍 Debug - Broker profile result:', { brokerProfile: !!brokerProfile, role: brokerProfile?.role, error: profileError });
 
-    if (profileError || !brokerProfile) {
-      console.error('❌ Failed to get broker profile:', profileError);
+    if (profileError || !brokerProfile || brokerProfile.role !== 'broker') {
+      console.error('❌ Failed to get broker profile:', { profileError, brokerProfile: !!brokerProfile, role: brokerProfile?.role });
       return {
         statusCode: 403,
         headers: {
