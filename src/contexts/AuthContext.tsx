@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import type { User, LoginCredentials, RegisterCredentials, Organization, SubscriptionTier } from '../types';
+import type { User, LoginCredentials, RegisterCredentials, Organization, SubscriptionTier, UserRole } from '../types';
 
 interface AuthContextType {
   user: SupabaseUser | null;
@@ -75,12 +75,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: '7f2d57bc-c19f-4edf-95e5-4ceeb39cd099',
           organization_id: 'aaaaaaaa-0000-0000-0000-000000000000',
           email: 'support@emergestack.dev',
-          role: 'superadmin',
+          role: 'superadmin' as UserRole,
           first_name: 'System',
           last_name: 'Owner',
           phone: '(555) 000-0001',
           is_active: true,
-          last_login: null,
+          last_login: undefined,
           created_at: '2025-08-13 13:53:49.84426+00',
           updated_at: '2025-08-13 14:14:48.46053+00'
         };
@@ -97,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             primary: '#DC2626',
             secondary: '#7C2D12'
           },
-          logo_url: null,
+          logo_url: undefined,
           contact_info: {
             type: 'internal_admin',
             unlimited_access: true
@@ -108,8 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             admin_organization: true,
             can_access_all_orgs: true
           },
-          stripe_customer_id: null,
-          stripe_subscription_id: null,
+          stripe_customer_id: undefined,
+          stripe_subscription_id: undefined,
           created_at: '2025-08-13 13:53:42.239972+00',
           updated_at: '2025-08-13 13:53:42.239972+00'
         };
