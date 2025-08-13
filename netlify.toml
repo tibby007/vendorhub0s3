@@ -3,6 +3,12 @@
   command = "npm ci && npm run build"
   functions = "netlify/functions"
 
+[dev]
+  framework = "vite"
+  command = "vite --host --port 5173"
+  port = 8888
+  publish = "dist"
+
 [build.environment]
   NODE_VERSION = "20"
   NPM_VERSION = "10"

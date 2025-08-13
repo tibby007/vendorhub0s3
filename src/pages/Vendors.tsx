@@ -10,11 +10,13 @@ import {
   CalendarIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ClockIcon
+  ClockIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import type { User } from '../types';
 import { InviteVendorModal } from '../components/vendors/InviteVendorModal';
+import { supabase } from '../lib/supabase';
 
 interface VendorWithStats extends User {
   deals_count: number;
@@ -103,6 +105,9 @@ export const Vendors: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<VendorFilter>('all');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
   const filteredVendors = vendors.filter(vendor => {
     const matchesSearch = 
@@ -158,28 +163,80 @@ export const Vendors: React.FC = () => {
     );
   };
 
-  const handleInviteVendor = (vendorData: { email: string; firstName: string; lastName: string; phone?: string; message?: string }) => {
-    // In a real app, this would send an API request
-    const newVendor: VendorWithStats = {
-      id: `vendor-${Date.now()}`,
-      organization_id: userProfile!.organization_id,
-      email: vendorData.email,
-      role: 'vendor',
-      first_name: vendorData.firstName,
-      last_name: vendorData.lastName,
-      phone: vendorData.phone || undefined,
-      is_active: false,
-      last_login: undefined,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      deals_count: 0,
-      total_volume: 0,
-      last_activity: new Date().toISOString(),
-      status: 'pending'
-    };
-    
-    setVendors([...vendors, newVendor]);
-    setIsInviteModalOpen(false);
+  const handleInviteVendor = async (vendorData: { email: string; firstName: string; lastName: string; phone?: string; message?: string }) => {
+    setIsInviting(true);
+    setInviteError(null);
+    setInviteSuccess(null);
+
+    try {
+      // Get the current user's session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Call the invite-vendor Netlify function
+      const apiUrl = process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:8888/.netlify/functions/invite-vendor'
+        : '/.netlify/functions/invite-vendor';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          email: vendorData.email,
+          firstName: vendorData.firstName,
+          lastName: vendorData.lastName,
+          phone: vendorData.phone,
+          message: vendorData.message
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send invitation');
+      }
+
+      // Add vendor to local state as pending
+      const newVendor: VendorWithStats = {
+        id: `vendor-${Date.now()}`,
+        organization_id: userProfile!.organization_id,
+        email: vendorData.email,
+        role: 'vendor',
+        first_name: vendorData.firstName,
+        last_name: vendorData.lastName,
+        phone: vendorData.phone || undefined,
+        is_active: false,
+        last_login: undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        deals_count: 0,
+        total_volume: 0,
+        last_activity: new Date().toISOString(),
+        status: 'pending'
+      };
+
+      setVendors([...vendors, newVendor]);
+      setIsInviteModalOpen(false);
+      
+      // Show success message
+      const emailStatus = result.email_sent ? 'Email sent successfully!' : 'Invitation created (email service not configured)';
+      setInviteSuccess(`Vendor invitation sent to ${vendorData.email}. ${emailStatus}`);
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setInviteSuccess(null), 5000);
+
+    } catch (error) {
+      console.error('Failed to invite vendor:', error);
+      setInviteError(error instanceof Error ? error.message : 'Failed to send invitation');
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   const handleToggleVendorStatus = (vendorId: string) => {
@@ -221,6 +278,48 @@ export const Vendors: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Success/Error Messages */}
+      {(inviteSuccess || inviteError) && (
+        <div className="px-6 py-4">
+          {inviteSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+              <div className="flex">
+                <CheckCircleIcon className="h-5 w-5 text-green-400" />
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-green-800">
+                    {inviteSuccess}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setInviteSuccess(null)}
+                  className="ml-auto pl-3"
+                >
+                  <XCircleIcon className="h-5 w-5 text-green-400 hover:text-green-600" />
+                </button>
+              </div>
+            </div>
+          )}
+          {inviteError && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+              <div className="flex">
+                <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-red-800">
+                    {inviteError}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setInviteError(null)}
+                  className="ml-auto pl-3"
+                >
+                  <XCircleIcon className="h-5 w-5 text-red-400 hover:text-red-600" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="px-6 py-4">
@@ -437,8 +536,9 @@ export const Vendors: React.FC = () => {
       {/* Invite Modal */}
       <InviteVendorModal
         isOpen={isInviteModalOpen}
-        onClose={() => setIsInviteModalOpen(false)}
+        onClose={() => !isInviting && setIsInviteModalOpen(false)}
         onSubmit={handleInviteVendor}
+        isLoading={isInviting}
       />
     </div>
   );

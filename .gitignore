@@ -48,3 +48,6 @@ out/
 tmp/
 temp/
 .env
+
+# Local Netlify folder
+.netlify
