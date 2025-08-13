@@ -141,12 +141,11 @@ exports.handler = async (event, context) => {
 
     console.log('✅ Broker profile validated:', brokerProfile.email);
 
-    // Check if user already exists
-    const { data: existingUser } = await dbClient
-      .from('users')
-      .select('id, email, organization_id')
-      .eq('email', email)
-      .single();
+    // Check if user already exists using database query to bypass RLS
+    const { data: existingUsers, error: checkError } = await (supabaseAdmin || supabaseAuth)
+      .rpc('get_user_by_email', { user_email: email });
+    
+    const existingUser = existingUsers?.[0];
 
     if (existingUser) {
       if (existingUser.organization_id === brokerProfile.organization_id) {
