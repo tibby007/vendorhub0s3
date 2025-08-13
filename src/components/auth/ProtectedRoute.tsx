@@ -28,9 +28,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // TEMPORARY: Skip role check if userProfile not loaded
-  if (allowedRoles && userProfile && !allowedRoles.includes(userProfile.role)) {
-    return <Navigate to="/unauthorized" replace />;
+  // Check role permissions - superadmin has access to everything
+  if (allowedRoles && userProfile && userProfile.role !== 'superadmin' && !allowedRoles.includes(userProfile.role)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

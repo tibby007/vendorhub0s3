@@ -30,6 +30,60 @@ This document outlines the production-ready setup and demo data created for Vend
 - **Tier:** Enterprise
 - **Created:** Ready for demo
 
+## 👑 Superadmin/Owner Accounts
+
+### **VendorHub Admin Organization:**
+- **Name:** VendorHub Admin  
+- **ID:** `aaaaaaaa-0000-0000-0000-000000000000`
+- **Type:** Internal Admin Organization
+- **Access:** Unlimited access to all data across all organizations
+
+### **Admin/Owner Accounts to Create in Supabase Auth:**
+
+#### 1. **System Owner Account** (YOU)
+```
+Email: owner@vendorhub.com
+Password: Admin2024!
+UUID: aaaaaaaa-1111-1111-1111-111111111111
+Name: System Owner
+Role: superadmin (unlimited access)
+Features: 
+- Access ALL organizations and data
+- System-wide administration
+- No subscription limits
+- Red admin badge in UI
+```
+
+#### 2. **Lead Tester Account**
+```
+Email: tester1@vendorhub.com  
+Password: Tester2024!
+UUID: aaaaaaaa-2222-2222-2222-222222222222
+Name: Lead Tester
+Role: superadmin (unlimited access)
+```
+
+#### 3. **QA Specialist Account**
+```
+Email: tester2@vendorhub.com
+Password: Tester2024!
+UUID: aaaaaaaa-3333-3333-3333-333333333333  
+Name: QA Specialist
+Role: superadmin (unlimited access)
+```
+
+### **Superadmin Features:**
+- ✅ **Bypass all subscription limits**
+- ✅ **Access data from ALL organizations**
+- ✅ **System-wide navigation** (All Deals, All Organizations, User Management)
+- ✅ **Red admin badge** and distinct UI styling
+- ✅ **Complete database access** through RLS policies
+- ✅ **No billing/subscription restrictions**
+
+---
+
+## 👥 Demo User Accounts Setup
+
 ### **Demo Users to Create:**
 
 #### 1. **Broker Account**

@@ -18,6 +18,8 @@ import { Resources } from './pages/Resources';
 import { Vendors } from './pages/Vendors';
 import { Settings } from './pages/Settings';
 import { VendorApplication } from './pages/VendorApplication';
+import { Organizations } from './pages/Organizations';
+import { Users } from './pages/Users';
 
 // Component to handle redirects based on auth state (must be inside AuthProvider)
 const RedirectHandler: React.FC = () => {
@@ -97,8 +99,24 @@ function App() {
               <Route
                 path="settings"
                 element={
-                  <ProtectedRoute allowedRoles={['broker']}>
+                  <ProtectedRoute allowedRoles={['broker', 'superadmin']}>
                     <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="organizations"
+                element={
+                  <ProtectedRoute allowedRoles={['superadmin']}>
+                    <Organizations />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="users"
+                element={
+                  <ProtectedRoute allowedRoles={['superadmin']}>
+                    <Users />
                   </ProtectedRoute>
                 }
               />

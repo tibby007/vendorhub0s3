@@ -8,6 +8,7 @@ import {
   DocumentTextIcon,
   CogIcon,
   UserGroupIcon,
+  BuildingOfficeIcon,
   ChartBarIcon,
   ArrowRightOnRectangleIcon,
   PlusCircleIcon,
@@ -40,7 +41,23 @@ export const DashboardLayout: React.FC = () => {
     { name: 'Resources', href: '/dashboard/resources', icon: DocumentTextIcon },
   ];
 
-  const navigation = userProfile?.role === 'vendor' ? vendorNavigation : brokerNavigation;
+  const superadminNavigation = [
+    { name: 'System Overview', href: '/dashboard', icon: HomeIcon },
+    { name: 'All Deals', href: '/dashboard/deals', icon: FolderIcon },
+    { name: 'All Organizations', href: '/dashboard/organizations', icon: BuildingOfficeIcon },
+    { name: 'User Management', href: '/dashboard/users', icon: UserGroupIcon },
+    { name: 'System Messages', href: '/dashboard/messages', icon: ChatBubbleLeftRightIcon },
+    { name: 'All Resources', href: '/dashboard/resources', icon: DocumentTextIcon },
+    { name: 'System Settings', href: '/dashboard/settings', icon: CogIcon },
+  ];
+
+  const getNavigation = () => {
+    if (userProfile?.role === 'superadmin') return superadminNavigation;
+    if (userProfile?.role === 'vendor') return vendorNavigation;
+    return brokerNavigation;
+  };
+
+  const navigation = getNavigation();
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -73,7 +90,7 @@ export const DashboardLayout: React.FC = () => {
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+              <div className={`w-8 h-8 ${userProfile?.role === 'superadmin' ? 'bg-red-600' : 'bg-primary'} rounded-full flex items-center justify-center`}>
                 <span className="text-sm font-medium text-white">
                   {userProfile?.first_name?.charAt(0)}{userProfile?.last_name?.charAt(0)}
                 </span>
@@ -82,9 +99,14 @@ export const DashboardLayout: React.FC = () => {
             <div className="ml-3 flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
                 {userProfile?.first_name} {userProfile?.last_name}
+                {userProfile?.role === 'superadmin' && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                    ADMIN
+                  </span>
+                )}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {userProfile?.role}
+                {userProfile?.role === 'superadmin' ? 'System Administrator' : userProfile?.role}
               </p>
             </div>
           </div>

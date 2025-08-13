@@ -1,6 +1,6 @@
 // Enums matching database types
 export type SubscriptionTier = 'solo' | 'pro' | 'enterprise';
-export type UserRole = 'broker' | 'loan_officer' | 'vendor';
+export type UserRole = 'broker' | 'loan_officer' | 'vendor' | 'superadmin';
 export type DealStatus = 'submitted' | 'credit_pulled' | 'submitted_for_approval' | 'approved' | 'term_sheet_issued' | 'declined' | 'funded';
 export type PrequalificationResult = 'green' | 'yellow' | 'red';
 export type DocumentType = 'customer_id' | 'equipment_quote' | 'spec_sheet' | 'term_sheet' | 'other';

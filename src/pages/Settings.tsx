@@ -108,15 +108,15 @@ export const Settings: React.FC = () => {
     { id: 'security', name: 'Security', icon: ShieldCheckIcon }
   ] as const;
 
-  // Only show settings if user is a broker
-  if (userProfile?.role !== 'broker') {
+  // Only show settings if user is a broker or superadmin
+  if (userProfile?.role !== 'broker' && userProfile?.role !== 'superadmin') {
     return (
       <div className="h-full flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <ExclamationTriangleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Access Restricted</h3>
           <p className="text-gray-600">
-            Organization settings are only available to broker accounts.
+            Organization settings are only available to broker and superadmin accounts.
           </p>
         </div>
       </div>

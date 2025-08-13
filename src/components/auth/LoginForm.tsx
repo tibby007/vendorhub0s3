@@ -11,7 +11,7 @@ import type { LoginCredentials } from '../../types';
 export const LoginForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signIn, user, userProfile } = useAuth();
+  const { signIn, user, userProfile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -21,16 +21,16 @@ export const LoginForm: React.FC = () => {
     formState: { errors },
   } = useForm<LoginCredentials>();
 
-  // Redirect after successful login - FORCE REDIRECT IF USER EXISTS
+  // Redirect after successful login - WAIT FOR PROFILE TO LOAD
   useEffect(() => {
-    console.log('Login effect:', { user: !!user, userProfile: !!userProfile });
-    if (user) {
-      // FORCE REDIRECT even without userProfile - we'll fix the profile loading later
+    console.log('Login effect:', { user: !!user, userProfile: !!userProfile, authLoading });
+    if (user && userProfile && !authLoading) {
+      // Only redirect when both user AND userProfile are ready
       const from = (location.state as any)?.from?.pathname || '/dashboard';
-      console.log('FORCING redirect to:', from);
+      console.log('Redirecting to:', from);
       navigate(from, { replace: true });
     }
-  }, [user, navigate, location]);
+  }, [user, userProfile, authLoading, navigate, location]);
 
   const onSubmit = async (data: LoginCredentials) => {
     setLoading(true);
