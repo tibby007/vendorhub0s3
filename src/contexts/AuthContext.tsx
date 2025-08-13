@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       console.log('🔍 Step 1: Making Supabase query for user profile...');
-      console.log('🔗 Supabase client URL:', supabase.supabaseUrl);
+      // Remove supabaseUrl log as it's a protected property
       
       // TEMPORARY: Hardcode the profile to test if this is a query issue
       if (userId === '7f2d57bc-c19f-4edf-95e5-4ceeb39cd099') {
@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('🏢 Step 3.1: Organization data loaded');
 
         // Combine user and organization data
-        const completeProfile = {
+        const completeProfile: User = {
           ...userProfile,
           organization: orgData
         };
@@ -164,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // Combine user and organization data
-        const completeProfile = {
+        const completeProfile: User = {
           ...userProfile,
           organization: orgData || null
         };
