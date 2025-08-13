@@ -66,7 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       console.log('🔍 Step 1: Making Supabase query for user profile...');
-      // Remove supabaseUrl log as it's a protected property
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000);
+      });
       
       // TEMPORARY: Hardcode the profile to test if this is a query issue
       if (userId === '7f2d57bc-c19f-4edf-95e5-4ceeb39cd099') {
@@ -138,10 +142,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle no results gracefully
         
       console.log('⏱️ Query created, awaiting result...');
-      const { data: userProfile, error } = await queryPromise;
+      // Use Promise.race to implement timeout
+      const { data: userProfile, error } = await Promise.race([
+        queryPromise,
+        timeoutPromise
+      ]) as { data: any; error: any };
       console.log('📊 Step 2: User profile query result:', { userProfile, error });
       
       if (error) {
@@ -153,11 +161,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (userProfile) {
         console.log('🏢 Step 3: Fetching organization data...');
-        const { data: orgData, error: orgError } = await supabase
+        const orgQueryPromise = supabase
           .from('organizations')
           .select('*')
           .eq('id', userProfile.organization_id)
-          .single();
+          .maybeSingle(); // Use maybeSingle() to handle no results gracefully
+          
+        const { data: orgData, error: orgError } = await Promise.race([
+          orgQueryPromise,
+          timeoutPromise
+        ]) as { data: any; error: any };
 
         if (orgError) {
           console.error('❌ Organization error:', orgError);
@@ -175,7 +188,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setUserProfile(completeProfile);
       } else {
-        console.log('⚠️ No user profile found');
+        console.log('⚠️ No user profile found in database for userId:', userId);
+        console.log('💡 This might indicate the user exists in Supabase Auth but not in the users table');
         setUserProfile(null);
       }
     } catch (error) {
