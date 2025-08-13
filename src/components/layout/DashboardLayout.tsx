@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export const DashboardLayout: React.FC = () => {
-  const { userProfile, signOut } = useAuth();
+  const { userProfile, signOut, switchToVendorView, switchToBrokerView } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -110,6 +110,32 @@ export const DashboardLayout: React.FC = () => {
               </p>
             </div>
           </div>
+          
+          {/* Role Switcher for Owner/Admin */}
+          {userProfile?.email === 'keenan@getmybusinesscredit.com' && (
+            <div className="mt-2 flex gap-1">
+              <button
+                onClick={switchToBrokerView}
+                className={`flex-1 px-2 py-1 text-xs rounded ${
+                  userProfile.role === 'broker' 
+                    ? 'bg-green-100 text-green-800 font-medium' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Broker View
+              </button>
+              <button
+                onClick={switchToVendorView}
+                className={`flex-1 px-2 py-1 text-xs rounded ${
+                  userProfile.role === 'vendor' 
+                    ? 'bg-blue-100 text-blue-800 font-medium' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Vendor View
+              </button>
+            </div>
+          )}
           
           <button
             onClick={handleSignOut}

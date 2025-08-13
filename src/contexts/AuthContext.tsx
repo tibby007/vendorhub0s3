@@ -12,6 +12,8 @@ interface AuthContextType {
   signUp: (credentials: RegisterCredentials) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
+  switchToVendorView: () => void;
+  switchToBrokerView: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -257,6 +259,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Quick role switching for owner/admin testing
+  const switchToVendorView = () => {
+    if (userProfile) {
+      setUserProfile({
+        ...userProfile,
+        role: 'vendor',
+        first_name: 'Keenan',
+        last_name: '(Vendor View)'
+      });
+    }
+  };
+
+  const switchToBrokerView = () => {
+    if (userProfile) {
+      setUserProfile({
+        ...userProfile,
+        role: 'broker',
+        first_name: 'Keenan',
+        last_name: 'Steele'
+      });
+    }
+  };
+
   const value = {
     user,
     userProfile,
@@ -266,6 +291,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     resetPassword,
+    switchToVendorView,
+    switchToBrokerView,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
