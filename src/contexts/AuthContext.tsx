@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import type { User, LoginCredentials, RegisterCredentials } from '../types';
+import type { User, LoginCredentials, RegisterCredentials, Organization, SubscriptionTier } from '../types';
 
 interface AuthContextType {
   user: SupabaseUser | null;
@@ -89,10 +89,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // TEMPORARY: Hardcode org data too to bypass the hanging query
         console.log('🏢 Step 3: Using hardcoded organization data for demo...');
-        const orgData = {
+        const orgData: Organization = {
           id: 'aaaaaaaa-0000-0000-0000-000000000000',
           name: 'VendorHub Admin',
-          subscription_tier: 'enterprise',
+          subscription_tier: 'enterprise' as SubscriptionTier,
           brand_colors: {
             primary: '#DC2626',
             secondary: '#7C2D12'
