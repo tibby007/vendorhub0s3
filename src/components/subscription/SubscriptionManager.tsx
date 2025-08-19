@@ -18,6 +18,16 @@ const SubscriptionManager = () => {
   const checkSubscription = async () => {
     if (!session) return;
     
+    // Skip subscription checks in demo mode
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      toast({
+        title: "Demo Mode",
+        description: "Subscription status is simulated in demo mode.",
+      });
+      return;
+    }
+    
     setIsCheckingSubscription(true);
     try {
       await refreshSubscription(true); // Force refresh
@@ -76,6 +86,12 @@ const SubscriptionManager = () => {
   };
 
   useEffect(() => {
+    // Skip subscription checks in demo mode
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      return;
+    }
+    
     if (session && !subscriptionData && retryCount < 3) {
       // Auto-retry with exponential backoff
       const timeout = setTimeout(() => {
