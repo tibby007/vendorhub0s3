@@ -38,6 +38,11 @@ test-output.css
 *.backup
 *.bak
 
+# Test and temporary files
+test-*.html
+update-user-metadata.*
+*.lockb
+
 # Claude Code specific
 .claude/agents/
 .claude/settings.local.json
