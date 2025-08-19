@@ -53,36 +53,30 @@ const DemoLogin: React.FC = () => {
       // Simulate authentication delay
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Get user data from mock service
-      const userData = await mockDataService.getUser(account.email);
-      
-      if (!userData) {
-        throw new Error('Demo user not found');
-      }
-
-      // Store demo session data
-      const demoSessionData = {
-        user: userData,
-        isDemo: true,
-        demoRole: account.role,
-        sessionId: `demo_${Date.now()}`,
-        startTime: Date.now()
-      };
-
-      await secureSessionManager.setSecureItem('demoSession', demoSessionData);
-      await secureSessionManager.setSecureItem('isDemoMode', true);
-      await secureSessionManager.setSecureItem('demoCredentials', {
+      // Store demo credentials in the format expected by AuthContext
+      const demoCredentials = {
         email: account.email,
         name: account.name,
-        role: account.role
-      });
+        role: account.role,
+        isDemoMode: true
+      };
 
+      // Store in sessionStorage as expected by AuthContext
+      sessionStorage.setItem('demoCredentials', JSON.stringify(demoCredentials));
+      
+      // Also store in the new format for useDemoMode compatibility
+      await secureSessionManager.setSecureItem('isDemoMode', true);
+      await secureSessionManager.setSecureItem('demoRole', account.role);
+      
       secureLogger.auditLog('demo_login_success', {
         component: 'DemoLogin',
         action: 'demo_authentication',
-        userId: userData.id,
+        email: account.email,
         role: account.role
       });
+
+      // Trigger demo mode changed event to notify AuthContext
+      window.dispatchEvent(new Event('demo-mode-changed'));
 
       // Navigate to dashboard
       navigate('/dashboard');

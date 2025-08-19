@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Users, FileText, BarChart3, Settings, Upload, Download, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Demo = () => {
+  const navigate = useNavigate();
+  
+  // Redirect to demo login for role selection
+  useEffect(() => {
+    navigate('/demo-login', { replace: true });
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-yellow-50">
       {/* Header */}

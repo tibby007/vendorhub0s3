@@ -62,6 +62,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('🔄 AuthContext initializing auth listener');
 
+    // Check for existing session first
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('🔍 Initial session check:', !!session);
+        
+        if (session?.user) {
+          const authUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+            role: session.user.user_metadata?.role || 'Partner Admin',
+            avatar_url: session.user.user_metadata?.avatar_url,
+            created_at: session.user.created_at,
+            user_metadata: session.user.user_metadata
+          };
+          setUser(authUser);
+          setSession(session);
+          setTimeout(() => setGlobalSession(session), 100);
+          console.log('✅ Initial user set:', authUser);
+        } else {
+          console.log('🚫 No initial session found');
+        }
+      } catch (error) {
+        console.error('Error checking initial session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
     // Set up real authentication listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth state change:', event, !!session);
