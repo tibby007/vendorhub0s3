@@ -2,11 +2,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCorsPrelight } from "../_shared/cors-config.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -29,8 +25,10 @@ const mapPlanTypeToTier = (planType: string): string => {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
+  
+  const corsHeaders = getCorsHeaders(req.headers.get("origin"));
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -107,10 +105,33 @@ serve(async (req) => {
 
     if (subscriberData && !subscriberError) {
       logStep("Found subscriber data", { subscriberData });
+      logStep("DETAILED subscriber analysis", {
+        email: subscriberData.email,
+        subscribed: subscriberData.subscribed,
+        subscription_tier: subscriberData.subscription_tier,
+        stripe_subscription_id: subscriberData.stripe_subscription_id,
+        trial_end: subscriberData.subscription_end,
+        status: subscriberData.status
+      });
+      
+      // Check if temporary fix should apply
+      const shouldApplyFix = subscriberData.stripe_subscription_id && subscriberData.subscription_tier === 'Basic';
+      logStep("TEMPORARY FIX CHECK", {
+        has_stripe_subscription: !!subscriberData.stripe_subscription_id,
+        tier_is_basic: subscriberData.subscription_tier === 'Basic',
+        should_apply_fix: shouldApplyFix
+      });
       
       // Check if user has an active subscription (paid)
       if (subscriberData.subscribed && subscriberData.stripe_subscription_id) {
         logStep("User has active paid subscription");
+        logStep("PAID SUBSCRIPTION RESPONSE BEING SENT", {
+          subscribed: true,
+          subscription_tier: subscriberData.subscription_tier || 'Basic',
+          tier_source: subscriberData.subscription_tier ? 'database' : 'fallback',
+          subscription_end: subscriberData.subscription_end,
+          trial_active: false
+        });
         return new Response(JSON.stringify({
           subscribed: true,
           subscription_tier: subscriberData.subscription_tier || 'Basic',
@@ -130,6 +151,13 @@ serve(async (req) => {
         
         if (trialEnd > now) {
           logStep("User is in active trial period (from subscribers table)");
+          logStep("TRIAL RESPONSE BEING SENT", {
+            subscribed: false,
+            subscription_tier: subscriberData.subscription_tier || 'Basic',
+            tier_source: subscriberData.subscription_tier ? 'database' : 'fallback',
+            subscription_end: subscriberData.subscription_end,
+            trial_active: true
+          });
           return new Response(JSON.stringify({
             subscribed: false,
             subscription_tier: subscriberData.subscription_tier || 'Basic',
@@ -146,44 +174,15 @@ serve(async (req) => {
       }
     }
 
-    // If no trial found, create a new trial for the user
-    logStep("No trial found, creating new trial for user");
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 3);
-    
-    // Create trial record in subscribers table
-    await supabaseClient.from("subscribers").upsert({
-      email: user.email,
-      user_id: user.id,
-      stripe_customer_id: null,
-      subscribed: false,
-      subscription_tier: 'Basic',
-      subscription_end: trialEnd.toISOString(),
-      price_id: null,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'email' });
-    
-    // Also ensure partner record exists with trial status
-    await supabaseClient.from("partners").upsert({
-      contact_email: user.email,
-      name: user.user_metadata?.name || user.email,
-      plan_type: 'basic',
-      billing_status: 'trialing',
-      trial_end: trialEnd.toISOString(),
-      current_period_end: trialEnd.toISOString(),
-      vendor_limit: 3,
-      storage_limit: 5368709120,
-      storage_used: 0,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'contact_email' });
-    
-    logStep("Created new trial for user", { trialEnd: trialEnd.toISOString() });
+
+    // If no trial found, user needs to set up subscription
+    logStep("No subscription found for user");
     
     return new Response(JSON.stringify({ 
       subscribed: false, 
-      subscription_tier: 'Basic',
-      subscription_end: trialEnd.toISOString(),
-      trial_active: true,
+      subscription_tier: null,
+      subscription_end: null,
+      trial_active: false,
       price_id: null 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

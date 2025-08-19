@@ -200,10 +200,22 @@ const Demo = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" asChild>
-                  <Link to="/auth?intent=trial">
-                    Start 3-Day Free Trial
-                  </Link>
+                <Button 
+                  size="lg" 
+                  onClick={() => {
+                    // Store pro plan selection (most popular) for demo users
+                    const planData = {
+                      tierId: 'pro',
+                      tierName: 'VendorHub Pro',
+                      isAnnual: false,
+                      price: 197
+                    };
+                    sessionStorage.setItem('selectedPlan', JSON.stringify(planData));
+                    console.log('💾 [Demo] Stored pro plan selection for trial:', planData);
+                    window.location.href = '/auth?intent=subscription';
+                  }}
+                >
+                  Start 3-Day Free Trial
                 </Button>
                 <Button variant="outline" size="lg" asChild>
                   <a href="https://api.leadconnectorhq.com/widget/bookings/vendorhub" target="_blank" rel="noopener noreferrer">

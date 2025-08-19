@@ -9,6 +9,7 @@ import BillingToggle from '@/components/subscription/BillingToggle';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { invokeFunction } from '@/utils/netlifyFunctions';
+import { secureSessionManager } from '@/utils/secureSessionManager';
 
 const Pricing = () => {
   const navigate = useNavigate();
@@ -88,10 +89,8 @@ const Pricing = () => {
           isAnnual,
           price: isAnnual ? tier.annualPrice : tier.monthlyPrice
         };
-        sessionStorage.setItem('selectedPlan', JSON.stringify(planData));
-        console.log('💾 [Landing] Stored plan selection for later:', planData);
-        console.log('🔍 [Landing] SessionStorage after storing:', Object.keys(sessionStorage));
-        console.log('✅ [Landing] Verification - can retrieve plan:', sessionStorage.getItem('selectedPlan'));
+        await secureSessionManager.setSecureItem('selectedPlan', planData);
+        console.log('💾 [Landing] Stored plan selection securely for later:', planData);
         navigate('/auth?intent=subscription');
         return;
       }

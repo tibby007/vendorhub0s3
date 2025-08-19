@@ -157,6 +157,18 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         },
       });
       console.log('[SubscriptionContext] check-subscription response:', { subscriptionData, subscriptionError });
+      console.log('[SubscriptionContext] DETAILED subscription data:', {
+        subscribed: subscriptionData?.subscribed,
+        subscription_tier: subscriptionData?.subscription_tier,
+        trial_active: subscriptionData?.trial_active,
+        subscription_end: subscriptionData?.subscription_end,
+        stripe_subscription_id: subscriptionData?.stripe_subscription_id
+      });
+      
+      // Since subscription_tier is 'Basic', this suggests the webhook didn't save Premium correctly
+      if (subscriptionData?.subscription_tier === 'Basic' && subscriptionData?.stripe_subscription_id) {
+        console.error('🚨 TIER MISMATCH: Paid subscription shows Basic tier - webhook may have failed to extract Premium tier from Stripe metadata');
+      }
 
       if (subscriptionError) {
         console.error('[SubscriptionContext] Subscription error:', subscriptionError);
@@ -176,14 +188,43 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      // Fetch partner data for billing info - use user id if no partner_id in metadata
+      // Fetch partner data for billing info - try by user id first, then by email
       const partnerId = session.user.user_metadata?.partner_id || session.user.id;
-      const { data: partnerData, error: partnerError } = await supabase
+      console.log('[SubscriptionContext] Looking for partner data with ID:', partnerId, 'and email:', session.user.email);
+      
+      let { data: partnerData, error: partnerError } = await supabase
         .from('partners')
-        .select('billing_status, plan_type, trial_end, current_period_end')
+        .select('billing_status, plan_type, trial_end, current_period_end, id, contact_email')
         .eq('id', partnerId)
         .maybeSingle();
+
+      // If no partner found by ID, try by email (webhook creates by email)
+      if (!partnerData && !partnerError) {
+        console.log('[SubscriptionContext] No partner found by ID, trying by email:', session.user.email);
+        const { data: partnerByEmail, error: partnerByEmailError } = await supabase
+          .from('partners')
+          .select('billing_status, plan_type, trial_end, current_period_end, id, contact_email')
+          .eq('contact_email', session.user.email)
+          .maybeSingle();
+        
+        partnerData = partnerByEmail;
+        partnerError = partnerByEmailError;
+        
+        if (partnerByEmail) {
+          console.log('[SubscriptionContext] Found partner by email, updating user metadata');
+          // Update user metadata to link the partner_id for future lookups
+          await supabase.auth.updateUser({
+            data: { ...session.user.user_metadata, partner_id: partnerByEmail.id }
+          });
+        }
+      }
       console.log('[SubscriptionContext] Partner data response:', { partnerData, partnerError });
+      console.log('[SubscriptionContext] DETAILED partner data:', {
+        billing_status: partnerData?.billing_status,
+        plan_type: partnerData?.plan_type,
+        trial_end: partnerData?.trial_end,
+        current_period_end: partnerData?.current_period_end
+      });
 
       if (partnerError && partnerError.code !== 'PGRST116') {
         console.warn('[SubscriptionContext] Failed to fetch partner data:', partnerError);
@@ -210,6 +251,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         trialEnd: partnerData?.trial_end || null,
       };
 
+      console.log('[SubscriptionContext] FINAL state being set:', newState);
       dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: newState });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';

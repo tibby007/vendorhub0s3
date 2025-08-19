@@ -11,8 +11,14 @@
     <div id="result"></div>
     
     <script>
-        const SUPABASE_URL = 'https://ewxsolozmcjdoqyydlcu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3eHNvbG96bWNqZG9xeXlkbGN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE5NzQ5NzQsImV4cCI6MjA0NzU1MDk3NH0.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
+        // TODO: Replace with environment variables or remove this test file from production
+        const SUPABASE_URL = prompt('Enter your Supabase URL:');
+        const SUPABASE_ANON_KEY = prompt('Enter your Supabase Anon Key:');
+        
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+            document.getElementById('result').innerHTML = '<p>❌ Missing Supabase credentials</p>';
+            throw new Error('Missing Supabase credentials');
+        }
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
@@ -21,10 +27,13 @@
             resultDiv.innerHTML = '<p>Testing subscription function...</p>';
             
             try {
-                // First, sign in as jimayers@aol.com
+                // First, sign in with test credentials
+                const email = prompt('Enter test email:') || 'test@example.com';
+                const password = prompt('Enter test password:') || '';
+                
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                    email: 'jimayers@aol.com',
-                    password: 'test123' // You'll need to provide the actual password
+                    email: email,
+                    password: password
                 });
                 
                 if (authError) {

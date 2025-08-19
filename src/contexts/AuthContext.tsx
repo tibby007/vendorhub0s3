@@ -6,6 +6,7 @@ import { mockPartnerUser } from '@/data/mockPartnerData';
 import { mockVendorUser } from '@/data/mockVendorData';
 import { SecureStorage } from '@/utils/secureStorage';
 import { setGlobalSession } from '@/contexts/SubscriptionContext';
+import { secureLogout } from '@/utils/secureLogout';
 
 interface AuthUser {
   id: string;
@@ -191,43 +192,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    console.log('🚪 Logout triggered');
-    
-    // Check if this is a demo session
-    const demoCredentials = sessionStorage.getItem('demoCredentials');
-    const isDemoMode = sessionStorage.getItem('isDemoMode');
-    const isDemoUser = user?.email?.includes('@demo.com');
-    
-    if (demoCredentials || isDemoMode || isDemoUser) {
-      console.log('🎭 Clearing demo mode');
+    try {
+      await secureLogout.logout({
+        clearAllSessions: true,
+        reason: 'user_initiated',
+        redirectTo: '/auth'
+      });
       
-      // Clear all demo mode storage
-      sessionStorage.removeItem('demo_mode');
-      sessionStorage.removeItem('demo_role'); 
-      sessionStorage.removeItem('demoCredentials');
-      sessionStorage.removeItem('isDemoMode');
-      sessionStorage.removeItem('demoRole');
-      sessionStorage.removeItem('demoSessionActive');
-      sessionStorage.removeItem('demo_session');
-      localStorage.removeItem('last_demo_time');
-      localStorage.removeItem('demo_session');
-      
-      // Clear demo user
       setUser(null);
       setSession(null);
       setLoading(false);
-      
-      // Navigate to demo page
-      window.location.href = '/demo';
-      return;
-    }
-    
-    console.log('🔐 Performing real logout');
-    try {
-      await supabase.auth.signOut();
     } catch (error) {
-      console.error('Logout error:', error);
-      // Force clear state even if logout fails
       setUser(null);
       setSession(null);
       setLoading(false);

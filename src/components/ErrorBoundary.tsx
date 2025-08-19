@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { secureLogger } from '@/utils/secureLogger';
 
 interface Props {
   children: ReactNode;
@@ -35,23 +36,16 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
     this.setState({
       error,
       errorInfo
     });
 
-    // Log to monitoring service in production
-    if (process.env.NODE_ENV === 'production') {
-      // Replace with actual monitoring service
-      console.error('[PRODUCTION ERROR]', {
-        error: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-        timestamp: new Date().toISOString()
-      });
-    }
+    secureLogger.error(error, {
+      component: 'ErrorBoundary',
+      action: 'component_error',
+      errorBoundary: true
+    });
   }
 
   handleRetry = () => {

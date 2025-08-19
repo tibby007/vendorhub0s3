@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import LoginForm from '@/components/auth/LoginForm';
+import { secureSessionManager } from '@/utils/secureSessionManager';
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
@@ -65,22 +66,21 @@ const Auth = () => {
       console.log('🏠 User authenticated, checking redirect from Auth page');
       
       // Check if user came from landing page with plan selection
-      const selectedPlan = sessionStorage.getItem('selectedPlan');
-      console.log('🔍 [Auth.tsx] Checking for selected plan:', { 
-        selectedPlan, 
-        hasSelectedPlan: !!selectedPlan,
-        sessionStorageKeys: Object.keys(sessionStorage)
-      });
-      
-      if (selectedPlan) {
-        console.log('🎯 User has selected plan, proceeding DIRECTLY to Stripe checkout');
+      const checkSelectedPlan = async () => {
+        const selectedPlan = await secureSessionManager.getSecureItem('selectedPlan');
+        console.log('🔍 [Auth.tsx] Checking for selected plan:', { 
+          hasSelectedPlan: !!selectedPlan
+        });
         
-        try {
-          const planData = JSON.parse(selectedPlan);
+        if (selectedPlan) {
+          console.log('🎯 User has selected plan, proceeding DIRECTLY to Stripe checkout');
+          
+          try {
+            const planData = selectedPlan;
           console.log('📋 Plan details:', planData);
           
           // Clear the stored plan
-          sessionStorage.removeItem('selectedPlan');
+          await secureSessionManager.removeSecureItem('selectedPlan');
           
           // Import necessary modules and go directly to Stripe
           import('@/utils/netlifyFunctions').then(({ invokeFunction }) => {
@@ -150,21 +150,24 @@ const Auth = () => {
           navigate('/subscription', { replace: true });
         }
         
-        return; // Exit early
-      }
+          return; // Exit early
+        }
+        
+        // Check if this is a new user (just confirmed email) without plan selection
+        const type = searchParams.get('type');
+        const isNewUser = type === 'signup' || type === 'magiclink' || type === 'email';
+        const intent = searchParams.get('intent');
+        
+        if (isNewUser || intent === 'subscription' || !user.user_metadata?.has_completed_setup) {
+          console.log('🎯 New user without plan selection, redirecting to subscription setup');
+          navigate('/subscription', { replace: true });
+        } else {
+          console.log('🏠 Existing user, redirecting to dashboard');
+          navigate('/dashboard', { replace: true });
+        }
+      };
       
-      // Check if this is a new user (just confirmed email) without plan selection
-      const type = searchParams.get('type');
-      const isNewUser = type === 'signup' || type === 'magiclink' || type === 'email';
-      const intent = searchParams.get('intent');
-      
-      if (isNewUser || intent === 'subscription' || !user.user_metadata?.has_completed_setup) {
-        console.log('🎯 New user without plan selection, redirecting to subscription setup');
-        navigate('/subscription', { replace: true });
-      } else {
-        console.log('🏠 Existing user, redirecting to dashboard');
-        navigate('/dashboard', { replace: true });
-      }
+      checkSelectedPlan();
     }
   }, [user, isLoading, navigate, searchParams]);
 
@@ -181,8 +184,19 @@ const Auth = () => {
   }
 
   // Show loading when processing Stripe checkout
-  const selectedPlan = sessionStorage.getItem('selectedPlan');
-  if (selectedPlan && user && !isLoading) {
+  const [checkingPlan, setCheckingPlan] = React.useState(true);
+  
+  React.useEffect(() => {
+    if (user && !isLoading) {
+      secureSessionManager.getSecureItem('selectedPlan').then(plan => {
+        setCheckingPlan(false);
+      });
+    } else {
+      setCheckingPlan(false);
+    }
+  }, [user, isLoading]);
+  
+  if (checkingPlan && user && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
         <div className="text-center">
