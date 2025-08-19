@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Save, Settings, Bell, Shield, Palette, CreditCard, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +33,7 @@ interface PartnerProfile {
 
 const PartnerSettings = () => {
   const { user } = useAuth();
+  const { isDemo } = useDemoMode();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,6 +61,32 @@ const PartnerSettings = () => {
     if (!user?.id) return;
 
     setIsLoading(true);
+    
+    // Check for demo mode using multiple methods
+    const isDemoMode = isDemo || 
+                      sessionStorage.getItem('demoCredentials') !== null ||
+                      user.email === 'partner@demo.com' ||
+                      user.id === 'demo-partner-123';
+
+    if (isDemoMode) {
+      console.log('🎭 PartnerSettings: Using mock data in demo mode');
+      // Use demo profile data
+      setProfile({
+        id: 'demo-partner-123',
+        name: 'Demo Partner Company',
+        contact_email: 'partner@demo.com',
+        contact_phone: '(555) 123-4567',
+        company_logo: '',
+        brand_color: '#10B981',
+        notification_email: true,
+        notification_sms: false,
+        auto_approval: false,
+        approval_threshold: 1000
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       console.log('[PartnerSettings] Fetching profile for user:', { id: user.id, email: user.email, partner_id: (user as any).partner_id });
       
@@ -130,6 +158,26 @@ const PartnerSettings = () => {
 
   const saveProfile = async () => {
     if (!user?.id) return;
+
+    // Check for demo mode using multiple methods
+    const isDemoMode = isDemo || 
+                      sessionStorage.getItem('demoCredentials') !== null ||
+                      user.email === 'partner@demo.com' ||
+                      user.id === 'demo-partner-123';
+
+    if (isDemoMode) {
+      console.log('🎭 PartnerSettings: Simulating save in demo mode');
+      setIsSaving(true);
+      // Simulate save delay
+      setTimeout(() => {
+        toast({
+          title: "Demo: Settings Saved",
+          description: "Partner settings saved successfully (demo mode)",
+        });
+        setIsSaving(false);
+      }, 1000);
+      return;
+    }
 
     setIsSaving(true);
     try {
