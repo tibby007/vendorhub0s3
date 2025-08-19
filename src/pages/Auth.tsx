@@ -5,6 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import LoginForm from '@/components/auth/LoginForm';
 import { secureSessionManager } from '@/utils/secureSessionManager';
+import { invokeFunction } from '@/utils/netlifyFunctions';
+import { supabase } from '@/integrations/supabase/client';
+import { secureLogger } from '@/utils/secureLogger';
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
@@ -17,7 +20,11 @@ const Auth = () => {
     const error_description = searchParams.get('error_description');
 
     if (error) {
-      console.error('🚨 Auth error from URL:', error, error_description);
+      secureLogger.error(`Auth error from URL: ${error}`, {
+        component: 'Auth',
+        action: 'url_error_handling',
+        errorDescription: error_description
+      });
       
       let errorMessage = error_description || error;
       if (error.includes('token_expired')) {
@@ -40,7 +47,11 @@ const Auth = () => {
     // Show success message for magic link/password reset (Supabase handles the actual auth)
     const type = searchParams.get('type');
     if (type && !error) {
-      console.log('✅ Auth success callback detected, type:', type);
+      secureLogger.info('Auth success callback detected', {
+        component: 'Auth',
+        action: 'auth_success',
+        type
+      });
       
       // Clean up the URL
       navigate('/auth', { replace: true });
@@ -63,90 +74,108 @@ const Auth = () => {
   useEffect(() => {
     // Redirect authenticated users
     if (!isLoading && user) {
-      console.log('🏠 User authenticated, checking redirect from Auth page');
+      secureLogger.info('User authenticated, checking redirect from Auth page', {
+        component: 'Auth',
+        action: 'authenticated_redirect',
+        userId: user.id
+      });
       
       // Check if user came from landing page with plan selection
       const checkSelectedPlan = async () => {
         const selectedPlan = await secureSessionManager.getSecureItem('selectedPlan');
-        console.log('🔍 [Auth.tsx] Checking for selected plan:', { 
+        secureLogger.info('Checking for selected plan', { 
+          component: 'Auth',
+          action: 'plan_check',
           hasSelectedPlan: !!selectedPlan
         });
         
         if (selectedPlan) {
-          console.log('🎯 User has selected plan, proceeding DIRECTLY to Stripe checkout');
+          secureLogger.info('User has selected plan, proceeding to Stripe checkout', {
+            component: 'Auth',
+            action: 'stripe_checkout_redirect',
+            planId: selectedPlan.tierId
+          });
           
           try {
             const planData = selectedPlan;
-          console.log('📋 Plan details:', planData);
           
           // Clear the stored plan
           await secureSessionManager.removeSecureItem('selectedPlan');
           
-          // Import necessary modules and go directly to Stripe
-          import('@/utils/netlifyFunctions').then(({ invokeFunction }) => {
-            import('@/integrations/supabase/client').then(({ supabase }) => {
-              supabase.auth.getSession().then(({ data: { session } }) => {
-                if (session) {
-                  // Map plan data to price IDs
-                  const priceMap = {
-                    'basic': {
-                      monthly: 'price_1RpnAlB1YJBVEg8wCN2IXtYJ',
-                      annual: 'price_1RpnBKB1YJBVEg8wbbe6nbYG'
-                    },
-                    'pro': {
-                      monthly: 'price_1RpnBjB1YJBVEg8wXBbCplTi',
-                      annual: 'price_1RpnC1B1YJBVEg8wGElD9KAG'
-                    },
-                    'premium': {
-                      monthly: 'price_1RpnCLB1YJBVEg8wI01MZIi1',
-                      annual: 'price_1RpnCYB1YJBVEg8wWiT9eQNc'
-                    }
-                  };
-                  
-                  const planPrices = priceMap[planData.tierId as keyof typeof priceMap];
-                  if (planPrices) {
-                    const priceId = planData.isAnnual ? planPrices.annual : planPrices.monthly;
-                    
-                    console.log('🚀 Going directly to Stripe checkout with:', { 
-                      priceId, 
-                      tier: planData.tierId, 
-                      isAnnual: planData.isAnnual 
-                    });
-                    
-                    invokeFunction('create-checkout', {
-                      body: {
-                        priceId,
-                        tier: planData.tierId,
-                        isAnnual: planData.isAnnual,
-                      },
-                      headers: {
-                        Authorization: `Bearer ${session.access_token}`,
-                      },
-                    }).then(({ data, error }) => {
-                      if (error) {
-                        console.error('Checkout error:', error);
-                        navigate('/subscription', { replace: true });
-                      } else {
-                        console.log('✅ Redirecting to Stripe checkout');
-                        window.location.href = data.url;
-                      }
-                    }).catch((error) => {
-                      console.error('Checkout error:', error);
-                      navigate('/subscription', { replace: true });
-                    });
-                  } else {
-                    console.error('Invalid plan ID:', planData.tierId);
-                    navigate('/subscription', { replace: true });
-                  }
-                } else {
-                  console.error('No session available');
+          // Get session and go directly to Stripe
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            // Map plan data to price IDs
+            const priceMap = {
+              'basic': {
+                monthly: 'price_1RpnAlB1YJBVEg8wCN2IXtYJ',
+                annual: 'price_1RpnBKB1YJBVEg8wbbe6nbYG'
+              },
+              'pro': {
+                monthly: 'price_1RpnBjB1YJBVEg8wXBbCplTi',
+                annual: 'price_1RpnC1B1YJBVEg8wGElD9KAG'
+              },
+              'premium': {
+                monthly: 'price_1RpnCLB1YJBVEg8wI01MZIi1',
+                annual: 'price_1RpnCYB1YJBVEg8wWiT9eQNc'
+              }
+            };
+            
+            const planPrices = priceMap[planData.tierId as keyof typeof priceMap];
+            if (planPrices) {
+              const priceId = planData.isAnnual ? planPrices.annual : planPrices.monthly;
+              
+              try {
+                const { data, error } = await invokeFunction('create-checkout', {
+                  body: {
+                    priceId,
+                    tier: planData.tierId,
+                    isAnnual: planData.isAnnual,
+                  },
+                  headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                  },
+                });
+                
+                if (error) {
+                  secureLogger.error('Checkout error', {
+                    component: 'Auth',
+                    action: 'checkout_error'
+                  });
                   navigate('/subscription', { replace: true });
+                } else {
+                  secureLogger.info('Redirecting to Stripe checkout', {
+                    component: 'Auth',
+                    action: 'stripe_redirect_success'
+                  });
+                  window.location.href = data.url;
                 }
+              } catch (error) {
+                secureLogger.error('Checkout error', {
+                  component: 'Auth',
+                  action: 'checkout_exception'
+                });
+                navigate('/subscription', { replace: true });
+              }
+            } else {
+              secureLogger.error('Invalid plan ID', {
+                component: 'Auth',
+                action: 'invalid_plan_id'
               });
+              navigate('/subscription', { replace: true });
+            }
+          } else {
+            secureLogger.error('No session available for checkout', {
+              component: 'Auth',
+              action: 'no_session'
             });
-          });
+            navigate('/subscription', { replace: true });
+          }
         } catch (error) {
-          console.error('Error processing selected plan:', error);
+          secureLogger.error('Error processing selected plan', {
+            component: 'Auth',
+            action: 'plan_processing_error'
+          });
           navigate('/subscription', { replace: true });
         }
         
@@ -159,10 +188,17 @@ const Auth = () => {
         const intent = searchParams.get('intent');
         
         if (isNewUser || intent === 'subscription' || !user.user_metadata?.has_completed_setup) {
-          console.log('🎯 New user without plan selection, redirecting to subscription setup');
+          secureLogger.info('New user without plan selection, redirecting to subscription setup', {
+            component: 'Auth',
+            action: 'new_user_redirect',
+            intent
+          });
           navigate('/subscription', { replace: true });
         } else {
-          console.log('🏠 Existing user, redirecting to dashboard');
+          secureLogger.info('Existing user, redirecting to dashboard', {
+            component: 'Auth',
+            action: 'existing_user_redirect'
+          });
           navigate('/dashboard', { replace: true });
         }
       };

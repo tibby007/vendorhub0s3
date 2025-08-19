@@ -7,6 +7,7 @@ import { mockVendorUser } from '@/data/mockVendorData';
 import { SecureStorage } from '@/utils/secureStorage';
 import { setGlobalSession } from '@/contexts/SubscriptionContext';
 import { secureLogout } from '@/utils/secureLogout';
+import { secureSessionManager } from '@/utils/secureSessionManager';
 
 interface AuthUser {
   id: string;

@@ -16,6 +16,7 @@ import Subscription from "./pages/Subscription";
 
 import SetupComplete from "./pages/SetupComplete";
 import Demo from "./pages/Demo";
+import DemoLogin from "./components/demo/DemoLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import VendorManagement from "./components/vendor/VendorManagement";
 import ResourcesManagement from "./components/resources/ResourcesManagement";
@@ -43,6 +44,7 @@ function App() {
               <Route path="/setup-complete" element={<SetupComplete />} />
               
               <Route path="/demo" element={<Demo />} />
+              <Route path="/demo-login" element={<DemoLogin />} />
               <Route path="/subscription" element={
                 <ProtectedRoute>
                   <Subscription />

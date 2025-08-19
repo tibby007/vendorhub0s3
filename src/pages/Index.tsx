@@ -10,6 +10,8 @@ import SuperAdminDashboard from '@/components/dashboard/SuperAdminDashboard';
 import PartnerAdminDashboard from '@/components/dashboard/PartnerAdminDashboard';
 import VendorDashboard from '@/components/dashboard/VendorDashboard';
 import SubscriptionGuard from '@/components/subscription/SubscriptionGuard';
+import { supabase } from '@/integrations/supabase/client';
+import { secureLogger } from '@/utils/secureLogger';
 
 const Index = () => {
   const { user, isLoading } = useAuth();
@@ -26,83 +28,113 @@ const Index = () => {
     
     // In demo mode, don't redirect to auth
     if (isDemo && demoRole) {
-      console.log('🎭 Demo mode active on dashboard, role:', demoRole);
+      secureLogger.info('Demo mode active on dashboard', {
+        component: 'Index',
+        action: 'demo_mode_active',
+        demoRole
+      });
       return;
     }
     
     if (!isLoading && !user) {
-      console.log('🚫 No user on dashboard, redirecting to auth');
+      secureLogger.info('No user on dashboard, redirecting to auth', {
+        component: 'Index',
+        action: 'no_user_redirect'
+      });
       navigate('/auth', { replace: true });
     } else if (user) {
-      console.log('✅ User authenticated on dashboard:', { 
-        id: user.id, 
-        role: user.role, 
-        email: user.email 
+      secureLogger.info('User authenticated on dashboard', {
+        component: 'Index',
+        action: 'user_authenticated',
+        userId: user.id,
+        userRole: user.role
       });
-      console.log('📊 Subscription status:', subscription.status, 'subscribed:', subscription.subscribed, 'isLoading:', subscription.isLoading);
       
       // If user just completed subscription, don't redirect them back
       if (subscriptionSuccess === 'success' || sessionId) {
-        console.log('🎉 User just completed subscription checkout, staying on dashboard');
+        secureLogger.info('User just completed subscription checkout', {
+          component: 'Index',
+          action: 'subscription_checkout_complete',
+          sessionId: !!sessionId
+        });
         // Clean up URL params and force subscription refresh
         navigate('/dashboard', { replace: true });
         // Force refresh subscription data after successful payment
         setTimeout(async () => {
-          console.log('🔄 Post-checkout: Refreshing subscription context');
-          // Use the subscription context refresh instead of direct call to avoid conflicts
-          import('@/contexts/SubscriptionContext').then(() => {
-            if (window.setGlobalSession) {
-              // Trigger context refresh without interfering with navigation
-              console.log('🔄 Post-checkout: Triggering context refresh');
-            }
+          secureLogger.info('Post-checkout: Refreshing subscription context', {
+            component: 'Index',
+            action: 'post_checkout_refresh'
           });
+          // Trigger subscription context refresh
+          window.location.reload(); // Simple reload to refresh all contexts
         }, 2000); // Wait 2 seconds for webhook to process
         return;
       }
       
       // If subscription hasn't been checked yet (initial load), trigger a refresh
       if (subscription.status === 'loading' && subscription.lastUpdated === 0) {
-        console.log('🔄 Initial subscription check needed, refreshing...');
         // Prevent infinite loops - max 3 attempts
         const attemptCount = sessionStorage.getItem('subscription_check_attempts') || '0';
         if (parseInt(attemptCount) >= 3) {
-          console.warn('🚫 Max subscription check attempts reached, allowing dashboard access');
+          secureLogger.warn('Max subscription check attempts reached, allowing dashboard access', {
+            component: 'Index',
+            action: 'max_attempts_reached'
+          });
           sessionStorage.removeItem('subscription_check_attempts');
           return;
         }
         sessionStorage.setItem('subscription_check_attempts', (parseInt(attemptCount) + 1).toString());
         
         // Small delay to ensure session is available
-        setTimeout(() => {
-          console.log('🔄 Triggering subscription refresh');
-          // Use a direct supabase call since context sync might be broken
-          import('@/integrations/supabase/client').then(({ supabase }) => {
-            supabase.functions.invoke('check-subscription').then(({ data, error }) => {
-              console.log('📊 Direct subscription check result:', { data, error });
-              // Clear attempt counter on success
-              sessionStorage.removeItem('subscription_check_attempts');
-              // Only redirect if user has no subscription AND no active trial
-              if (error || (!data?.subscribed && !data?.trial_active)) {
-                console.log('🆕 New user detected, redirecting to subscription');
-                navigate('/subscription', { replace: true });
-              } else if (data?.trial_active) {
-                console.log('✅ User has active trial, staying on dashboard');
-              } else if (data?.subscribed) {
-                console.log('✅ User has active subscription, staying on dashboard');
-              }
-            }).catch(err => {
-              console.error('🚨 Subscription check failed:', err);
-              // Allow access on persistent errors to prevent blocking
-              console.log('🆘 Allowing dashboard access due to persistent errors');
-            });
+        setTimeout(async () => {
+          secureLogger.info('Triggering subscription refresh', {
+            component: 'Index',
+            action: 'subscription_refresh'
           });
+          // Use a direct supabase call since context sync might be broken
+          try {
+            const { data, error } = await supabase.functions.invoke('check-subscription');
+            // Clear attempt counter on success
+            sessionStorage.removeItem('subscription_check_attempts');
+            // Only redirect if user has no subscription AND no active trial
+            if (error || (!data?.subscribed && !data?.trial_active)) {
+              secureLogger.info('New user detected, redirecting to subscription', {
+                component: 'Index',
+                action: 'new_user_subscription_redirect'
+              });
+              navigate('/subscription', { replace: true });
+            } else if (data?.trial_active) {
+              secureLogger.info('User has active trial, staying on dashboard', {
+                component: 'Index',
+                action: 'trial_user_dashboard_access'
+              });
+            } else if (data?.subscribed) {
+              secureLogger.info('User has active subscription, staying on dashboard', {
+                component: 'Index',
+                action: 'subscribed_user_dashboard_access'
+              });
+            }
+          } catch (err) {
+            secureLogger.error('Subscription check failed', {
+              component: 'Index',
+              action: 'subscription_check_error'
+            });
+            // Allow access on persistent errors to prevent blocking
+            secureLogger.warn('Allowing dashboard access due to persistent errors', {
+              component: 'Index',
+              action: 'error_fallback_access'
+            });
+          }
         }, 1000);
         return;
       }
       
       // Check if user should be redirected to subscription setup after subscription loads
       if (!subscription.isLoading && !isDemo && !subscription.subscribed && subscription.status === 'expired') {
-        console.log('🆕 User needs subscription setup, redirecting to subscription');
+        secureLogger.info('User needs subscription setup, redirecting to subscription', {
+          component: 'Index',
+          action: 'expired_subscription_redirect'
+        });
         navigate('/subscription', { replace: true });
         return;
       }
