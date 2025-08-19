@@ -28,3 +28,16 @@ dist-ssr
 .env.local
 .env.production
 supabase/functions/.env
+
+# Documentation and configuration files
+*.md
+!README.md
+!CLAUDE.md
+*.config 2.js
+test-output.css
+*.backup
+*.bak
+
+# Claude Code specific
+.claude/agents/
+.claude/settings.local.json
