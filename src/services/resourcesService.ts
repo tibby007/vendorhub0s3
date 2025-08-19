@@ -17,6 +17,50 @@ export interface ResourceFile {
 
 export const resourcesService = {
   async getResources(partnerId: string): Promise<ResourceFile[]> {
+    // Check for demo mode - return mock data
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      console.log('[resourcesService] Demo mode detected - returning mock resources');
+      return [
+        {
+          id: 'demo-resource-1',
+          title: 'Welcome to VendorHub',
+          content: 'Welcome to the VendorHub partner portal! This is a demo resource to show how you can share documents and updates with your vendor network.',
+          type: 'news',
+          category: 'announcement',
+          is_published: true,
+          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: 'demo-resource-2',
+          title: 'Partner Agreement Template',
+          content: 'Standard vendor partnership agreement template for your review.',
+          type: 'file',
+          category: 'templates',
+          file_url: '/demo/partner-agreement.pdf',
+          file_size: 245760,
+          mime_type: 'application/pdf',
+          is_published: true,
+          created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: 'demo-resource-3',
+          title: 'Compliance Guidelines',
+          content: 'Updated compliance guidelines for Q2 2024.',
+          type: 'file',
+          category: 'compliance',
+          file_url: '/demo/compliance-guidelines.pdf',
+          file_size: 512000,
+          mime_type: 'application/pdf',
+          is_published: true,
+          created_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ];
+    }
+    
     const { data, error } = await supabase
       .from('resources')
       .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
@@ -42,6 +86,26 @@ export const resourcesService = {
   },
 
   async createResource(resource: Omit<ResourceFile, 'id' | 'created_at' | 'updated_at'> & { partner_admin_id: string }): Promise<ResourceFile> {
+    // Check for demo mode - return mock data
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      console.log('[resourcesService] Demo mode - simulating resource creation');
+      const now = new Date().toISOString();
+      return {
+        id: `demo-resource-${Date.now()}`,
+        title: resource.title,
+        content: resource.content,
+        type: resource.type,
+        category: resource.category,
+        file_url: resource.file_url,
+        file_size: resource.file_size,
+        mime_type: resource.mime_type,
+        is_published: resource.is_published,
+        created_at: now,
+        updated_at: now
+      };
+    }
+    
     const { data, error } = await supabase
       .from('resources')
       .insert(resource)
@@ -66,6 +130,25 @@ export const resourcesService = {
   },
 
   async updateResource(id: string, updates: Partial<ResourceFile>): Promise<ResourceFile> {
+    // Check for demo mode - return mock data
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      console.log('[resourcesService] Demo mode - simulating resource update');
+      return {
+        id,
+        title: updates.title || 'Demo Resource',
+        content: updates.content || 'Demo content',
+        type: updates.type || 'news',
+        category: updates.category || 'general',
+        file_url: updates.file_url,
+        file_size: updates.file_size,
+        mime_type: updates.mime_type,
+        is_published: updates.is_published !== undefined ? updates.is_published : true,
+        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }
+    
     const { data, error } = await supabase
       .from('resources')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -91,6 +174,13 @@ export const resourcesService = {
   },
 
   async deleteResource(id: string): Promise<void> {
+    // Check for demo mode - simulate deletion
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      console.log('[resourcesService] Demo mode - simulating resource deletion');
+      return;
+    }
+    
     const { error } = await supabase
       .from('resources')
       .delete()
@@ -100,6 +190,13 @@ export const resourcesService = {
   },
 
   async uploadFile(file: File, userId: string, secureFileName?: string): Promise<string> {
+    // Check for demo mode - return mock URL
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      console.log('[resourcesService] Demo mode - simulating file upload');
+      return `/demo/uploaded-${file.name}`;
+    }
+    
     // Generate secure path structure
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
     const fileName = secureFileName || `${crypto.randomUUID()}.${fileExtension}`;
@@ -129,6 +226,13 @@ export const resourcesService = {
   },
 
   async deleteFile(fileUrl: string, userId: string): Promise<void> {
+    // Check for demo mode - simulate deletion
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      console.log('[resourcesService] Demo mode - simulating file deletion');
+      return;
+    }
+    
     // Extract the file path from the URL
     const urlParts = fileUrl.split('/');
     const fileName = urlParts[urlParts.length - 1];

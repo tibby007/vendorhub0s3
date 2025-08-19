@@ -77,7 +77,10 @@ const VendorManagement = () => {
     setIsLoading(true);
     
     try {
-      if (isDemo) {
+      // Double-check demo mode using direct sessionStorage check
+      const isDemoMode = sessionStorage.getItem('demoCredentials') !== null || isDemo;
+      
+      if (isDemoMode) {
         console.log('🎭 Demo mode: Using mock vendor data');
         // Convert mock data to match our interface
         const demoVendors = mockVendors.map(vendor => ({
@@ -91,6 +94,7 @@ const VendorManagement = () => {
           business_type: vendor.business_type
         }));
         setVendors(demoVendors);
+        setIsLoading(false);
         return;
       }
 
@@ -160,7 +164,8 @@ const VendorManagement = () => {
     setIsLoading(true);
 
     try {
-      if (isDemo) {
+      const isDemoMode = sessionStorage.getItem('demoCredentials') !== null || isDemo;
+      if (isDemoMode) {
         // Demo mode - simulate success
         toast({
           title: "Demo Mode",
@@ -278,7 +283,8 @@ const VendorManagement = () => {
 
     setIsLoading(true);
     try {
-      if (isDemo) {
+      const isDemoMode = sessionStorage.getItem('demoCredentials') !== null || isDemo;
+      if (isDemoMode) {
         // Demo mode - simulate success
         toast({
           title: "Demo Mode",
@@ -341,7 +347,8 @@ const VendorManagement = () => {
 
     setIsLoading(true);
     try {
-      if (isDemo) {
+      const isDemoMode = sessionStorage.getItem('demoCredentials') !== null || isDemo;
+      if (isDemoMode) {
         // Demo mode - simulate success
         toast({
           title: "Demo Mode",
