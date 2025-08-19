@@ -118,6 +118,29 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const session = sessionRef.current;
     console.log('[SubscriptionContext] fetchSubscriptionData called. forceRefresh:', forceRefresh);
     console.log('[SubscriptionContext] Current session:', session);
+    
+    // Check for demo mode first - bypass all subscription checks
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      console.log('[SubscriptionContext] Demo mode detected - returning mock subscription data');
+      const demoSubscriptionData: Partial<SubscriptionState> = {
+        subscribed: true,
+        tier: 'Pro',
+        status: 'active',
+        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        priceId: 'price_demo',
+        billingStatus: 'active',
+        planType: 'pro',
+        trialEnd: null,
+        lastUpdated: Date.now(),
+        isLoading: false,
+        error: null
+      };
+      dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: demoSubscriptionData });
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return;
+    }
+    
     if (!session) {
       console.warn('[SubscriptionContext] Early return: No session present. Skipping subscription fetch.');
       dispatch({ type: 'RESET' });
