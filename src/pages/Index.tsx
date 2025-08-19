@@ -87,6 +87,17 @@ const Index = () => {
         
         // Small delay to ensure session is available
         setTimeout(async () => {
+          // Skip subscription check in demo mode
+          const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+          if (isDemoMode) {
+            secureLogger.info('Demo mode detected - skipping subscription check', {
+              component: 'Index',
+              action: 'demo_mode_bypass'
+            });
+            sessionStorage.removeItem('subscription_check_attempts');
+            return;
+          }
+          
           secureLogger.info('Triggering subscription refresh', {
             component: 'Index',
             action: 'subscription_refresh'

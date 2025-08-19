@@ -17,6 +17,23 @@ interface SubscriptionData {
 }
 
 const fetchSubscriptionData = async (): Promise<SubscriptionData> => {
+  // Check for demo mode - return mock data
+  const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+  if (isDemoMode) {
+    console.log('[useOptimizedSubscription] Demo mode detected - returning mock data');
+    return {
+      subscribed: true,
+      tier: 'Pro',
+      status: 'active',
+      endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      priceId: 'price_demo',
+      billingStatus: 'active',
+      planType: 'pro',
+      trialEnd: null,
+      isTrialActive: false
+    };
+  }
+  
   try {
     const { data, error } = await supabase.functions.invoke('check-subscription');
     
