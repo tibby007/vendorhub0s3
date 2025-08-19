@@ -52,7 +52,18 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Calculate remaining time (15 minutes max)
           const elapsed = Date.now() - demoSession.startTime;
           const remaining = Math.max(0, 900000 - elapsed); // 15 minutes in ms
-          setTimeRemaining(remaining);
+          
+          // If the remaining time is very small (less than 1 minute), extend the session
+          // This handles cases where users had old 10-minute sessions
+          if (remaining > 0 && remaining < 60000) {
+            console.log('🔄 Extending short demo session to full 15 minutes');
+            const newStartTime = Date.now();
+            demoSession.startTime = newStartTime;
+            await secureSessionManager.setSecureItem('demoSession', demoSession);
+            setTimeRemaining(900000); // Reset to full 15 minutes
+          } else {
+            setTimeRemaining(remaining);
+          }
           
           if (remaining === 0) {
             await endDemoSession();
