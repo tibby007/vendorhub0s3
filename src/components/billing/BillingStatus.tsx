@@ -39,6 +39,24 @@ const BillingStatus = () => {
   const fetchBillingData = async () => {
     if (!user) return;
 
+    // Check for demo mode - return mock data
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      console.log('[BillingStatus] Demo mode detected - using mock billing data');
+      setBillingData({
+        plan_type: 'pro',
+        billing_status: 'active',
+        trial_end: null,
+        current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        vendor_limit: 50,
+        storage_limit: 5000000000, // 5GB
+        storage_used: 1200000000, // 1.2GB
+        stripe_customer_id: 'cus_demo'
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // First try to get from subscribers table for most up-to-date info
       const { data: subscriberData } = await supabase

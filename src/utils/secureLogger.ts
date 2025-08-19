@@ -145,6 +145,13 @@ class SecureLogger {
 
   private async logToService(sanitizedError: SanitizedError): Promise<void> {
     try {
+      // Skip logging in demo mode
+      const isDemoMode = typeof window !== 'undefined' && sessionStorage.getItem('demoCredentials') !== null;
+      if (isDemoMode) {
+        console.log('[SecureLogger] Demo mode - skipping remote logging');
+        return;
+      }
+      
       if (!this.isDevelopment && typeof window !== 'undefined') {
         await fetch('/api/log-security-event', {
           method: 'POST',
