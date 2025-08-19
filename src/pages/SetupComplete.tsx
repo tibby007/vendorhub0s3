@@ -31,6 +31,17 @@ const SetupComplete = () => {
     setIsRedirecting(true);
     
     try {
+      // Check for demo mode - redirect to demo
+      const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+      if (isDemoMode) {
+        toast({
+          title: "Demo Mode",
+          description: "Subscription setup simulated! Redirecting to demo dashboard.",
+        });
+        navigate('/demo-login');
+        return;
+      }
+      
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {

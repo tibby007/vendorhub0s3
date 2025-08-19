@@ -43,6 +43,16 @@ const SubscriptionManager = () => {
   const openCustomerPortal = async () => {
     if (!session) return;
     
+    // Check for demo mode - show demo message
+    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+    if (isDemoMode) {
+      toast({
+        title: "Demo Mode",
+        description: "Customer portal would open here in live mode with billing management options.",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
