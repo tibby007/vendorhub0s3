@@ -37,29 +37,39 @@ class SecureLogout {
     this.logoutInProgress = true;
 
     try {
-      secureLogger.auditLog('logout_started', {
-        reason,
-        action: 'logout'
-      });
+      const isDemo = await this.isDemoMode();
+      
+      if (!isDemo) {
+        secureLogger.auditLog('logout_started', {
+          reason,
+          action: 'logout'
+        });
+      }
 
       await this.clearClientSideData();
 
-      if (await this.isDemoMode()) {
+      if (isDemo) {
         await this.handleDemoLogout(redirectTo);
       } else {
         await this.handleRealLogout(clearAllSessions, redirectTo);
       }
 
-      secureLogger.auditLog('logout_completed', {
-        reason,
-        action: 'logout'
-      });
+      if (!isDemo) {
+        secureLogger.auditLog('logout_completed', {
+          reason,
+          action: 'logout'
+        });
+      }
 
     } catch (error) {
-      secureLogger.error('Logout failed', {
-        reason,
-        action: 'logout_error'
-      });
+      const isDemo = await this.isDemoMode();
+      
+      if (!isDemo) {
+        secureLogger.error('Logout failed', {
+          reason,
+          action: 'logout_error'
+        });
+      }
       
       await this.forceLogout(redirectTo);
     } finally {
@@ -141,17 +151,10 @@ class SecureLogout {
   }
 
   private async handleDemoLogout(redirectTo: string): Promise<void> {
-    secureLogger.auditLog('demo_logout', { action: 'demo_logout' });
+    console.log('[SecureLogout] Demo logout - skipping all API calls');
     
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      secureLogger.warn('Demo logout - Supabase signOut failed', {
-        action: 'demo_supabase_logout'
-      });
-    }
-
-    window.location.href = '/demo';
+    // Skip all API calls in demo mode - just clear data and redirect
+    window.location.href = '/demo-login';
   }
 
   private async handleRealLogout(clearAllSessions: boolean, redirectTo: string): Promise<void> {
@@ -201,20 +204,27 @@ class SecureLogout {
   }
 
   private async forceLogout(redirectTo: string): Promise<void> {
-    secureLogger.warn('Force logout initiated', { action: 'force_logout' });
+    const isDemo = await this.isDemoMode();
+    
+    if (!isDemo) {
+      secureLogger.warn('Force logout initiated', { action: 'force_logout' });
+    }
     
     try {
       await this.clearClientSideData();
     } catch (error) {
-      secureLogger.error('Force logout - failed to clear data', {
-        action: 'force_logout_clear_failed'
-      });
+      if (!isDemo) {
+        secureLogger.error('Force logout - failed to clear data', {
+          action: 'force_logout_clear_failed'
+        });
+      }
     }
 
     sessionStorage.clear();
     localStorage.clear();
 
-    window.location.href = redirectTo;
+    // In demo mode, redirect to demo login instead
+    window.location.href = isDemo ? '/demo-login' : redirectTo;
   }
 
   async scheduleAutoLogout(inactivityPeriod: number = 1800000): Promise<void> {
