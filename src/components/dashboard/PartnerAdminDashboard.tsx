@@ -25,8 +25,15 @@ const PartnerAdminDashboard = () => {
     const fetchStats = async () => {
       if (!user?.id) return;
 
+      // Check for demo mode using multiple methods
+      const isDemoMode = isDemo || 
+                        sessionStorage.getItem('demoCredentials') !== null ||
+                        user.email === 'partner@demo.com' ||
+                        user.id === 'demo-partner-123';
+
       // Use mock data in demo mode
-      if (isDemo) {
+      if (isDemoMode) {
+        console.log('🎭 PartnerAdminDashboard: Using mock data in demo mode');
         setVendorCount(mockPartnerStats.totalVendors);
         setSubmissionCount(mockPartnerStats.pendingApplications);
         return;

@@ -21,10 +21,13 @@ export const useVendorStats = () => {
     const fetchSubmissionStats = async () => {
       if (!user?.id) return;
       
-      // Check if this is demo mode by looking at user email
+      // Check for demo mode using multiple methods
       const isDemo = user.email === 'vendor@demo.com' || 
-                     sessionStorage.getItem('demoCredentials') || 
-                     sessionStorage.getItem('isDemoMode');
+                     user.email === 'partner@demo.com' ||
+                     user.id === 'demo-partner-123' ||
+                     user.id === 'demo-vendor-456' ||
+                     sessionStorage.getItem('demoCredentials') !== null ||
+                     sessionStorage.getItem('isDemoMode') !== null;
       
       if (isDemo) {
         console.log('🎭 Demo mode: Using mock vendor stats');

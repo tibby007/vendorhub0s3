@@ -77,8 +77,11 @@ const VendorManagement = () => {
     setIsLoading(true);
     
     try {
-      // Double-check demo mode using direct sessionStorage check
-      const isDemoMode = sessionStorage.getItem('demoCredentials') !== null || isDemo;
+      // Check for demo mode using multiple methods
+      const isDemoMode = isDemo || 
+                        sessionStorage.getItem('demoCredentials') !== null ||
+                        user?.email === 'partner@demo.com' ||
+                        user?.id === 'demo-partner-123';
       
       if (isDemoMode) {
         console.log('🎭 Demo mode: Using mock vendor data');

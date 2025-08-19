@@ -63,8 +63,15 @@ const SubmissionsManager = () => {
 
     setIsLoading(true);
     
+    // Check for demo mode using multiple methods
+    const isDemoMode = isDemo || 
+                      sessionStorage.getItem('demoCredentials') !== null ||
+                      user.email === 'partner@demo.com' ||
+                      user.id === 'demo-partner-123';
+    
     // Use mock data in demo mode
-    if (isDemo) {
+    if (isDemoMode) {
+      console.log('🎭 SubmissionsManager: Using mock data in demo mode');
       setSubmissions(mockPartnerSubmissions as any);
       setIsLoading(false);
       return;
@@ -96,8 +103,15 @@ const SubmissionsManager = () => {
   };
 
   const updateSubmissionStatus = async (submissionId: string, status: string, approvalTerms?: string) => {
+    // Check for demo mode using multiple methods
+    const isDemoMode = isDemo || 
+                      sessionStorage.getItem('demoCredentials') !== null ||
+                      user?.email === 'partner@demo.com' ||
+                      user?.id === 'demo-partner-123';
+
     // Handle demo mode
-    if (isDemo) {
+    if (isDemoMode) {
+      console.log('🎭 SubmissionsManager: Updating status in demo mode');
       setSubmissions(prev => 
         prev.map(sub => 
           sub.id === submissionId 
