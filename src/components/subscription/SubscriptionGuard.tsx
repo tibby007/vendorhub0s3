@@ -24,6 +24,13 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   const { user } = useAuth();
   const { subscription, refresh, isTrialUser, isActiveSubscriber } = useSubscriptionManager();
 
+  // Check for demo mode - always allow access
+  const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+  if (isDemoMode) {
+    console.log('[SubscriptionGuard] Demo mode detected - allowing access');
+    return <>{children}</>;
+  }
+
   if (subscription.isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
