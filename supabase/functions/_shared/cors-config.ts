@@ -12,7 +12,8 @@ const getAllowedOrigins = (): string[] => {
   const defaultOrigins = [
     "http://localhost:5173",
     "http://localhost:3000", 
-    "https://vendorhub-connect-portal.netlify.app"
+    "https://vendorhub-connect-portal.netlify.app",
+    "https://vendorhubos.com"
   ];
   
   console.warn("ALLOWED_ORIGINS environment variable not set, using default origins");

@@ -18,8 +18,13 @@ interface SubscriptionData {
 
 const fetchSubscriptionData = async (): Promise<SubscriptionData> => {
   // Check for demo mode - return mock data
-  const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
-  if (isDemoMode) {
+  // Demo mode can be detected through multiple methods for reliability
+  const isDemoCredentials = sessionStorage.getItem('demoCredentials') !== null;
+  const isDemoMode = sessionStorage.getItem('isDemoMode') !== null;
+  const isDemoSession = sessionStorage.getItem('demoSession') !== null;
+  const isAnyDemoMode = isDemoCredentials || isDemoMode || isDemoSession;
+  
+  if (isAnyDemoMode) {
     console.log('[useOptimizedSubscription] Demo mode detected - returning mock data');
     return {
       subscribed: true,

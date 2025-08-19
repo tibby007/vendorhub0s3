@@ -40,8 +40,13 @@ const BillingStatus = () => {
     if (!user) return;
 
     // Check for demo mode - return mock data
-    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
-    if (isDemoMode) {
+    // Demo mode can be detected through multiple methods for reliability
+    const isDemoCredentials = sessionStorage.getItem('demoCredentials') !== null;
+    const isDemoMode = sessionStorage.getItem('isDemoMode') !== null;
+    const isDemoSession = sessionStorage.getItem('demoSession') !== null;
+    const isAnyDemoMode = isDemoCredentials || isDemoMode || isDemoSession;
+    
+    if (isAnyDemoMode) {
       console.log('[BillingStatus] Demo mode detected - using mock billing data');
       setBillingData({
         plan_type: 'pro',

@@ -25,8 +25,13 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   const { subscription, refresh, isTrialUser, isActiveSubscriber } = useSubscriptionManager();
 
   // Check for demo mode - always allow access
-  const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
-  if (isDemoMode) {
+  // Demo mode can be detected through multiple methods for reliability
+  const isDemoCredentials = sessionStorage.getItem('demoCredentials') !== null;
+  const isDemoMode = sessionStorage.getItem('isDemoMode') !== null;
+  const isDemoSession = sessionStorage.getItem('demoSession') !== null;
+  const isAnyDemoMode = isDemoCredentials || isDemoMode || isDemoSession;
+  
+  if (isAnyDemoMode) {
     console.log('[SubscriptionGuard] Demo mode detected - allowing access');
     return <>{children}</>;
   }

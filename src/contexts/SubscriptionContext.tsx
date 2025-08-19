@@ -120,8 +120,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     console.log('[SubscriptionContext] Current session:', session);
     
     // Check for demo mode first - bypass all subscription checks
-    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
-    if (isDemoMode) {
+    // Demo mode can be detected through multiple methods for reliability
+    const isDemoCredentials = sessionStorage.getItem('demoCredentials') !== null;
+    const isDemoMode = sessionStorage.getItem('isDemoMode') !== null;
+    const isDemoSession = sessionStorage.getItem('demoSession') !== null;
+    const isAnyDemoMode = isDemoCredentials || isDemoMode || isDemoSession;
+    
+    if (isAnyDemoMode) {
       console.log('[SubscriptionContext] Demo mode detected - returning mock subscription data');
       const demoSubscriptionData: Partial<SubscriptionState> = {
         subscribed: true,

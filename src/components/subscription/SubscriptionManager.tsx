@@ -19,8 +19,11 @@ const SubscriptionManager = () => {
     if (!session) return;
     
     // Skip subscription checks in demo mode
-    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
-    if (isDemoMode) {
+    const isDemoCredentials = sessionStorage.getItem('demoCredentials') !== null;
+    const isDemoMode = sessionStorage.getItem('isDemoMode') !== null;
+    const isDemoSession = sessionStorage.getItem('demoSession') !== null;
+    const isAnyDemoMode = isDemoCredentials || isDemoMode || isDemoSession;
+    if (isAnyDemoMode) {
       toast({
         title: "Demo Mode",
         description: "Subscription status is simulated in demo mode.",
@@ -54,8 +57,11 @@ const SubscriptionManager = () => {
     if (!session) return;
     
     // Check for demo mode - show demo message
-    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
-    if (isDemoMode) {
+    const isDemoCredentials = sessionStorage.getItem('demoCredentials') !== null;
+    const isDemoMode = sessionStorage.getItem('isDemoMode') !== null;
+    const isDemoSession = sessionStorage.getItem('demoSession') !== null;
+    const isAnyDemoMode = isDemoCredentials || isDemoMode || isDemoSession;
+    if (isAnyDemoMode) {
       toast({
         title: "Demo Mode",
         description: "Customer portal would open here in live mode with billing management options.",
@@ -87,8 +93,11 @@ const SubscriptionManager = () => {
 
   useEffect(() => {
     // Skip subscription checks in demo mode
-    const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
-    if (isDemoMode) {
+    const isDemoCredentials = sessionStorage.getItem('demoCredentials') !== null;
+    const isDemoMode = sessionStorage.getItem('isDemoMode') !== null;
+    const isDemoSession = sessionStorage.getItem('demoSession') !== null;
+    const isAnyDemoMode = isDemoCredentials || isDemoMode || isDemoSession;
+    if (isAnyDemoMode) {
       return;
     }
     
