@@ -49,9 +49,9 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setDemoRole(demoSession.demoRole);
           setSessionId(demoSession.sessionId);
           
-          // Calculate remaining time (10 minutes max)
+          // Calculate remaining time (15 minutes max)
           const elapsed = Date.now() - demoSession.startTime;
-          const remaining = Math.max(0, 600000 - elapsed); // 10 minutes in ms
+          const remaining = Math.max(0, 900000 - elapsed); // 15 minutes in ms
           setTimeRemaining(remaining);
           
           if (remaining === 0) {
@@ -121,7 +121,7 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setDemoUser(userData);
       setDemoRole(userData.role);
       setSessionId(sessionData.sessionId);
-      setTimeRemaining(600000); // 10 minutes
+      setTimeRemaining(900000); // 15 minutes
 
       secureLogger.auditLog('demo_session_started', {
         component: 'DemoContext',
@@ -178,7 +178,7 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshSession = async (): Promise<void> => {
     if (sessionId) {
       // Extend session by resetting timer
-      setTimeRemaining(600000); // Reset to 10 minutes
+      setTimeRemaining(900000); // Reset to 15 minutes
       
       const sessionData = await secureSessionManager.getSecureItem('demoSession');
       if (sessionData) {

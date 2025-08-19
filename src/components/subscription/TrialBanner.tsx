@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Clock, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscriptionManager } from '@/contexts/SubscriptionContext';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface TrialBannerProps {
   trialEnd?: string;
@@ -19,6 +20,7 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
   onUpgrade 
 }) => {
   const { subscription, isTrialUser, daysRemaining, refresh } = useSubscriptionManager();
+  const { isDemo } = useDemoMode();
   const [timeRemaining, setTimeRemaining] = useState<{
     days: number;
     hours: number;
@@ -140,8 +142,8 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
     }
   };
 
-  // Don't show banner if not a trial user, if date is invalid, or if already subscribed
-  if (!isTrialUser || !isValidDate || subscription.subscribed) {
+  // Don't show banner if not a trial user, if date is invalid, if already subscribed, or if in demo mode
+  if (!isTrialUser || !isValidDate || subscription.subscribed || isDemo) {
     return null;
   }
   

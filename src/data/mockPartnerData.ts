@@ -10,7 +10,8 @@ export const mockPartnerUser = {
 export const mockPartnerStats = {
   totalVendors: 3,
   activeVendors: 2,
-  pendingApplications: 1,
+  pendingApplications: 12, // Match the dashboard count you mentioned
+  totalSubmissions: 12, // Add total submissions count
   monthlyRevenue: 47500,
   revenueGrowth: 12.5
 };
@@ -81,6 +82,105 @@ export const mockPartnerSubmissions = [
     status: 'under_review',
     submitted_at: '2024-01-21T11:15:00Z',
     description: 'Enterprise cloud migration services'
+  },
+  {
+    id: 'sub-004',
+    vendor_id: 'vendor-003',
+    vendor_name: 'Cloud Infrastructure LLC',
+    customer_name: 'Tech Startup Inc',
+    customer_email: 'ops@techstartup.com',
+    amount: 18500,
+    status: 'pending',
+    submitted_at: '2024-01-22T09:00:00Z',
+    description: 'Cloud infrastructure setup'
+  },
+  {
+    id: 'sub-005',
+    vendor_id: 'vendor-001',
+    vendor_name: 'TechFlow Solutions',
+    customer_name: 'Manufacturing Co',
+    customer_email: 'it@manufacturing.com',
+    amount: 32000,
+    status: 'approved',
+    submitted_at: '2024-01-18T14:20:00Z',
+    description: 'ERP system customization'
+  },
+  {
+    id: 'sub-006',
+    vendor_id: 'vendor-002',
+    vendor_name: 'Digital Marketing Pro',
+    customer_name: 'Retail Chain Ltd',
+    customer_email: 'marketing@retailchain.com',
+    amount: 12000,
+    status: 'pending',
+    submitted_at: '2024-01-23T11:45:00Z',
+    description: 'Multi-channel marketing campaign'
+  },
+  {
+    id: 'sub-007',
+    vendor_id: 'vendor-003',
+    vendor_name: 'Cloud Infrastructure LLC',
+    customer_name: 'Financial Services Corp',
+    customer_email: 'infrastructure@finservices.com',
+    amount: 45000,
+    status: 'under_review',
+    submitted_at: '2024-01-17T16:30:00Z',
+    description: 'Secure cloud migration for financial data'
+  },
+  {
+    id: 'sub-008',
+    vendor_id: 'vendor-001',
+    vendor_name: 'TechFlow Solutions',
+    customer_name: 'Healthcare Systems',
+    customer_email: 'procurement@healthsys.com',
+    amount: 28500,
+    status: 'pending',
+    submitted_at: '2024-01-24T08:15:00Z',
+    description: 'Patient management system upgrade'
+  },
+  {
+    id: 'sub-009',
+    vendor_id: 'vendor-002',
+    vendor_name: 'Digital Marketing Pro',
+    customer_name: 'E-commerce Platform',
+    customer_email: 'growth@ecommerce.com',
+    amount: 9800,
+    status: 'approved',
+    submitted_at: '2024-01-16T13:00:00Z',
+    description: 'Customer acquisition campaign'
+  },
+  {
+    id: 'sub-010',
+    vendor_id: 'vendor-003',
+    vendor_name: 'Cloud Infrastructure LLC',
+    customer_name: 'Government Agency',
+    customer_email: 'tech@gov.agency',
+    amount: 55000,
+    status: 'pending',
+    submitted_at: '2024-01-25T10:30:00Z',
+    description: 'Secure government cloud infrastructure'
+  },
+  {
+    id: 'sub-011',
+    vendor_id: 'vendor-001',
+    vendor_name: 'TechFlow Solutions',
+    customer_name: 'Education District',
+    customer_email: 'it@education.org',
+    amount: 22000,
+    status: 'under_review',
+    submitted_at: '2024-01-15T12:45:00Z',
+    description: 'Student information system development'
+  },
+  {
+    id: 'sub-012',
+    vendor_id: 'vendor-002',
+    vendor_name: 'Digital Marketing Pro',
+    customer_name: 'Non-Profit Organization',
+    customer_email: 'outreach@nonprofit.org',
+    amount: 6500,
+    status: 'pending',
+    submitted_at: '2024-01-26T14:00:00Z',
+    description: 'Donor engagement campaign'
   }
 ];
 
