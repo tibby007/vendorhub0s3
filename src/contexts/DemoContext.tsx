@@ -49,25 +49,8 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setDemoRole(demoSession.demoRole);
           setSessionId(demoSession.sessionId);
           
-          // Calculate remaining time (15 minutes max)
-          const elapsed = Date.now() - demoSession.startTime;
-          const remaining = Math.max(0, 900000 - elapsed); // 15 minutes in ms
-          
-          // If the remaining time is very small (less than 1 minute), extend the session
-          // This handles cases where users had old 10-minute sessions
-          if (remaining > 0 && remaining < 60000) {
-            console.log('🔄 Extending short demo session to full 15 minutes');
-            const newStartTime = Date.now();
-            demoSession.startTime = newStartTime;
-            await secureSessionManager.setSecureItem('demoSession', demoSession);
-            setTimeRemaining(900000); // Reset to full 15 minutes
-          } else {
-            setTimeRemaining(remaining);
-          }
-          
-          if (remaining === 0) {
-            await endDemoSession();
-          }
+          // No time limits - demo runs indefinitely
+          setTimeRemaining(null);
         }
       } catch (error) {
         secureLogger.error('Failed to check demo session', {
@@ -82,23 +65,7 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     checkDemoSession();
   }, []);
 
-  // Timer for demo session countdown
-  useEffect(() => {
-    if (isDemo && timeRemaining && timeRemaining > 0) {
-      const timer = setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev && prev > 1000) {
-            return prev - 1000;
-          } else {
-            endDemoSession();
-            return null;
-          }
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [isDemo, timeRemaining]);
+  // Timer removed - demo sessions no longer have time limits
 
   const startDemoSession = async (email: string): Promise<boolean> => {
     try {
@@ -127,12 +94,21 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         role: userData.role
       });
 
+      // Also set regular sessionStorage for component detection
+      sessionStorage.setItem('demoCredentials', JSON.stringify({
+        email: userData.email,
+        name: userData.name,
+        role: userData.role
+      }));
+      sessionStorage.setItem('isDemoMode', 'true');
+      sessionStorage.setItem('demoSession', JSON.stringify(sessionData));
+
       // Update state
       setIsDemo(true);
       setDemoUser(userData);
       setDemoRole(userData.role);
       setSessionId(sessionData.sessionId);
-      setTimeRemaining(900000); // 15 minutes
+      setTimeRemaining(null); // No time limit
 
       secureLogger.auditLog('demo_session_started', {
         component: 'DemoContext',
@@ -167,6 +143,11 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await secureSessionManager.removeSecureItem('isDemoMode');
       await secureSessionManager.removeSecureItem('demoCredentials');
 
+      // Also clear regular sessionStorage
+      sessionStorage.removeItem('demoCredentials');
+      sessionStorage.removeItem('isDemoMode');
+      sessionStorage.removeItem('demoSession');
+
       // Reset state
       setIsDemo(false);
       setDemoUser(null);
@@ -188,16 +169,8 @@ export const DemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const refreshSession = async (): Promise<void> => {
     if (sessionId) {
-      // Extend session by resetting timer
-      setTimeRemaining(900000); // Reset to 15 minutes
-      
-      const sessionData = await secureSessionManager.getSecureItem('demoSession');
-      if (sessionData) {
-        sessionData.startTime = Date.now();
-        await secureSessionManager.setSecureItem('demoSession', sessionData);
-      }
-
-      secureLogger.info('Demo session refreshed', {
+      // No timer to reset - demo sessions are unlimited
+      secureLogger.info('Demo session refreshed (no action needed - unlimited time)', {
         component: 'DemoContext',
         action: 'refresh_session',
         sessionId
