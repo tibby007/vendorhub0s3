@@ -3,14 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff } from 'lucide-react';
-
-// Direct Supabase client to avoid context issues
-const supabase = createClient(
-  'https://kfdlxorqopnibuzexoko.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGx4b3Jxb3BuaWJ1emV4b2tvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NjI2OTYsImV4cCI6MjA3MDIzODY5Nn0.d3Q4d75ZOLIDSOVrx6TyQU3dj3ZLOddeMTbIg2VM01Y'
-);
 
 const PasswordReset = () => {
   const [newPassword, setNewPassword] = useState('');
@@ -64,12 +58,13 @@ const PasswordReset = () => {
       }
 
       console.log('✅ Password updated successfully');
-      setMessage('Password updated successfully! Redirecting to login...');
+      setMessage('Password updated successfully! Redirecting to dashboard...');
       setIsSuccess(true);
       
-      // Redirect after success
+      // User is already authenticated after password update, go directly to dashboard
       setTimeout(() => {
-        window.location.href = '/auth';
+        // Use replace to avoid back button issues and prevent auth context conflicts
+        window.location.replace('/dashboard');
       }, 2000);
       
     } catch (error: any) {

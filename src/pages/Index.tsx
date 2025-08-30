@@ -150,7 +150,7 @@ const Index = () => {
         return;
       }
     }
-  }, [user, isLoading, navigate, isDemo, demoRole, subscription.status, subscription.subscribed, subscription.isLoading, location.search]); // Stable references only
+  }, [user, isLoading, navigate, isDemo, demoRole, location.search]); // Remove subscription states to prevent infinite loops
 
   if (isLoading || subscription.isLoading) {
     console.log('⏳ Dashboard loading...');
