@@ -15,6 +15,22 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+
+  useEffect(() => {
+    // Listen for PASSWORD_RECOVERY auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('🔑 PASSWORD_RECOVERY event detected');
+        setIsPasswordRecovery(true);
+        setShowPasswordReset(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     // Handle auth errors from URL
@@ -73,10 +89,6 @@ const Auth = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    // Check if this is a password recovery flow
-    const type = searchParams.get('type');
-    const isPasswordRecovery = type === 'recovery';
-    
     // Don't redirect authenticated users if they need to reset their password
     if (!isLoading && user && !isPasswordRecovery) {
       secureLogger.info('User authenticated, checking redirect from Auth page', {
@@ -210,7 +222,7 @@ const Auth = () => {
       
       checkSelectedPlan();
     }
-  }, [user, isLoading, navigate, searchParams]);
+  }, [user, isLoading, navigate, searchParams, isPasswordRecovery]);
 
   // Show loading while checking auth status
   if (isLoading) {

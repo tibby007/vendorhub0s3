@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Debounce session sync to prevent race conditions
       setTimeout(() => setGlobalSession(session), 100);
       
-      if (event === 'SIGNED_IN' && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session?.user) {
         try {
           // Use users table instead of user_profiles since it doesn't exist
           const authUser = {
@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user_metadata: session.user.user_metadata
           };
           setUser(authUser);
-          console.log('✅ Real user set:', authUser);
+          console.log('✅ User set for', event + ':', authUser);
         } catch (error) {
           console.error('Error setting user data:', error);
           const fallbackUser = {
@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user_metadata: session.user.user_metadata
           };
           setUser(fallbackUser);
-          console.log('✅ Fallback user set:', fallbackUser);
+          console.log('✅ Fallback user set for', event + ':', fallbackUser);
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
