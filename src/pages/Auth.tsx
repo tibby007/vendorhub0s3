@@ -18,13 +18,14 @@ const Auth = () => {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
-    // Check URL parameters for password recovery
+    // Check URL parameters for password recovery - only run when searchParams change
     const type = searchParams.get('type');
-    if (type === 'recovery') {
-      console.log('🔑 Password recovery detected from URL');
-      setIsPasswordRecovery(true);
-      setShowPasswordReset(true);
-    }
+    const isRecovery = type === 'recovery';
+    
+    console.log('🔑 URL check - recovery type:', type, 'isRecovery:', isRecovery);
+    
+    setIsPasswordRecovery(isRecovery);
+    setShowPasswordReset(isRecovery);
   }, [searchParams]);
 
   useEffect(() => {
