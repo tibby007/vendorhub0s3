@@ -73,8 +73,12 @@ const Auth = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    // Redirect authenticated users
-    if (!isLoading && user) {
+    // Check if this is a password recovery flow
+    const type = searchParams.get('type');
+    const isPasswordRecovery = type === 'recovery';
+    
+    // Don't redirect authenticated users if they need to reset their password
+    if (!isLoading && user && !isPasswordRecovery) {
       secureLogger.info('User authenticated, checking redirect from Auth page', {
         component: 'Auth',
         action: 'authenticated_redirect',
