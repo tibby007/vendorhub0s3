@@ -109,16 +109,25 @@ const Index = () => {
             sessionStorage.removeItem('subscription_check_attempts');
             // Only redirect BROKERS if they have no subscription AND no active trial
             // CRITICAL: Vendors should NEVER be redirected to subscription page
+            // OWNER BYPASS: support@emergestack.dev NEVER gets redirected to subscription
             const userRole = user.user_metadata?.role || user.role;
             const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
+            const isOwner = user.email === 'support@emergestack.dev';
             
-            if (isBrokerRole && (error || (!data?.subscribed && !data?.trial_active))) {
+            if (!isOwner && isBrokerRole && (error || (!data?.subscribed && !data?.trial_active))) {
               secureLogger.info('New broker detected, redirecting to subscription', {
                 component: 'Index',
                 action: 'new_broker_subscription_redirect',
                 userRole
               });
               navigate('/subscription', { replace: true });
+            } else if (isOwner) {
+              secureLogger.info('OWNER LOGIN - bypassing all subscription checks', {
+                component: 'Index',
+                action: 'owner_bypass_subscription',
+                userRole,
+                email: user.email
+              });
             } else if (!isBrokerRole) {
               secureLogger.info('Non-broker user, allowing dashboard access', {
                 component: 'Index', 
@@ -153,10 +162,12 @@ const Index = () => {
       
       // Check if BROKER should be redirected to subscription setup after subscription loads
       // CRITICAL: Only brokers need subscription setup - vendors are invited by brokers
+      // OWNER BYPASS: support@emergestack.dev NEVER gets redirected to subscription
       const userRole = user.user_metadata?.role || user.role;
       const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
+      const isOwner = user.email === 'support@emergestack.dev';
       
-      if (isBrokerRole && !subscription.isLoading && !isDemo && !subscription.subscribed && subscription.status === 'expired') {
+      if (!isOwner && isBrokerRole && !subscription.isLoading && !isDemo && !subscription.subscribed && subscription.status === 'expired') {
         secureLogger.info('Broker needs subscription setup, redirecting to subscription', {
           component: 'Index',
           action: 'expired_broker_subscription_redirect',
@@ -199,15 +210,27 @@ const Index = () => {
     const currentRole = isDemo ? demoRole : user?.user_metadata?.role || user?.role;
     const currentName = user?.user_metadata?.name || user?.name;
     
+    // SUPERADMIN CHECK: support@emergestack.dev is the owner and bypasses ALL subscription logic
+    const isOwner = user?.email === 'support@emergestack.dev';
+    
     // Debug role information
     console.log('🎯 INDEX.tsx - Demo mode:', isDemo);
     console.log('🎯 INDEX.tsx - Demo role:', demoRole);
-    console.log('🎯 INDEX.tsx - User role:', user?.user_metadata?.role || user?.role);
+    console.log('🎯 INDEX.tsx - User metadata role:', user?.user_metadata?.role);
+    console.log('🎯 INDEX.tsx - User database role:', user?.role);
     console.log('🎯 INDEX.tsx - Current role:', currentRole);
+    console.log('🎯 INDEX.tsx - Is owner:', isOwner);
+    console.log('🎯 INDEX.tsx - User object:', user);
     console.log('🎯 Rendering dashboard for role:', currentRole, 'User:', currentName, 'Email:', user?.email);
     
     // Normalize role for comparison
     const normalizedRole = currentRole?.trim();
+    
+    // OWNER BYPASS: support@emergestack.dev gets superadmin access regardless of role
+    if (isOwner) {
+      console.log('👑 OWNER LOGIN - Loading Super Admin dashboard (bypassing all subscription checks)');
+      return <SuperAdminDashboard />;
+    }
     
     switch (normalizedRole) {
       case 'Super Admin':

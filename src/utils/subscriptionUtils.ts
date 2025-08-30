@@ -2,6 +2,11 @@
 export const needsSubscriptionSetup = (user: any, subscriptionData: any): boolean => {
   if (!user) return false;
   
+  // OWNER BYPASS: support@emergestack.dev NEVER needs subscription setup
+  if (user.email === 'support@emergestack.dev') {
+    return false;
+  }
+  
   // Demo users don't need subscription setup
   if (user.email?.includes('demo-') || user.email?.includes('@demo.com')) {
     return false;

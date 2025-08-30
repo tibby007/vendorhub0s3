@@ -119,6 +119,27 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     console.log('[SubscriptionContext] fetchSubscriptionData called. forceRefresh:', forceRefresh);
     console.log('[SubscriptionContext] Current session:', session);
     
+    // OWNER BYPASS: support@emergestack.dev gets full access without subscription checks
+    const userEmail = session?.user?.email;
+    if (userEmail === 'support@emergestack.dev') {
+      console.log('[SubscriptionContext] OWNER BYPASS - giving full access');
+      dispatch({
+        type: 'SET_SUBSCRIPTION_DATA',
+        payload: {
+          subscribed: true,
+          tier: 'Premium',
+          status: 'active',
+          endDate: null,
+          billingStatus: 'active',
+          planType: 'premium',
+          lastUpdated: Date.now(),
+          isLoading: false,
+          error: null
+        }
+      });
+      return;
+    }
+    
     // Check for demo mode first - bypass all subscription checks
     // Demo mode can be detected through multiple methods for reliability
     const isDemoCredentials = sessionStorage.getItem('demoCredentials') !== null;
