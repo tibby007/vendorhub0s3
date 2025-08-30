@@ -61,14 +61,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log('🔄 AuthContext initializing auth listener');
+    
+    let isCleanedUp = false;
+    let authSubscription: any = null;
 
     // Check for existing session first
     const initializeAuth = async () => {
+      if (isCleanedUp) return;
+      
       try {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('🔍 Initial session check:', !!session);
         
-        if (session?.user) {
+        if (!isCleanedUp && session?.user) {
           const authUser = {
             id: session.user.id,
             email: session.user.email || '',
@@ -80,15 +85,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           setUser(authUser);
           setSession(session);
-          setTimeout(() => setGlobalSession(session), 100);
+          setTimeout(() => {
+            if (!isCleanedUp) setGlobalSession(session);
+          }, 100);
           console.log('✅ Initial user set:', authUser);
-        } else {
+        } else if (!isCleanedUp) {
           console.log('🚫 No initial session found');
         }
       } catch (error) {
-        console.error('Error checking initial session:', error);
+        if (!isCleanedUp) {
+          console.error('Error checking initial session:', error);
+        }
       } finally {
-        setLoading(false);
+        if (!isCleanedUp) {
+          setLoading(false);
+        }
       }
     };
 
@@ -96,25 +107,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Set up real authentication listener with guards to prevent infinite loops
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (isCleanedUp) return;
+      
       console.log('🔐 Auth state change:', event, !!session);
       
       // Prevent infinite loops by checking if session actually changed
       if (event === 'INITIAL_SESSION' && !session) {
-        setLoading(false);
+        if (!isCleanedUp) setLoading(false);
         return;
       }
       
-      setSession(session);
+      if (!isCleanedUp) setSession(session);
       
-      if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session?.user && !isCleanedUp) {
         try {
-          // Prevent infinite loops during PASSWORD_RECOVERY by checking if user is already set
-          if (event === 'PASSWORD_RECOVERY' && user && user.id === session.user.id) {
-            console.log('🔄 PASSWORD_RECOVERY: User already set, skipping to prevent loop');
-            setLoading(false);
-            return;
-          }
-          
           // Use users table instead of user_profiles since it doesn't exist
           const authUser = {
             id: session.user.id,
@@ -128,33 +134,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(authUser);
           console.log('✅ User set for', event + ':', authUser);
         } catch (error) {
-          console.error('Error setting user data:', error);
-          const fallbackUser = {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-            role: 'Partner Admin',
-            avatar_url: session.user.user_metadata?.avatar_url,
-            created_at: session.user.created_at,
-            user_metadata: session.user.user_metadata
-          };
-          setUser(fallbackUser);
-          console.log('✅ Fallback user set for', event + ':', fallbackUser);
+          if (!isCleanedUp) {
+            console.error('Error setting user data:', error);
+            const fallbackUser = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+              role: 'Partner Admin',
+              avatar_url: session.user.user_metadata?.avatar_url,
+              created_at: session.user.created_at,
+              user_metadata: session.user.user_metadata
+            };
+            setUser(fallbackUser);
+            console.log('✅ Fallback user set for', event + ':', fallbackUser);
+          }
         }
         
         // Set global session after user is set successfully
-        setTimeout(() => setGlobalSession(session), 100);
-      } else if (event === 'SIGNED_OUT') {
+        setTimeout(() => {
+          if (!isCleanedUp) setGlobalSession(session);
+        }, 100);
+      } else if (event === 'SIGNED_OUT' && !isCleanedUp) {
         setUser(null);
         setGlobalSession(null);
         console.log('🚫 User signed out');
       }
-      setLoading(false);
+      
+      if (!isCleanedUp) setLoading(false);
     });
+    
+    authSubscription = subscription;
 
     return () => {
       console.log('🧹 Cleaning up auth listener');
-      subscription.unsubscribe();
+      isCleanedUp = true;
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
     };
   }, []);
 
