@@ -107,13 +107,24 @@ const Index = () => {
             const { data, error } = await supabase.functions.invoke('check-subscription');
             // Clear attempt counter on success
             sessionStorage.removeItem('subscription_check_attempts');
-            // Only redirect if user has no subscription AND no active trial
-            if (error || (!data?.subscribed && !data?.trial_active)) {
-              secureLogger.info('New user detected, redirecting to subscription', {
+            // Only redirect BROKERS if they have no subscription AND no active trial
+            // CRITICAL: Vendors should NEVER be redirected to subscription page
+            const userRole = user.user_metadata?.role || user.role;
+            const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
+            
+            if (isBrokerRole && (error || (!data?.subscribed && !data?.trial_active))) {
+              secureLogger.info('New broker detected, redirecting to subscription', {
                 component: 'Index',
-                action: 'new_user_subscription_redirect'
+                action: 'new_broker_subscription_redirect',
+                userRole
               });
               navigate('/subscription', { replace: true });
+            } else if (!isBrokerRole) {
+              secureLogger.info('Non-broker user, allowing dashboard access', {
+                component: 'Index', 
+                action: 'vendor_dashboard_access',
+                userRole
+              });
             } else if (data?.trial_active) {
               secureLogger.info('User has active trial, staying on dashboard', {
                 component: 'Index',
@@ -140,14 +151,25 @@ const Index = () => {
         return;
       }
       
-      // Check if user should be redirected to subscription setup after subscription loads
-      if (!subscription.isLoading && !isDemo && !subscription.subscribed && subscription.status === 'expired') {
-        secureLogger.info('User needs subscription setup, redirecting to subscription', {
+      // Check if BROKER should be redirected to subscription setup after subscription loads
+      // CRITICAL: Only brokers need subscription setup - vendors are invited by brokers
+      const userRole = user.user_metadata?.role || user.role;
+      const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
+      
+      if (isBrokerRole && !subscription.isLoading && !isDemo && !subscription.subscribed && subscription.status === 'expired') {
+        secureLogger.info('Broker needs subscription setup, redirecting to subscription', {
           component: 'Index',
-          action: 'expired_subscription_redirect'
+          action: 'expired_broker_subscription_redirect',
+          userRole
         });
         navigate('/subscription', { replace: true });
         return;
+      } else if (!isBrokerRole && !subscription.isLoading && !subscription.subscribed) {
+        secureLogger.info('Non-broker user with no subscription - allowing dashboard access', {
+          component: 'Index',
+          action: 'vendor_no_subscription_access',
+          userRole
+        });
       }
     }
   }, [user, isLoading, navigate, isDemo, demoRole, location.search]); // Remove subscription states to prevent infinite loops

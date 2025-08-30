@@ -7,6 +7,12 @@ export const needsSubscriptionSetup = (user: any, subscriptionData: any): boolea
     return false;
   }
   
+  // CRITICAL: Only Brokers (Partner Admin) need subscriptions - Vendors are invited by brokers
+  const userRole = user.user_metadata?.role || user.role;
+  if (userRole !== 'Partner Admin' && userRole !== 'Broker Admin') {
+    return false; // Vendors, Loan Officers, etc. never need subscription setup
+  }
+  
   // If user has active subscription or trial, they don't need setup
   if (subscriptionData?.subscribed || subscriptionData?.trial_active) {
     return false;
