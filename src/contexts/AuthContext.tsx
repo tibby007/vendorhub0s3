@@ -108,6 +108,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session?.user) {
         try {
+          // Prevent infinite loops during PASSWORD_RECOVERY by checking if user is already set
+          if (event === 'PASSWORD_RECOVERY' && user && user.id === session.user.id) {
+            console.log('🔄 PASSWORD_RECOVERY: User already set, skipping to prevent loop');
+            setLoading(false);
+            return;
+          }
+          
           // Use users table instead of user_profiles since it doesn't exist
           const authUser = {
             id: session.user.id,

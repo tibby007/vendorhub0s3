@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -16,17 +16,64 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  
+  // Ref guards to prevent infinite loops
+  const isProcessingRecovery = useRef(false);
+  const lastRecoveryCheck = useRef<string | null>(null);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
+    // Guard against infinite loops with ref-based checks
+    const currentSearchParams = searchParams.toString();
+    if (lastRecoveryCheck.current === currentSearchParams) {
+      return; // Already processed these search params
+    }
+    lastRecoveryCheck.current = currentSearchParams;
+    
     // Check URL parameters for password recovery - only run when searchParams change
     const type = searchParams.get('type');
     const isRecovery = type === 'recovery';
     
     console.log('🔑 URL check - recovery type:', type, 'isRecovery:', isRecovery);
     
-    setIsPasswordRecovery(isRecovery);
-    setShowPasswordReset(isRecovery);
-  }, [searchParams]);
+    // Only update state if values actually changed
+    if (isRecovery !== isPasswordRecovery) {
+      setIsPasswordRecovery(isRecovery);
+    }
+    if (isRecovery !== showPasswordReset) {
+      setShowPasswordReset(isRecovery);
+    }
+  }, [searchParams]); // Remove state dependencies to prevent infinite loops
+
+  // Handle PASSWORD_RECOVERY events from AuthContext
+  useEffect(() => {
+    if (isProcessingRecovery.current) return;
+    
+    // Listen for PASSWORD_RECOVERY auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && !isProcessingRecovery.current) {
+        console.log('🔑 PASSWORD_RECOVERY event detected in Auth component');
+        isProcessingRecovery.current = true;
+        
+        // Set password recovery state without causing loops
+        if (!showPasswordReset) {
+          setShowPasswordReset(true);
+        }
+        if (!isPasswordRecovery) {
+          setIsPasswordRecovery(true);
+        }
+        
+        // Clear processing flag after a brief delay
+        setTimeout(() => {
+          isProcessingRecovery.current = false;
+        }, 1000);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []); // Empty dependency array - only run once
 
   useEffect(() => {
     // Handle auth errors from URL
@@ -68,10 +115,20 @@ const Auth = () => {
       });
       
       if (type === 'recovery') {
+        // Set processing flag to prevent loops during recovery
+        isProcessingRecovery.current = true;
+        
         // Show password reset form instead of redirecting
         setShowPasswordReset(true);
+        setIsPasswordRecovery(true);
+        
         // Clean up the URL but keep the component state
         navigate('/auth', { replace: true });
+        
+        // Clear processing flag after navigation
+        setTimeout(() => {
+          isProcessingRecovery.current = false;
+        }, 1000);
         return;
       } else if (type === 'magiclink') {
         // Clean up the URL
@@ -85,6 +142,12 @@ const Auth = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
+    // Prevent multiple initializations during password recovery
+    if (isProcessingRecovery.current) {
+      console.log('🔄 Skipping navigation effect - recovery in progress');
+      return;
+    }
+    
     // Don't redirect authenticated users if they need to reset their password
     if (!isLoading && user && !isPasswordRecovery) {
       secureLogger.info('User authenticated, checking redirect from Auth page', {

@@ -370,15 +370,25 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Set current session and auto-refresh when session changes
   const setSession = useCallback((session: Session | null) => {
-    console.log('[SubscriptionContext] setSession called. Session:', session);
+    console.log('[SubscriptionContext] setSession called. Session:', !!session);
+    
+    // Prevent rapid session changes during PASSWORD_RECOVERY
+    const currentSessionId = sessionRef.current?.user?.id;
+    const newSessionId = session?.user?.id;
+    
+    if (currentSessionId === newSessionId && sessionRef.current && session) {
+      console.log('[SubscriptionContext] Same session detected, skipping update to prevent loop');
+      return;
+    }
+    
     sessionRef.current = session;
     if (!session) {
       dispatch({ type: 'RESET' });
     } else {
-      // Auto-refresh when session is set
-      refresh(false);
+      // Auto-refresh when session is set (debounced)
+      debouncedRefresh(false);
     }
-  }, [refresh]);
+  }, [debouncedRefresh]);
 
   // Set the global session handler and check for existing session
   useEffect(() => {
