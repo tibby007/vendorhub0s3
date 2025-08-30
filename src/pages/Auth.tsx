@@ -1,9 +1,10 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import LoginForm from '@/components/auth/LoginForm';
+import PasswordResetForm from '@/components/auth/PasswordResetForm';
 import { secureSessionManager } from '@/utils/secureSessionManager';
 import { invokeFunction } from '@/utils/netlifyFunctions';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +14,7 @@ const Auth = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   useEffect(() => {
     // Handle auth errors from URL
@@ -44,7 +46,7 @@ const Auth = () => {
       return;
     }
 
-    // Show success message for magic link/password reset (Supabase handles the actual auth)
+    // Handle password reset and magic link authentication
     const type = searchParams.get('type');
     if (type && !error) {
       secureLogger.info('Auth success callback detected', {
@@ -53,16 +55,15 @@ const Auth = () => {
         type
       });
       
-      // Clean up the URL
-      navigate('/auth', { replace: true });
-      
-      // Show success message
       if (type === 'recovery') {
-        toast({
-          title: "Password Reset Successful",
-          description: "You are now logged in. You can update your password in settings.",
-        });
+        // Show password reset form instead of redirecting
+        setShowPasswordReset(true);
+        // Clean up the URL but keep the component state
+        navigate('/auth', { replace: true });
+        return;
       } else if (type === 'magiclink') {
+        // Clean up the URL
+        navigate('/auth', { replace: true });
         toast({
           title: "Magic Link Success",
           description: "You have been successfully logged in!",
@@ -252,6 +253,11 @@ const Auth = () => {
         </div>
       </div>
     );
+  }
+
+  // Show password reset form when recovery token is present
+  if (showPasswordReset) {
+    return <PasswordResetForm />;
   }
 
   return <LoginForm />;
