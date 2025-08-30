@@ -1,7 +1,16 @@
 -- Fix support@emergestack.dev user who exists in auth but has no application records
 -- This migration will create the missing users and partners records
 
--- First, create the user record if it doesn't exist
+-- First, update the auth.users metadata to set correct role
+UPDATE auth.users 
+SET raw_user_meta_data = 
+  CASE 
+    WHEN raw_user_meta_data IS NULL THEN '{"role": "Partner Admin", "name": "Support Admin"}'::jsonb
+    ELSE raw_user_meta_data || '{"role": "Partner Admin", "name": "Support Admin"}'::jsonb
+  END
+WHERE id = '8d1924d3-bc64-4c27-9004-7de35d1217c5';
+
+-- Then, create the user record if it doesn't exist
 INSERT INTO public.users (
   id,
   email,
@@ -12,7 +21,7 @@ INSERT INTO public.users (
 ) VALUES (
   '8d1924d3-bc64-4c27-9004-7de35d1217c5',
   'support@emergestack.dev',
-  'Support Admin',
+  'Support Admin', 
   'Partner Admin',
   NOW(),
   NOW()
