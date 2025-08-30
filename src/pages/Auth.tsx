@@ -263,13 +263,35 @@ const Auth = () => {
         const isNewUser = type === 'signup' || type === 'magiclink' || type === 'email';
         const intent = searchParams.get('intent');
         
-        if (isNewUser || intent === 'subscription' || !user.user_metadata?.has_completed_setup) {
-          secureLogger.info('New user without plan selection, redirecting to subscription setup', {
+        // OWNER BYPASS: support@emergestack.dev NEVER goes to subscription
+        const isOwner = user.email === 'support@emergestack.dev';
+        
+        // CRITICAL: Only BROKERS need subscription setup - vendors are invited by brokers
+        const userRole = user.user_metadata?.role || user.role;
+        const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
+        
+        if (!isOwner && isBrokerRole && (isNewUser || intent === 'subscription' || !user.user_metadata?.has_completed_setup)) {
+          secureLogger.info('New BROKER without plan selection, redirecting to subscription setup', {
             component: 'Auth',
-            action: 'new_user_redirect',
-            intent
+            action: 'new_broker_redirect',
+            intent,
+            userRole
           });
           navigate('/subscription', { replace: true });
+        } else if (isOwner) {
+          secureLogger.info('OWNER LOGIN - bypassing subscription, going to dashboard', {
+            component: 'Auth',
+            action: 'owner_bypass_redirect',
+            userRole
+          });
+          navigate('/dashboard', { replace: true });
+        } else if (!isBrokerRole) {
+          secureLogger.info('Non-broker user (Vendor/LO), going directly to dashboard', {
+            component: 'Auth',
+            action: 'vendor_direct_redirect',
+            userRole
+          });
+          navigate('/dashboard', { replace: true });
         } else {
           secureLogger.info('Existing user, redirecting to dashboard', {
             component: 'Auth',
