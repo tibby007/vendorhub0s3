@@ -18,19 +18,14 @@ const Auth = () => {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
-    // Listen for PASSWORD_RECOVERY auth events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        console.log('🔑 PASSWORD_RECOVERY event detected');
-        setIsPasswordRecovery(true);
-        setShowPasswordReset(true);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    // Check URL parameters for password recovery
+    const type = searchParams.get('type');
+    if (type === 'recovery') {
+      console.log('🔑 Password recovery detected from URL');
+      setIsPasswordRecovery(true);
+      setShowPasswordReset(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     // Handle auth errors from URL

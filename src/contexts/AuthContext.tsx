@@ -94,12 +94,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Set up real authentication listener
+    // Set up real authentication listener with guards to prevent infinite loops
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth state change:', event, !!session);
+      
+      // Prevent infinite loops by checking if session actually changed
+      if (event === 'INITIAL_SESSION' && !session) {
+        setLoading(false);
+        return;
+      }
+      
       setSession(session);
-      // Debounce session sync to prevent race conditions
-      setTimeout(() => setGlobalSession(session), 100);
       
       if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session?.user) {
         try {
@@ -129,8 +134,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(fallbackUser);
           console.log('✅ Fallback user set for', event + ':', fallbackUser);
         }
+        
+        // Set global session after user is set successfully
+        setTimeout(() => setGlobalSession(session), 100);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        setGlobalSession(null);
         console.log('🚫 User signed out');
       }
       setLoading(false);
