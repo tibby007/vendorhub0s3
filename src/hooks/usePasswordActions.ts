@@ -18,8 +18,8 @@ export const usePasswordActions = () => {
       console.log('🔗 Sending built-in magic link to:', email);
       
       const redirectUrl = window.location.hostname === 'localhost' 
-        ? `${window.location.origin}/auth`
-        : 'https://vendorhubos.com/auth';
+        ? `${window.location.origin}/password-reset`
+        : 'https://vendorhubos.com/password-reset';
 
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
@@ -71,8 +71,8 @@ export const usePasswordActions = () => {
       console.log('🔑 Sending built-in password reset to:', email);
       
       const redirectUrl = window.location.hostname === 'localhost' 
-        ? `${window.location.origin}/auth`
-        : 'https://vendorhubos.com/auth';
+        ? `${window.location.origin}/password-reset`
+        : 'https://vendorhubos.com/password-reset';
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl

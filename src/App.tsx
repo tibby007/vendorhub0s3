@@ -10,6 +10,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import PasswordReset from "./pages/PasswordReset";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import Subscription from "./pages/Subscription";
@@ -40,6 +41,7 @@ function App() {
             <Routes>
               <Route path="/landing" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/password-reset" element={<PasswordReset />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/setup-complete" element={<SetupComplete />} />
               
