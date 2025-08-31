@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'fs';
+
 console.log('🔍 Build Environment Check');
 console.log('========================');
 console.log('Node.js version:', process.version);
@@ -16,11 +18,9 @@ console.log('NPM_FLAGS:', process.env.NPM_FLAGS || 'Not set');
 console.log('');
 
 console.log('Build Configuration:');
-const fs = require('fs');
-const path = require('path');
 
 try {
-  const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+  const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
   console.log('Package name:', packageJson.name);
   console.log('Build script:', packageJson.scripts.build);
   console.log('Dependencies count:', Object.keys(packageJson.dependencies || {}).length);
@@ -30,7 +30,7 @@ try {
 }
 
 try {
-  const netlifyToml = fs.readFileSync('netlify.toml', 'utf8');
+  const netlifyToml = readFileSync('netlify.toml', 'utf8');
   console.log('Netlify config exists: ✅');
   console.log('Publish directory:', netlifyToml.includes('publish = "dist"') ? 'dist ✅' : '❌ Not dist');
 } catch (error) {
