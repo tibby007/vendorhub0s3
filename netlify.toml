@@ -1,6 +1,9 @@
 [build]
   publish = "dist"
-  command = "npm run build"
+  command = "node build-check.js && npm ci && npm run build"
+
+[build.processing]
+  skip_processing = false
 
 [build.environment]
   NODE_VERSION = "18"
