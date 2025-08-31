@@ -10,13 +10,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Save, Settings, Bell, Shield, Palette, CreditCard, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import SubscriptionManager from '@/components/subscription/SubscriptionManager';
 import ResourcesManagement from '@/components/resources/ResourcesManagement';
 import StorageUsageCard from '@/components/dashboard/StorageUsageCard';
 import SecurityAuditPanel from '@/components/security/SecurityAuditPanel';
+import { savePartnerSettings } from '@/lib/partner-settings';
+import { getCurrentPartner } from '@/lib/partners';
+import { logDebug } from '@/lib/log';
 
 interface PartnerProfile {
   id: string;
@@ -58,7 +60,7 @@ const PartnerSettings = () => {
   }, [user]);
 
   const fetchPartnerProfile = async () => {
-    if (!user?.id) return;
+    if (!user?.email) return;
 
     setIsLoading(true);
     
@@ -88,62 +90,21 @@ const PartnerSettings = () => {
     }
 
     try {
-      console.log('[PartnerSettings] Fetching profile for user:', { id: user.id, email: user.email, partner_id: (user as any).partner_id });
+      const partner = await getCurrentPartner();
+      logDebug("PARTNER_RESOLVED", { id: partner.id, email: partner.contact_email });
       
-      // First, try to get from partners table using partner_id if available
-      let partnerData = null;
-      let partnerError = null;
-      
-      if ((user as any).partner_id) {
-        console.log('[PartnerSettings] User has partner_id, querying by id:', (user as any).partner_id);
-        const result = await supabase
-          .from('partners')
-          .select('*')
-          .eq('id', (user as any).partner_id)
-          .maybeSingle();
-        
-        partnerData = result.data;
-        partnerError = result.error;
-      } else {
-        console.log('[PartnerSettings] No partner_id, querying by contact_email:', user.email);
-        const result = await supabase
-          .from('partners')
-          .select('*')
-          .eq('contact_email', user.email)
-          .maybeSingle();
-        
-        partnerData = result.data;
-        partnerError = result.error;
-      }
-
-      if (partnerError && partnerError.code !== 'PGRST116') {
-        console.error('[PartnerSettings] Database error:', partnerError);
-        throw partnerError;
-      }
-
-      if (partnerData) {
-        console.log('[PartnerSettings] Found partner data:', partnerData);
-        setProfile({
-          id: partnerData.id,
-          name: partnerData.name,
-          contact_email: partnerData.contact_email,
-          contact_phone: partnerData.contact_phone || '',
-          company_logo: partnerData.company_logo || '',
-          brand_color: partnerData.brand_color || '#10B981',
-          notification_email: partnerData.notification_email ?? true,
-          notification_sms: partnerData.notification_sms ?? false,
-          auto_approval: partnerData.auto_approval ?? false,
-          approval_threshold: partnerData.approval_threshold || 1000
-        });
-      } else {
-        console.log('[PartnerSettings] No partner data found, using user data as fallback');
-        // Use user data as fallback
-        setProfile(prev => ({
-          ...prev,
-          name: user.name || '',
-          contact_email: user.email || ''
-        }));
-      }
+      setProfile({
+        id: partner.id,
+        name: partner.name || '',
+        contact_email: partner.contact_email,
+        contact_phone: partner.support_phone || '',
+        company_logo: partner.company_logo || '',
+        brand_color: partner.brand_color_primary || '#10B981',
+        notification_email: true, // Default values for fields not in helper
+        notification_sms: false,
+        auto_approval: false,
+        approval_threshold: 1000
+      });
     } catch (error: any) {
       console.error('Error fetching partner profile:', error);
       toast({
@@ -181,80 +142,15 @@ const PartnerSettings = () => {
 
     setIsSaving(true);
     try {
-      console.log('[PartnerSettings] Saving profile:', profile);
-      console.log('[PartnerSettings] Current user:', { id: user.id, email: user.email, partner_id: (user as any).partner_id });
+      logDebug("PARTNER_SETTINGS_SAVE", { profile, user: { id: user.id, email: user.email } });
       
-      // Only include fields that definitely exist in the database
-      const upsertData: any = {
-        name: profile.name || user?.name || 'New Partner',
-        contact_email: profile.contact_email || user?.email,
-        contact_phone: profile.contact_phone || '',
-        company_logo: profile.company_logo || null,
-        updated_at: new Date().toISOString()
-      };
-      // Removed brand_color - column doesn't exist in production database
-
-      // Only add optional fields if they exist in the database
-      // Remove approval_threshold, notification_email, notification_sms, auto_approval
-      // as they don't exist in the current database schema
-      
-      console.log('[PartnerSettings] Upsert data prepared:', upsertData);
-      
-      // Try to update existing record first if we have an ID
-      if (profile.id) {
-        console.log('[PartnerSettings] Updating existing partner with ID:', profile.id);
-        
-        const { data, error } = await supabase
-          .from('partners')
-          .update(upsertData)
-          .eq('id', profile.id)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[PartnerSettings] Update failed:', error);
-          throw error;
-        }
-        
-        console.log('[PartnerSettings] Update successful:', data);
-      } else {
-        // Create new record
-        console.log('[PartnerSettings] Creating new partner record');
-        upsertData.created_at = new Date().toISOString();
-        // Set default values for required fields
-        upsertData.plan_type = 'basic';
-        upsertData.billing_status = 'trialing';
-        upsertData.vendor_limit = 3;
-        upsertData.storage_limit = 5368709120; // 5GB
-        upsertData.storage_used = 0;
-        
-        const { data, error } = await supabase
-          .from('partners')
-          .insert(upsertData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('[PartnerSettings] Insert failed:', error);
-          throw error;
-        }
-        
-        console.log('[PartnerSettings] Insert successful:', data);
-        setProfile(prev => ({ ...prev, id: data.id }));
-        
-        // Update user's partner_id if not set
-        if (!(user as any).partner_id) {
-          console.log('[PartnerSettings] Updating user partner_id to:', data.id);
-          const { error: userUpdateError } = await supabase
-            .from('users')
-            .update({ partner_id: data.id })
-            .eq('id', user.id);
-          
-          if (userUpdateError) {
-            console.error('[PartnerSettings] Failed to update user partner_id:', userUpdateError);
-          }
-        }
-      }
+      await savePartnerSettings({
+        name: profile.name || undefined,
+        support_email: profile.contact_email || undefined,
+        support_phone: profile.contact_phone || undefined,
+        brand_color_primary: profile.brand_color || undefined,
+        company_logo: profile.company_logo || undefined
+      });
 
       toast({
         title: "Success",

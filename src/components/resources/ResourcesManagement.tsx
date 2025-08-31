@@ -5,6 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { resourcesService, ResourceFile } from '@/services/resourcesService';
 import { checkStorageLimit, updateStorageUsage } from '@/utils/storageUtils';
+import { listResourcesForPartner, createResourceForPartner, createNewsForPartner } from '@/lib/resources';
+import { logDebug } from '@/lib/log';
 import ResourceCard from './ResourceCard';
 import FileUploadDialog from './FileUploadDialog';
 import NewsDialog from './NewsDialog';
@@ -34,7 +36,8 @@ const ResourcesManagement = () => {
     
     setIsLoading(true);
     try {
-      const data = await resourcesService.getResources(user.id);
+      logDebug("RESOURCES_FETCH", { user_id: user.id });
+      const data = await listResourcesForPartner();
       setResources(data);
     } catch (error: any) {
       console.error('Error fetching resources:', error);
@@ -75,16 +78,13 @@ const ResourcesManagement = () => {
 
       const fileUrl = await resourcesService.uploadFile(selectedFile, user.id);
       
-      await resourcesService.createResource({
+      await createResourceForPartner({
         title: formData.title,
-        content: formData.description,
-        type: 'file',
         category: formData.category,
         file_url: fileUrl,
         file_size: selectedFile.size,
         mime_type: selectedFile.type,
-        is_published: true,
-        partner_id: user.id
+        is_published: true
       });
 
       // Update storage usage after successful upload
@@ -114,13 +114,12 @@ const ResourcesManagement = () => {
 
     setIsLoading(true);
     try {
-      await resourcesService.createResource({
+      logDebug("NEWS_CREATE", { title: formData.title, category: formData.category });
+      await createNewsForPartner({
         title: formData.title,
         content: formData.content,
-        type: 'news',
         category: formData.category,
-        is_published: true,
-        partner_id: user.id
+        is_published: true
       });
 
       toast({
