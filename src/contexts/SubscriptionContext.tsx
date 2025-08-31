@@ -117,6 +117,28 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [state.lastUpdated]);
 
   const fetchSubscriptionData = useCallback(async (forceRefresh = false) => {
+    // SIMPLE DEVELOPMENT BYPASS - Skip all subscription checks in dev mode
+    if (import.meta.env.DEV) {
+      console.log('🔧 Development mode - bypassing subscription check entirely');
+      dispatch({
+        type: 'SET_SUBSCRIPTION_DATA',
+        payload: {
+          subscribed: true,
+          tier: 'Pro',
+          status: 'active',
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          priceId: 'price_dev',
+          billingStatus: 'active',
+          planType: 'pro',
+          trialEnd: null,
+          lastUpdated: Date.now(),
+          isLoading: false,
+          error: null
+        }
+      });
+      return;
+    }
+
     const session = sessionRef.current;
     console.log('[SubscriptionContext] fetchSubscriptionData called. forceRefresh:', forceRefresh);
     console.log('[SubscriptionContext] Current session:', session);
