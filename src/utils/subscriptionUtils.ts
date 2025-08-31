@@ -23,6 +23,15 @@ export const needsSubscriptionSetup = (user: any, subscriptionData: any): boolea
     return false;
   }
   
+  // Check if user has an active trial period (from subscription_end date)
+  if (subscriptionData?.subscription_end) {
+    const trialEnd = new Date(subscriptionData.subscription_end);
+    const now = new Date();
+    if (trialEnd > now) {
+      return false; // Trial is still active, no setup needed
+    }
+  }
+  
   // Check if user is newly created (less than 5 minutes old)
   const userCreatedAt = new Date(user.created_at);
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);

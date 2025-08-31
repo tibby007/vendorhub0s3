@@ -10,6 +10,89 @@ import { invokeFunction } from '@/utils/netlifyFunctions';
 import { supabase } from '@/integrations/supabase/client';
 import { secureLogger } from '@/utils/secureLogger';
 
+// Function to create 3-day trial for new users
+const createTrialForNewUser = async (user: any) => {
+  const trialEndDate = new Date();
+  trialEndDate.setDate(trialEndDate.getDate() + 3); // 3 days from now
+  
+  try {
+    // Create partner record with trial
+    const { error: partnerError } = await supabase
+      .from('partners')
+      .insert({
+        name: user.name || user.email?.split('@')[0] || 'New Partner',
+        contact_email: user.email,
+        plan_type: 'basic',
+        billing_status: 'trialing',
+        trial_end: trialEndDate.toISOString(),
+        current_period_end: trialEndDate.toISOString(),
+        vendor_limit: 1, // Basic plan limit
+        storage_limit: 5368709120, // 5GB in bytes
+        storage_used: 0
+      });
+    
+    if (partnerError) {
+      console.log('Partner creation failed, trying upsert:', partnerError);
+      // Try upsert in case record exists
+      await supabase
+        .from('partners')
+        .upsert({
+          contact_email: user.email,
+          name: user.name || user.email?.split('@')[0] || 'New Partner',
+          plan_type: 'basic',
+          billing_status: 'trialing',
+          trial_end: trialEndDate.toISOString(),
+          current_period_end: trialEndDate.toISOString(),
+          vendor_limit: 1,
+          storage_limit: 5368709120,
+          storage_used: 0
+        }, { onConflict: 'contact_email' });
+    }
+    
+    // Create subscriber record with trial
+    const { error: subscriberError } = await supabase
+      .from('subscribers')
+      .insert({
+        email: user.email,
+        user_id: user.id,
+        subscribed: false,
+        subscription_tier: 'Basic',
+        subscription_end: trialEndDate.toISOString(),
+        trial_active: true
+      });
+    
+    if (subscriberError) {
+      console.log('Subscriber creation failed, trying upsert:', subscriberError);
+      // Try upsert in case record exists
+      await supabase
+        .from('subscribers')
+        .upsert({
+          email: user.email,
+          user_id: user.id,
+          subscribed: false,
+          subscription_tier: 'Basic', 
+          subscription_end: trialEndDate.toISOString(),
+          trial_active: true
+        }, { onConflict: 'email' });
+    }
+    
+    secureLogger.info('3-day trial created for new user', {
+      component: 'Auth',
+      action: 'trial_created',
+      email: user.email,
+      trial_end: trialEndDate.toISOString()
+    });
+    
+  } catch (error) {
+    secureLogger.error('Failed to create trial records', {
+      component: 'Auth',
+      action: 'trial_creation_error',
+      error: error.message
+    });
+    throw error;
+  }
+};
+
 const Auth = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -270,10 +353,31 @@ const Auth = () => {
         const userRole = user.user_metadata?.role || user.role;
         const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
         
-        if (!isOwner && isBrokerRole && (isNewUser || intent === 'subscription' || !user.user_metadata?.has_completed_setup)) {
-          secureLogger.info('New BROKER without plan selection, redirecting to subscription setup', {
+        if (!isOwner && isBrokerRole && isNewUser) {
+          secureLogger.info('New user signup - creating 3-day trial and redirecting to dashboard', {
             component: 'Auth',
-            action: 'new_broker_redirect',
+            action: 'new_user_trial_setup',
+            userRole,
+            email: user.email
+          });
+          
+          // Create 3-day trial for new user
+          try {
+            await createTrialForNewUser(user);
+            navigate('/dashboard', { replace: true });
+          } catch (error) {
+            secureLogger.error('Failed to create trial for new user', {
+              component: 'Auth',
+              action: 'trial_creation_failed',
+              error: error.message
+            });
+            // Fallback: still go to dashboard, trial will be handled later
+            navigate('/dashboard', { replace: true });
+          }
+        } else if (!isOwner && isBrokerRole && (intent === 'subscription' || !user.user_metadata?.has_completed_setup)) {
+          secureLogger.info('Existing broker needs subscription setup', {
+            component: 'Auth',
+            action: 'existing_broker_subscription',
             intent,
             userRole
           });
