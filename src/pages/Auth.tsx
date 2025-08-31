@@ -76,6 +76,29 @@ const createTrialForNewUser = async (user: any) => {
         }, { onConflict: 'email' });
     }
     
+    // Create users table record to link auth.user to partner
+    const { error: usersError } = await supabase
+      .from('users')
+      .insert({
+        id: user.id,
+        email: user.email,
+        name: user.name || user.email?.split('@')[0] || 'New Partner',
+        role: 'Partner Admin'
+      });
+    
+    if (usersError) {
+      console.log('Users creation failed, trying upsert:', usersError);
+      // Try upsert in case record exists
+      await supabase
+        .from('users')
+        .upsert({
+          id: user.id,
+          email: user.email,
+          name: user.name || user.email?.split('@')[0] || 'New Partner',
+          role: 'Partner Admin'
+        }, { onConflict: 'id' });
+    }
+    
     secureLogger.info('3-day trial created for new user', {
       component: 'Auth',
       action: 'trial_created',
@@ -365,6 +388,7 @@ const Auth = () => {
           try {
             await createTrialForNewUser(user);
             navigate('/dashboard', { replace: true });
+            return; // CRITICAL: Exit here so they don't fall through to subscription
           } catch (error) {
             secureLogger.error('Failed to create trial for new user', {
               component: 'Auth',
@@ -373,8 +397,9 @@ const Auth = () => {
             });
             // Fallback: still go to dashboard, trial will be handled later
             navigate('/dashboard', { replace: true });
+            return; // CRITICAL: Exit here so they don't fall through to subscription
           }
-        } else if (!isOwner && isBrokerRole && (intent === 'subscription' || !user.user_metadata?.has_completed_setup)) {
+        } else if (!isOwner && isBrokerRole && intent === 'subscription') {
           secureLogger.info('Existing broker needs subscription setup', {
             component: 'Auth',
             action: 'existing_broker_subscription',
