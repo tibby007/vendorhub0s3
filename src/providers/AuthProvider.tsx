@@ -315,10 +315,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   
-  // CRITICAL: Never throw during render - return stable fallback
+  // CRITICAL: Never throw during render - return stable fallback with working logout
   if (!context) {
-    console.warn('useAuth used outside AuthProvider - returning default context');
-    return defaultAuthContext;
+    console.warn('useAuth used outside AuthProvider - returning safe fallback');
+    return {
+      ...defaultAuthContext,
+      logout: async () => {
+        console.log('🚪 Fallback logout - redirecting to auth');
+        // Safe logout that just redirects
+        sessionStorage.clear();
+        window.location.href = '/auth';
+      },
+      signOut: async () => {
+        console.log('🚪 Fallback signOut - redirecting to auth'); 
+        sessionStorage.clear();
+        window.location.href = '/auth';
+      }
+    };
   }
   
   return context;
