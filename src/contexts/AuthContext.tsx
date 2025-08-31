@@ -5,7 +5,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { mockPartnerUser } from '@/data/mockPartnerData';
 import { mockVendorUser } from '@/data/mockVendorData';
 import { SecureStorage } from '@/utils/secureStorage';
-import { setGlobalSession } from '@/contexts/SubscriptionContext';
 import { secureLogout } from '@/utils/secureLogout';
 import { secureSessionManager } from '@/utils/secureSessionManager';
 import { useHookTripwire } from '@/lib/useHookTripwire';

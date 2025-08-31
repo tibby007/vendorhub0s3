@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSubscriptionManager } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/providers/AuthProvider';
+import { useSubscriptionManager } from '@/providers/SubscriptionProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lock, CreditCard, RefreshCw, AlertCircle } from 'lucide-react';

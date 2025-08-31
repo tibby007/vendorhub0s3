@@ -7,8 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, Download, AlertCircle, CheckCircle, FileText, Users } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSubscriptionManager } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/providers/AuthProvider';
+import { useSubscriptionManager } from '@/providers/SubscriptionProvider';
 
 interface CSVVendor {
   vendor_name: string;

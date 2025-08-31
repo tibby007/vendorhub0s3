@@ -410,8 +410,20 @@ export const useSubscriptionManager = () => {
   
   // CRITICAL: Never throw during render - return stable fallback  
   if (!context) {
-    console.warn('useSubscriptionManager used outside SubscriptionProvider - returning default context');
-    return defaultContext;
+    console.warn('useSubscriptionManager used outside SubscriptionProvider - returning fallback');
+    return {
+      subscription: defaultSubscription,
+      subscriptionData: null,
+      initialized: false,
+      refresh: async () => {},
+      refreshSubscription: async () => {},
+      checkAccess: () => true,
+      checkSubscriptionAccess: () => true,
+      isTrialUser: false,
+      isActiveSubscriber: false,
+      daysRemaining: null,
+      canAccessFeature: () => true,
+    };
   }
   
   return context;

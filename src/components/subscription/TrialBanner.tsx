@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Clock, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useSubscriptionManager } from '@/contexts/SubscriptionContext';
+import { useSubscriptionManager } from '@/providers/SubscriptionProvider';
 import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface TrialBannerProps {
