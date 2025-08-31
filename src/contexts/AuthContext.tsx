@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { mockPartnerUser } from '@/data/mockPartnerData';
@@ -70,6 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [authInitialized, setAuthInitialized] = useState(false);
+  
+  // Track if component is cleaned up to prevent state updates after unmount
+  const isCleanedUpRef = useRef(false);
 
   // Mock subscription data for demo mode
   const mockSubscriptionData: SubscriptionData = {
@@ -116,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
         
-        if (!isCleanedUp && session?.user) {
+        if (!isCleanedUp && !isCleanedUpRef.current && session?.user) {
           const authUser = {
             id: session.user.id,
             email: session.user.email || '',
@@ -129,10 +132,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(authUser);
           setSession(session);
           setTimeout(() => {
-            if (!isCleanedUp) setGlobalSession(session);
+            if (!isCleanedUp && !isCleanedUpRef.current) setGlobalSession(session);
           }, 100);
           console.log('✅ Initial user set:', authUser);
-        } else if (!isCleanedUp) {
+        } else if (!isCleanedUp && !isCleanedUpRef.current) {
           console.log('🚫 No initial session found');
         }
       } catch (error) {
@@ -140,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Error checking initial session:', error);
         }
       } finally {
-        if (!isCleanedUp) {
+        if (!isCleanedUp && !isCleanedUpRef.current) {
           setLoading(false);
           setAuthInitialized(true);
         }
@@ -157,13 +160,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Prevent infinite loops by checking if session actually changed
       if (event === 'INITIAL_SESSION' && !session) {
-        if (!isCleanedUp) setLoading(false);
+        if (!isCleanedUp && !isCleanedUpRef.current) setLoading(false);
         return;
       }
       
-      if (!isCleanedUp) setSession(session);
+      if (!isCleanedUp && !isCleanedUpRef.current) setSession(session);
       
-      if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session?.user && !isCleanedUp) {
+      if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session?.user && !isCleanedUp && !isCleanedUpRef.current) {
         try {
           // Use users table instead of user_profiles since it doesn't exist
           const authUser = {
@@ -178,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(authUser);
           console.log('✅ User set for', event + ':', authUser);
         } catch (error) {
-          if (!isCleanedUp) {
+          if (!isCleanedUp && !isCleanedUpRef.current) {
             console.error('Error setting user data:', error);
             const fallbackUser = {
               id: session.user.id,
@@ -196,15 +199,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Set global session after user is set successfully
         setTimeout(() => {
-          if (!isCleanedUp) setGlobalSession(session);
+          if (!isCleanedUp && !isCleanedUpRef.current) setGlobalSession(session);
         }, 100);
-      } else if (event === 'SIGNED_OUT' && !isCleanedUp) {
+      } else if (event === 'SIGNED_OUT' && !isCleanedUp && !isCleanedUpRef.current) {
         setUser(null);
         setGlobalSession(null);
         console.log('🚫 User signed out');
       }
       
-      if (!isCleanedUp) setLoading(false);
+      if (!isCleanedUp && !isCleanedUpRef.current) setLoading(false);
     });
     
     authSubscription = subscription;
@@ -212,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       console.log('🧹 Cleaning up auth listener');
       isCleanedUp = true;
+      isCleanedUpRef.current = true;
       if (authSubscription) {
         authSubscription.unsubscribe();
       }
@@ -283,7 +287,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     window.addEventListener('demo-mode-changed', handleDemoModeChange);
-    return () => window.removeEventListener('demo-mode-changed', handleDemoModeChange);
+    return () => {
+      window.removeEventListener('demo-mode-changed', handleDemoModeChange);
+      isCleanedUpRef.current = true;
+    };
   }, []);
 
   // Load subscription data when user changes - STABLE dependency array
@@ -329,7 +336,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       setSubscriptionData(null);
       
-      // Then call secure logout which will handle redirect
+      // Use secure logout but handle it safely
       await secureLogout.logout({
         clearAllSessions: true,
         reason: 'user_initiated',
@@ -339,12 +346,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Don't set loading to false here - we're redirecting anyway
     } catch (error) {
       console.error('Logout error:', error);
-      // Clear state even on error
-      setUser(null);
-      setSession(null);
-      setSubscriptionData(null);
-      setLoading(false);
-      setIsLoggingOut(false);
+      // Clear state even on error - check if component is still mounted
+      if (!isCleanedUpRef.current) {
+        setUser(null);
+        setSession(null);
+        setSubscriptionData(null);
+        setLoading(false);
+        setIsLoggingOut(false);
+      }
+      // Fallback: force navigation if secure logout failed
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 100);
     }
   }, [isLoggingOut]);
 

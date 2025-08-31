@@ -40,11 +40,21 @@ const DemoSessionWrapper: React.FC<DemoSessionWrapperProps> = ({ children }) => 
     sessionStorage.removeItem('isDemoMode');
     sessionStorage.removeItem('demo_session');
     
-    // Force logout if authenticated as demo user
-    supabase.auth.signOut();
+    // Force logout if authenticated as demo user - use async to prevent hook violations
+    Promise.resolve().then(async () => {
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        console.warn('Demo session cleanup - supabase signOut failed:', error);
+      }
+    });
     
     setIsDemoSession(false);
-    navigate('/demo');
+    
+    // Use timeout to prevent navigation during render
+    setTimeout(() => {
+      navigate('/demo');
+    }, 0);
   };
 
   const handleUpgradePrompt = () => {

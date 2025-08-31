@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AuthUser } from '@/types/auth';
 import { Session } from '@supabase/supabase-js';
+import { useRef, useEffect } from 'react';
 
 interface UseAuthActionsProps {
   setIsLoading: (loading: boolean) => void;
@@ -23,9 +24,18 @@ export const useAuthActions = ({
   refreshSubscription,
   session
 }: UseAuthActionsProps) => {
+  const isMountedRef = useRef(true);
+  
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
+    if (isMountedRef.current) {
+      setIsLoading(true);
+    }
     
     try {
       console.log('🔑 Attempting login for:', email);
@@ -58,7 +68,9 @@ export const useAuthActions = ({
           variant: "destructive",
         });
         
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
         throw error;
       }
       
@@ -67,7 +79,9 @@ export const useAuthActions = ({
       // Don't set isLoading to false here - let the auth state change handler do it
     } catch (error) {
       console.error('❌ Login error:', error);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
       throw error;
     }
   };
@@ -86,20 +100,25 @@ export const useAuthActions = ({
         throw error;
       }
       
-      setUser(null);
-      setSession(null);
-      clearCache();
-      clearProfileCache();
-      
-      // Also clear any subscription context state
-      if (window.setGlobalSession) {
-        window.setGlobalSession(null);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setUser(null);
+        setSession(null);
+        clearCache();
+        clearProfileCache();
+        
+        // Also clear any subscription context state
+        if (window.setGlobalSession) {
+          window.setGlobalSession(null);
+        }
       }
       
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out",
-      });
+      if (isMountedRef.current) {
+        toast({
+          title: "Logged Out",
+          description: "You have been successfully logged out",
+        });
+      }
       
       // Force a page reload to ensure complete state cleanup
       setTimeout(() => {
@@ -108,11 +127,13 @@ export const useAuthActions = ({
       
     } catch (error) {
       console.error('❌ Logout error:', error);
-      toast({
-        title: "Logout Error",
-        description: "There was an error logging out. Please try again.",
-        variant: "destructive",
-      });
+      if (isMountedRef.current) {
+        toast({
+          title: "Logout Error",
+          description: "There was an error logging out. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

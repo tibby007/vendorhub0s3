@@ -154,7 +154,12 @@ class SecureLogout {
     console.log('[SecureLogout] Demo logout - skipping all API calls');
     
     // Skip all API calls in demo mode - just clear data and redirect
-    window.location.href = '/demo-login';
+    // Use requestAnimationFrame to ensure DOM updates are complete
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.location.href = '/demo-login';
+      }, 50);
+    });
   }
 
   private async handleRealLogout(clearAllSessions: boolean, redirectTo: string): Promise<void> {
@@ -174,9 +179,12 @@ class SecureLogout {
 
       await this.notifyServerLogout();
 
-      setTimeout(() => {
-        window.location.href = redirectTo;
-      }, 100);
+      // Use requestAnimationFrame to ensure DOM updates are complete before redirect
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          window.location.href = redirectTo;
+        }, 50);
+      });
 
     } catch (error) {
       secureLogger.error('Real logout failed', {
