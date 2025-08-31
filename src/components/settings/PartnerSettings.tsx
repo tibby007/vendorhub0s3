@@ -53,12 +53,6 @@ const PartnerSettings = () => {
     approval_threshold: 1000
   });
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchPartnerProfile();
-    }
-  }, [user?.id, fetchPartnerProfile]);
-
   const fetchPartnerProfile = useCallback(async () => {
     if (!user?.email) return;
 
@@ -116,6 +110,12 @@ const PartnerSettings = () => {
       setIsLoading(false);
     }
   }, [user?.email, isDemo]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchPartnerProfile();
+    }
+  }, [user?.id, fetchPartnerProfile]);
 
   const saveProfile = useCallback(async () => {
     if (!user?.id) return;
