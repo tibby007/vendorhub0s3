@@ -413,7 +413,12 @@ const VendorManagement = () => {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    console.log(`🔧 Input change: ${field} = "${value}" (length: ${value.length})`);
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      console.log('📝 New form data:', newData);
+      return newData;
+    });
     // Clear error when user starts typing - use setTimeout to avoid state update conflicts
     if (errors[field]) {
       setTimeout(() => {

@@ -184,19 +184,19 @@ const PartnerSettings = () => {
       console.log('[PartnerSettings] Saving profile:', profile);
       console.log('[PartnerSettings] Current user:', { id: user.id, email: user.email, partner_id: (user as any).partner_id });
       
-      // Simplified upsert data - only include core partner fields
+      // Only include fields that definitely exist in the database
       const upsertData: any = {
         name: profile.name || user?.name || 'New Partner',
         contact_email: profile.contact_email || user?.email,
         contact_phone: profile.contact_phone || '',
         company_logo: profile.company_logo || null,
         brand_color: profile.brand_color || '#10B981',
-        notification_email: profile.notification_email ?? true,
-        notification_sms: profile.notification_sms ?? false,
-        auto_approval: profile.auto_approval ?? false,
-        approval_threshold: profile.approval_threshold || 1000,
         updated_at: new Date().toISOString()
       };
+
+      // Only add optional fields if they exist in the database
+      // Remove approval_threshold, notification_email, notification_sms, auto_approval
+      // as they don't exist in the current database schema
       
       console.log('[PartnerSettings] Upsert data prepared:', upsertData);
       

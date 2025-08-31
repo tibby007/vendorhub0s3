@@ -63,7 +63,7 @@ export const resourcesService = {
     
     const { data, error } = await supabase
       .from('resources')
-      .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
+      .select('id, title, type, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
       .eq('partner_id', partnerId)
       .order('created_at', { ascending: false });
 
@@ -73,7 +73,7 @@ export const resourcesService = {
     return (data || []).map(item => ({
       id: item.id,
       title: item.title,
-      content: item.content,
+      content: '', // Default empty content since column doesn't exist
       type: item.type as 'file' | 'news',
       category: item.category || 'general',
       file_url: item.file_url,
@@ -106,10 +106,13 @@ export const resourcesService = {
       };
     }
     
+    // Remove content field from insert since it doesn't exist
+    const { content, ...resourceData } = resource;
+    
     const { data, error } = await supabase
       .from('resources')
-      .insert(resource)
-      .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
+      .insert(resourceData)
+      .select('id, title, type, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
       .single();
 
     if (error) throw error;
@@ -117,7 +120,7 @@ export const resourcesService = {
     return {
       id: data.id,
       title: data.title,
-      content: data.content,
+      content: '', // Default empty since column doesn't exist
       type: data.type as 'file' | 'news',
       category: data.category || 'general',
       file_url: data.file_url,
