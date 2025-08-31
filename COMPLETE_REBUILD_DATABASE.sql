@@ -62,7 +62,7 @@ CREATE TABLE public.subscribers (
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
   subscribed BOOLEAN NOT NULL DEFAULT false,
-  subscription_tier TEXT CHECK (subscription_tier IN ('Basic', 'Pro', 'Premium')),
+  subscription_tier TEXT CHECK (subscription_tier IN ('Basic', 'Pro', 'Premium', 'Enterprise')),
   subscription_end TIMESTAMP WITH TIME ZONE,
   trial_end TIMESTAMP WITH TIME ZONE,
   trial_active BOOLEAN DEFAULT false,

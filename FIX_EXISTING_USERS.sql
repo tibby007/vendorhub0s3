@@ -25,7 +25,7 @@ INSERT INTO public.partners (
   vendor_limit = EXCLUDED.vendor_limit,
   storage_limit = EXCLUDED.storage_limit;
 
--- 2. Create partner record for keenan@getmybusinesscredit.com (Enterprise - No subscription needed)
+-- 2. Create partner record for keenan@getmybusinesscredit.com (Premium - No subscription needed)
 INSERT INTO public.partners (
   name,
   contact_email,
@@ -37,7 +37,7 @@ INSERT INTO public.partners (
 ) VALUES (
   'Keenan Business Credit',
   'keenan@getmybusinesscredit.com',
-  'enterprise',
+  'premium',
   'active',
   999,
   999999999999,
@@ -84,7 +84,7 @@ SELECT
   au.id,
   au.email,
   COALESCE(au.raw_user_meta_data->>'name', 'Keenan'),
-  'Enterprise Admin',
+  'Partner Admin',
   p.id
 FROM auth.users au
 JOIN public.partners p ON p.contact_email = au.email
@@ -119,7 +119,7 @@ ON CONFLICT (email) DO UPDATE SET
   subscription_end = EXCLUDED.subscription_end,
   trial_active = EXCLUDED.trial_active;
 
--- For keenan@getmybusinesscredit.com (Enterprise - No subscription needed)
+-- For keenan@getmybusinesscredit.com (Premium - No subscription needed)
 INSERT INTO public.subscribers (
   user_id,
   email,
@@ -132,7 +132,7 @@ SELECT
   au.id,
   au.email,
   true,
-  'Enterprise',
+  'Premium',
   NOW() + INTERVAL '10 years',
   false
 FROM auth.users au
@@ -175,7 +175,7 @@ SELECT
   'SUBSCRIBERS' as table_name,
   CASE 
     WHEN s.email = 'support@emergestack.dev' THEN 'SUPER ADMIN'
-    WHEN s.email = 'keenan@getmybusinesscredit.com' THEN 'ENTERPRISE'
+    WHEN s.email = 'keenan@getmybusinesscredit.com' THEN 'PREMIUM'
     ELSE 'OTHER'
   END,
   s.email,
