@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,9 +57,9 @@ const PartnerSettings = () => {
     if (user?.id) {
       fetchPartnerProfile();
     }
-  }, [user]);
+  }, [user?.id, fetchPartnerProfile]);
 
-  const fetchPartnerProfile = async () => {
+  const fetchPartnerProfile = useCallback(async () => {
     if (!user?.email) return;
 
     setIsLoading(true);
@@ -115,9 +115,9 @@ const PartnerSettings = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.email, isDemo]);
 
-  const saveProfile = async () => {
+  const saveProfile = useCallback(async () => {
     if (!user?.id) return;
 
     // Check for demo mode using multiple methods
@@ -166,11 +166,11 @@ const PartnerSettings = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [user?.id, user?.email, isDemo, profile]);
 
-  const handleInputChange = (field: keyof PartnerProfile, value: any) => {
+  const handleInputChange = useCallback((field: keyof PartnerProfile, value: any) => {
     setProfile(prev => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
   if (isLoading) {
     return (
