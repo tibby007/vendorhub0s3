@@ -153,7 +153,7 @@ SELECT
   contact_email,
   plan_type,
   billing_status,
-  trial_end
+  COALESCE(trial_end::text, 'No Trial')
 FROM public.partners 
 WHERE contact_email IN ('support@emergestack.dev', 'keenan@getmybusinesscredit.com')
 
@@ -165,7 +165,7 @@ SELECT
   u.email,
   u.role,
   CASE WHEN u.partner_id IS NOT NULL THEN 'LINKED' ELSE 'NOT LINKED' END,
-  NULL
+  'N/A'
 FROM public.users u
 WHERE u.email IN ('support@emergestack.dev', 'keenan@getmybusinesscredit.com')
 
