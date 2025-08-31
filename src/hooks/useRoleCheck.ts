@@ -5,7 +5,15 @@ export const useRoleCheck = () => {
   const { user } = useAuth();
 
   const isSuperAdmin = () => {
-    return user?.role === 'Super Admin';
+    // OWNER BYPASS: support@emergestack.dev is always SuperAdmin
+    if (user?.email === 'support@emergestack.dev') {
+      console.log('🔍 ROLE CHECK - Owner bypass: treating as Super Admin');
+      return true;
+    }
+    
+    const result = user?.role === 'Super Admin';
+    console.log('🔍 ROLE CHECK - isSuperAdmin():', result, 'user.role:', user?.role, 'user.email:', user?.email);
+    return result;
   };
 
   const isPartnerAdmin = () => {
@@ -28,6 +36,14 @@ export const useRoleCheck = () => {
     return isSuperAdmin() || isPartnerAdmin();
   };
 
+  // OWNER BYPASS: Show 'Super Admin' role for owner account
+  const getCurrentRole = () => {
+    if (user?.email === 'support@emergestack.dev') {
+      return 'Super Admin';
+    }
+    return user?.role;
+  };
+
   return {
     isSuperAdmin,
     isPartnerAdmin,
@@ -35,6 +51,6 @@ export const useRoleCheck = () => {
     hasRole,
     canCreatePartnerAdmin,
     canManageVendors,
-    currentRole: user?.role
+    currentRole: getCurrentRole()
   };
 };
