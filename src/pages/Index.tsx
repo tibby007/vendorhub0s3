@@ -12,14 +12,18 @@ import VendorDashboard from '@/components/dashboard/VendorDashboard';
 import SubscriptionGuard from '@/components/subscription/SubscriptionGuard';
 import { supabase } from '@/integrations/supabase/client';
 import { secureLogger } from '@/utils/secureLogger';
+import { useHookTripwire } from '@/lib/useHookTripwire';
 
 const Index = () => {
+  // CRITICAL: ALL HOOKS MUST BE CALLED UNCONDITIONALLY IN SAME ORDER EVERY RENDER
+  useHookTripwire('Index-Dashboard');
   const { user, isLoading } = useAuth();
   const { isDemo, demoRole } = useDemoMode();
   const { subscription } = useSubscriptionManager();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // All hooks called BEFORE any conditional logic or early returns
   useEffect(() => {
     // Check for subscription success parameter
     const urlParams = new URLSearchParams(location.search);

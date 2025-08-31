@@ -3,6 +3,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useHookTripwire } from '@/lib/useHookTripwire';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles = [] }) => {
+  useHookTripwire('ProtectedRoute');
   const { user, loading } = useAuth();
   const { isDemo } = useDemoMode();
   const location = useLocation();

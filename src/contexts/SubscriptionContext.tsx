@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useHookTripwire } from '@/lib/useHookTripwire';
 
 export interface SubscriptionState {
   // Unified data structure
@@ -94,6 +95,7 @@ export const setGlobalSession = (session: Session | null) => {
 let providerInstanceCount = 0;
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useHookTripwire('SubscriptionProvider');
   const instanceId = useRef(++providerInstanceCount);
   
   // Only log for the first instance to reduce console noise

@@ -8,6 +8,7 @@ import { SecureStorage } from '@/utils/secureStorage';
 import { setGlobalSession } from '@/contexts/SubscriptionContext';
 import { secureLogout } from '@/utils/secureLogout';
 import { secureSessionManager } from '@/utils/secureSessionManager';
+import { useHookTripwire } from '@/lib/useHookTripwire';
 
 interface AuthUser {
   id: string;
@@ -60,6 +61,7 @@ const defaultAuthContext: AuthContextType = {
 const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useHookTripwire('AuthProvider');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
