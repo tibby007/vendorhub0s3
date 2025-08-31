@@ -107,10 +107,7 @@ export const useAuthActions = ({
         clearCache();
         clearProfileCache();
         
-        // Also clear any subscription context state
-        if (window.setGlobalSession) {
-          window.setGlobalSession(null);
-        }
+        // State cleanup handled by providers
       }
       
       if (isMountedRef.current) {

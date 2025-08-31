@@ -1,14 +1,9 @@
-import { useContext } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { SubscriptionContext } from '@/contexts/SubscriptionContext';
+import { useSubscriptionManager as useSubscriptionManagerProvider } from '@/providers/SubscriptionProvider';
 
 // Main hook for accessing subscription data
 export const useSubscriptionManager = () => {
-  const context = useContext(SubscriptionContext);
-  if (context === undefined) {
-    throw new Error('useSubscriptionManager must be used within a SubscriptionProvider');
-  }
-  return context;
+  return useSubscriptionManagerProvider();
 };
 
 // Legacy hook interface for backwards compatibility

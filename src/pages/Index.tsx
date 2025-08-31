@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { useNavigate, useLocation } from 'react-router-dom';
