@@ -84,6 +84,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isCleanedUp = false;
     let authSubscription: any = null;
 
+    // DEBUG: Force clear auth storage if in incognito and no demo mode
+    const clearAuthIfIncognito = () => {
+      // Simple check for incognito - if sessionStorage and localStorage both work but incognito detection
+      if (window.location.search.includes('clear-auth')) {
+        console.log('🧹 Force clearing all auth storage...');
+        localStorage.clear();
+        sessionStorage.clear();
+        supabase.auth.signOut();
+      }
+    };
+    
+    clearAuthIfIncognito();
+
     // Check for existing session first
     const initializeAuth = async () => {
       if (isCleanedUp) return;
@@ -91,6 +104,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('🔍 Initial session check:', !!session);
+        if (session) {
+          console.log('🔍 Session details:', {
+            user_id: session.user?.id,
+            email: session.user?.email,
+            expires_at: session.expires_at,
+            access_token: session.access_token?.substring(0, 20) + '...'
+          });
+        }
         
         if (!isCleanedUp && session?.user) {
           const authUser = {

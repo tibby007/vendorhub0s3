@@ -281,8 +281,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error('[SubscriptionContext] Error fetching subscription data:', err);
       
       // DEVELOPMENT CORS FIX: Handle CORS errors in development mode
-      if (import.meta.env.DEV && (errorMessage.includes('CORS') || errorMessage.includes('Failed to send a request'))) {
-        console.warn('[SubscriptionContext] CORS error in development, providing trial access');
+      if (import.meta.env.DEV && (errorMessage.includes('CORS') || errorMessage.includes('Failed to send') || errorMessage.includes('FunctionsFetchError'))) {
+        console.warn('🔧 [SubscriptionContext] CORS/Function error in development mode - providing Pro trial access to continue development');
         const devTrialState: Partial<SubscriptionState> = {
           subscribed: true,
           tier: 'Pro',
