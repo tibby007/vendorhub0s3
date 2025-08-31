@@ -342,7 +342,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [session, user, refresh, initialized, safeSetInitialized]);
 
   // Computed properties - always calculated, no conditional logic
-  const isTrialUser = subscription.status === 'trial' || subscription.billingStatus === 'trialing';
+  const isTrialUser = subscription.status === 'trial' || subscription.status === 'trialing' || subscription.billingStatus === 'trialing';
   const isActiveSubscriber = subscription.subscribed && subscription.status === 'active';
   
   const daysRemaining = useMemo(() => {
