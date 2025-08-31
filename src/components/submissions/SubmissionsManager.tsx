@@ -85,7 +85,7 @@ const SubmissionsManager = () => {
           customers (customer_name, email),
           vendors (vendor_name)
         `)
-        .eq('partner_admin_id', user.id)
+        .eq('partner_id', user.id)
         .order('submission_date', { ascending: false });
 
       if (error) throw error;

@@ -44,13 +44,13 @@ const PartnerAdminDashboard = () => {
         const { count: vendors } = await supabase
           .from('vendors')
           .select('*', { count: 'exact' })
-          .eq('partner_admin_id', user.id);
+          .eq('partner_id', user.id);
 
         // Fetch pending submissions count
         const { count: submissions } = await supabase
           .from('submissions')
           .select('*', { count: 'exact' })
-          .eq('partner_admin_id', user.id)
+          .eq('partner_id', user.id)
           .eq('status', 'Pending');
 
         setVendorCount(vendors || 0);

@@ -274,54 +274,6 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         error: null
       };
       dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: noSubscriptionState });
-
-        
-        partnerData = partnerByEmail;
-        partnerError = partnerByEmailError;
-        
-        if (partnerByEmail) {
-          console.log('[SubscriptionContext] Found partner by email, updating user metadata');
-          // Update user metadata to link the partner_id for future lookups
-          await supabase.auth.updateUser({
-            data: { ...session.user.user_metadata, partner_id: partnerByEmail.id }
-          });
-        }
-      }
-      console.log('[SubscriptionContext] Partner data response:', { partnerData, partnerError });
-      console.log('[SubscriptionContext] DETAILED partner data:', {
-        billing_status: partnerData?.billing_status,
-        plan_type: partnerData?.plan_type,
-        trial_end: partnerData?.trial_end,
-        current_period_end: partnerData?.current_period_end
-      });
-
-      if (partnerError && partnerError.code !== 'PGRST116') {
-        console.warn('[SubscriptionContext] Failed to fetch partner data:', partnerError);
-      }
-
-      // Determine status based on subscription data
-      let status: SubscriptionState['status'] = 'loading';
-      if (subscriptionData?.subscribed) {
-        status = 'active';
-      } else if (subscriptionData?.trial_active || partnerData?.billing_status === 'trialing') {
-        status = 'trial';
-      } else {
-        status = 'expired';
-      }
-
-      const newState: Partial<SubscriptionState> = {
-        subscribed: subscriptionData?.subscribed || false,
-        tier: subscriptionData?.subscription_tier as 'Basic' | 'Pro' | 'Premium' || null,
-        status,
-        endDate: subscriptionData?.subscription_end || null,
-        priceId: subscriptionData?.price_id || null,
-        billingStatus: partnerData?.billing_status as 'active' | 'trialing' | 'past_due' || null,
-        planType: partnerData?.plan_type || null,
-        trialEnd: partnerData?.trial_end || null,
-      };
-
-      console.log('[SubscriptionContext] FINAL state being set:', newState);
-      dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: newState });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('[SubscriptionContext] Error fetching subscription data:', err);

@@ -111,7 +111,7 @@ const VendorManagement = () => {
       const { data, error } = await supabase
         .from('vendors')
         .select('*')
-        .eq('partner_admin_id', user.id)
+        .eq('partner_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -217,7 +217,7 @@ const VendorManagement = () => {
       const { count: currentVendorCount } = await supabase
         .from('vendors')
         .select('*', { count: 'exact' })
-        .eq('partner_admin_id', user.id);
+        .eq('partner_id', user.id);
 
       const vendorLimits = {
         basic: 3,
@@ -254,7 +254,7 @@ const VendorManagement = () => {
           contact_email: formData.contact_email,
           contact_phone: formData.contact_phone,
           contact_address: formData.contact_address,
-          partner_admin_id: user.id,
+          partner_id: user.id,
           user_id: null // Will be set when vendor registers
         });
 
