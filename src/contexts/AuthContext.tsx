@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { mockPartnerUser } from '@/data/mockPartnerData';
@@ -43,7 +43,21 @@ interface AuthContextType {
   checkSubscriptionAccess: (requiredTier: string) => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Stable default context value to prevent hook order changes
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  session: null,
+  subscriptionData: null,
+  loading: true,
+  isLoading: true,
+  login: async () => { throw new Error('AuthProvider not initialized'); },
+  logout: async () => { throw new Error('AuthProvider not initialized'); },
+  signOut: async () => { throw new Error('AuthProvider not initialized'); },
+  refreshSubscription: async () => { throw new Error('AuthProvider not initialized'); },
+  checkSubscriptionAccess: () => false,
+};
+
+const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -386,19 +400,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    user,
+    session,
+    subscriptionData,
+    loading,
+    isLoading: loading,
+    login,
+    logout,
+    signOut,
+    refreshSubscription,
+    checkSubscriptionAccess
+  }), [user, session, subscriptionData, loading, login, logout, signOut, refreshSubscription, checkSubscriptionAccess]);
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      subscriptionData,
-      loading, 
-      isLoading: loading,
-      login,
-      logout,
-      signOut, 
-      refreshSubscription,
-      checkSubscriptionAccess
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -406,8 +423,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  // Always return context - never throw to prevent hook order changes
   return context;
 };

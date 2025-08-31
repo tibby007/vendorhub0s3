@@ -152,7 +152,9 @@ class SecureLogger {
         return;
       }
       
-      if (!this.isDevelopment && typeof window !== 'undefined') {
+      // Skip remote logging to prevent 404 errors since endpoint doesn't exist in current deployment
+      // This prevents noisy 404 errors during logout that could mask real issues
+      if (false) { // Disabled until proper logging endpoint is configured
         await fetch('/api/log-security-event', {
           method: 'POST',
           headers: {

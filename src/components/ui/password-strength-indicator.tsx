@@ -11,9 +11,10 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
   password,
   className
 }) => {
+  // Always call all hooks first - no early returns before hooks
   const { score, feedback } = getPasswordStrength(password);
   
-  // Don't show indicator for empty passwords
+  // Don't show indicator for empty passwords - render-time condition is OK
   if (!password) return null;
 
   const getStrengthText = (score: number) => {
