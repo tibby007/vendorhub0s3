@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -36,6 +36,8 @@ interface Vendor {
 }
 
 const VendorManagement = () => {
+  console.log('🔄 VendorManagement component rendering');
+  
   const { user } = useAuth();
   const navigate = useNavigate();
   const { subscription } = useSubscriptionManager();
@@ -412,22 +414,28 @@ const VendorManagement = () => {
     setErrors({});
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = useCallback((field: string, value: string) => {
     console.log(`🔧 Input change: ${field} = "${value}" (length: ${value.length})`);
+    
     setFormData(prev => {
+      console.log('🔧 Previous formData:', prev);
       const newData = { ...prev, [field]: value };
       console.log('📝 New form data:', newData);
       return newData;
     });
-    // Clear error when user starts typing - use setTimeout to avoid state update conflicts
-    if (errors[field]) {
-      setTimeout(() => {
-        setErrors(prev => ({ ...prev, [field]: '' }));
-      }, 0);
-    }
-  };
+    
+    // Clear error when user starts typing
+    setErrors(prev => {
+      if (prev[field]) {
+        return { ...prev, [field]: '' };
+      }
+      return prev;
+    });
+  }, []);
 
   const VendorForm = ({ onSubmit, title }: { onSubmit: (e: React.FormEvent) => void; title: string }) => {
+    console.log('🔄 VendorForm rendering with formData:', formData);
+    
     return (
     <form onSubmit={onSubmit} className="space-y-4">
       <Alert className="border-blue-200 bg-blue-50">
@@ -442,7 +450,10 @@ const VendorManagement = () => {
         <Input
           id="vendor_name"
           value={formData.vendor_name}
-          onChange={(e) => handleInputChange('vendor_name', e.target.value)}
+          onChange={(e) => {
+            console.log('🎯 Raw onChange event:', e.target.value);
+            handleInputChange('vendor_name', e.target.value);
+          }}
           className={errors.vendor_name ? 'border-red-500' : ''}
           placeholder="Enter vendor name"
           autoComplete="off"
@@ -461,7 +472,10 @@ const VendorManagement = () => {
           id="contact_email"
           type="email"
           value={formData.contact_email}
-          onChange={(e) => handleInputChange('contact_email', e.target.value)}
+          onChange={(e) => {
+            console.log('🎯 Raw email onChange event:', e.target.value);
+            handleInputChange('contact_email', e.target.value);
+          }}
           disabled={!!editingVendor}
           className={errors.contact_email ? 'border-red-500' : ''}
           placeholder="vendor@example.com"

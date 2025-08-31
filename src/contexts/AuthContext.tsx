@@ -50,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Mock subscription data for demo mode
   const mockSubscriptionData: SubscriptionData = {
@@ -244,15 +245,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('demo-mode-changed', handleDemoModeChange);
   }, []);
 
-  // Load subscription data when user changes - with proper dependency management
+  // Load subscription data when user changes - fixed dependency array
   useEffect(() => {
     if (user?.email && !subscriptionData) {
       // Only load if we don't already have subscription data
       refreshSubscription();
-    } else if (!user?.email) {
+    } else if (!user?.email && subscriptionData) {
       setSubscriptionData(null);
     }
-  }, [user?.email, refreshSubscription]);
+  }, [user?.email]); // Removed refreshSubscription to prevent circular dependency
 
   const login = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -272,13 +273,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    // Prevent concurrent logout attempts
+    if (isLoggingOut) {
+      console.log('⏳ Logout already in progress, skipping');
+      return;
+    }
+
     try {
-      // Set loading to prevent other operations during logout
+      setIsLoggingOut(true);
       setLoading(true);
       
-      // Clear state first to prevent React Error #310
+      // Clear state immediately to prevent further operations
       setUser(null);
       setSession(null);
+      setSubscriptionData(null);
       
       // Then call secure logout which will handle redirect
       await secureLogout.logout({
@@ -293,7 +301,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear state even on error
       setUser(null);
       setSession(null);
+      setSubscriptionData(null);
       setLoading(false);
+      setIsLoggingOut(false);
     }
   };
 
