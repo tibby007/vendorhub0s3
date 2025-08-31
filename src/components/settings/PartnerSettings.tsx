@@ -190,9 +190,9 @@ const PartnerSettings = () => {
         contact_email: profile.contact_email || user?.email,
         contact_phone: profile.contact_phone || '',
         company_logo: profile.company_logo || null,
-        brand_color: profile.brand_color || '#10B981',
         updated_at: new Date().toISOString()
       };
+      // Removed brand_color - column doesn't exist in production database
 
       // Only add optional fields if they exist in the database
       // Remove approval_threshold, notification_email, notification_sms, auto_approval

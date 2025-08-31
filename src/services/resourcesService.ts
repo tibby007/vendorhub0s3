@@ -4,8 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ResourceFile {
   id: string;
   title: string;
-  content: string;
-  type: 'file' | 'news';
+  content?: string;
   category: string;
   file_url?: string;
   file_size?: number;
@@ -36,7 +35,6 @@ export const resourcesService = {
           id: 'demo-resource-2',
           title: 'Partner Agreement Template',
           content: 'Standard vendor partnership agreement template for your review.',
-          type: 'file',
           category: 'templates',
           file_url: '/demo/partner-agreement.pdf',
           file_size: 245760,
@@ -49,7 +47,6 @@ export const resourcesService = {
           id: 'demo-resource-3',
           title: 'Compliance Guidelines',
           content: 'Updated compliance guidelines for Q2 2024.',
-          type: 'file',
           category: 'compliance',
           file_url: '/demo/compliance-guidelines.pdf',
           file_size: 512000,
@@ -63,7 +60,7 @@ export const resourcesService = {
     
     const { data, error } = await supabase
       .from('resources')
-      .select('id, title, type, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
+      .select('id, title, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
       .eq('partner_id', partnerId)
       .order('created_at', { ascending: false });
 
@@ -112,7 +109,7 @@ export const resourcesService = {
     const { data, error } = await supabase
       .from('resources')
       .insert(resourceData)
-      .select('id, title, type, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
+      .select('id, title, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
       .single();
 
     if (error) throw error;
@@ -156,7 +153,7 @@ export const resourcesService = {
       .from('resources')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
+      .select('id, title, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
       .single();
 
     if (error) throw error;

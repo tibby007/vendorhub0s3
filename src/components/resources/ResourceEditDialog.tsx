@@ -35,7 +35,7 @@ const ResourceEditDialog = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Edit {resource.type === 'file' ? 'Resource' : 'News'}</DialogTitle>
+          <DialogTitle>Edit Resource</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -47,7 +47,7 @@ const ResourceEditDialog = ({
             />
           </div>
           <div>
-            <Label htmlFor="edit-content">{resource.type === 'file' ? 'Description' : 'Content'}</Label>
+            <Label htmlFor="edit-content">Description</Label>
             <Textarea 
               id="edit-content" 
               value={formData.content}
