@@ -11,6 +11,7 @@ const getAllowedOrigins = (): string[] => {
   // Default fallback origins (should be configured via environment)
   const defaultOrigins = [
     "http://localhost:5173",
+    "http://localhost:8080",  // Claude Code dev server
     "http://localhost:3000", 
     "https://vendorhub-connect-portal.netlify.app",
     "https://vendorhubos.com"

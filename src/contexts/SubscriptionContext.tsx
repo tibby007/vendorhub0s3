@@ -280,6 +280,23 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('[SubscriptionContext] Error fetching subscription data:', err);
       
+      // DEVELOPMENT CORS FIX: Handle CORS errors in development mode
+      if (import.meta.env.DEV && (errorMessage.includes('CORS') || errorMessage.includes('Failed to send a request'))) {
+        console.warn('[SubscriptionContext] CORS error in development, providing trial access');
+        const devTrialState: Partial<SubscriptionState> = {
+          subscribed: true,
+          tier: 'Pro',
+          status: 'trial',
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+          priceId: 'price_dev',
+          billingStatus: 'trialing',
+          planType: 'pro',
+          trialEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        };
+        dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: devTrialState });
+        return;
+      }
+
       // Enhanced error handling - if rate limited, use cached data longer
       if (errorMessage.includes('rate') || errorMessage.includes('limit') || errorMessage.includes('network') || errorMessage.includes('timeout')) {
         console.warn('[SubscriptionContext] Network/rate limit error, extending cache duration');
