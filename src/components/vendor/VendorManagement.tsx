@@ -18,6 +18,7 @@ import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { useNavigate } from 'react-router-dom';
 import VendorLimitIndicator from './VendorLimitIndicator';
 import VendorCSVUpload from './VendorCSVUpload';
+import VendorForm from './VendorForm';
 
 interface Vendor {
   id: string;
@@ -433,112 +434,13 @@ const VendorManagement = () => {
     });
   }, []);
 
-  const VendorForm = ({ onSubmit, title }: { onSubmit: (e: React.FormEvent) => void; title: string }) => {
-    console.log('🔄 VendorForm rendering with formData:', formData);
-    
-    return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <Alert className="border-blue-200 bg-blue-50">
-        <Shield className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800">
-          <strong>Security Notice:</strong> All vendor data is validated and encrypted for security.
-        </AlertDescription>
-      </Alert>
-
-      <div className="space-y-2">
-        <Label htmlFor="vendor_name">Vendor Name *</Label>
-        <Input
-          id="vendor_name"
-          value={formData.vendor_name}
-          onChange={(e) => {
-            console.log('🎯 Raw onChange event:', e.target.value);
-            handleInputChange('vendor_name', e.target.value);
-          }}
-          className={errors.vendor_name ? 'border-red-500' : ''}
-          placeholder="Enter vendor name"
-          autoComplete="off"
-        />
-        {errors.vendor_name && (
-          <p className="text-sm text-red-600 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
-            {errors.vendor_name}
-          </p>
-        )}
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="contact_email">Contact Email *</Label>
-        <Input
-          id="contact_email"
-          type="email"
-          value={formData.contact_email}
-          onChange={(e) => {
-            console.log('🎯 Raw email onChange event:', e.target.value);
-            handleInputChange('contact_email', e.target.value);
-          }}
-          disabled={!!editingVendor}
-          className={errors.contact_email ? 'border-red-500' : ''}
-          placeholder="vendor@example.com"
-          autoComplete="off"
-        />
-        {errors.contact_email && (
-          <p className="text-sm text-red-600 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
-            {errors.contact_email}
-          </p>
-        )}
-      </div>
-      
-      {!editingVendor && (
-        <div className="space-y-2 p-3 bg-blue-50 rounded-md border border-blue-200">
-          <div className="text-sm text-blue-800">
-            <strong>Note:</strong> The vendor will receive an email invitation to register their own account using this email address.
-          </div>
-        </div>
-      )}
-      
-      <div className="space-y-2">
-        <Label htmlFor="contact_phone">Contact Phone</Label>
-        <Input
-          id="contact_phone"
-          value={formData.contact_phone}
-          onChange={(e) => handleInputChange('contact_phone', e.target.value)}
-          placeholder="(555) 123-4567"
-          autoComplete="off"
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="contact_address">Contact Address</Label>
-        <Input
-          id="contact_address"
-          value={formData.contact_address}
-          onChange={(e) => handleInputChange('contact_address', e.target.value)}
-          placeholder="123 Main St, City, State 12345"
-        />
-      </div>
-      
-      <div className="flex justify-end gap-2">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => {
-            if (editingVendor) {
-              setEditingVendor(null);
-            } else {
-              setIsCreateDialogOpen(false);
-            }
-            resetForm();
-          }}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Saving...' : title}
-        </Button>
-      </div>
-    </form>
-    );
+  const handleCancel = () => {
+    if (editingVendor) {
+      setEditingVendor(null);
+    } else {
+      setIsCreateDialogOpen(false);
+    }
+    resetForm();
   };
 
   if (!canManageVendors()) {
@@ -584,7 +486,16 @@ const VendorManagement = () => {
                 Add a new vendor to your network. They will receive login credentials.
               </DialogDescription>
             </DialogHeader>
-            <VendorForm onSubmit={createVendor} title="Create Vendor" />
+            <VendorForm 
+              formData={formData}
+              errors={errors}
+              editingVendor={null}
+              isLoading={isLoading}
+              onSubmit={createVendor}
+              onInputChange={handleInputChange}
+              onCancel={handleCancel}
+              title="Create Vendor"
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -679,7 +590,16 @@ const VendorManagement = () => {
                 Update vendor information
               </DialogDescription>
             </DialogHeader>
-            <VendorForm onSubmit={updateVendor} title="Update Vendor" />
+            <VendorForm 
+              formData={formData}
+              errors={errors}
+              editingVendor={editingVendor}
+              isLoading={isLoading}
+              onSubmit={updateVendor}
+              onInputChange={handleInputChange}
+              onCancel={handleCancel}
+              title="Update Vendor"
+            />
           </DialogContent>
         </Dialog>
       )}
