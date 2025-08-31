@@ -39,9 +39,9 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
+    // Stripe is optional - only needed for paid subscriptions, not trials
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-
+    
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
@@ -51,139 +51,105 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
     
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("Checking subscription for user", { email: user.email, user_id: user.id });
 
-    // First check if user is in trial period via partners table
-    const { data: partnerData, error: partnerError } = await supabaseClient
-      .from('partners')
-      .select('billing_status, trial_end, plan_type')
-      .eq('contact_email', user.email)
-      .maybeSingle();
-
-    if (partnerData && !partnerError) {
-      logStep("Found partner data", { partnerData });
+    // Get user's subscription and partner data using service role (bypasses RLS)
+    const [subscriberResult, partnerResult, appUserResult] = await Promise.all([
+      supabaseClient
+        .from('subscribers')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle(),
       
-      if (partnerData.billing_status === 'trialing' && partnerData.trial_end) {
-        const trialEnd = new Date(partnerData.trial_end);
-        const now = new Date();
-        
-        if (trialEnd > now) {
-          logStep("User is in active trial period");
-          const subscriptionTier = mapPlanTypeToTier(partnerData.plan_type);
+      supabaseClient
+        .from('partners')
+        .select('*')
+        .eq('contact_email', user.email)
+        .maybeSingle(),
+      
+      supabaseClient
+        .from('users')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle()
+    ]);
+
+    const subscriber = subscriberResult.data;
+    const partner = partnerResult.data;
+    const appUser = appUserResult.data;
+
+    logStep("Database query results", {
+      hasSubscriber: !!subscriber,
+      hasPartner: !!partner,
+      hasAppUser: !!appUser
+    });
+
+    // Determine subscription status
+    let subscriptionStatus = 'none';
+    let isActive = false;
+    let trialActive = false;
+    let daysRemaining = 0;
+
+    if (subscriber && partner) {
+      const now = new Date();
+      
+      // Check for active trial
+      if (partner.billing_status === 'trialing' && subscriber.trial_end) {
+        const trialEnd = new Date(subscriber.trial_end);
+        if (now < trialEnd) {
+          trialActive = true;
+          subscriptionStatus = 'trial';
+          isActive = true;
+          daysRemaining = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           
-          await supabaseClient.from("subscribers").upsert({
-            email: user.email,
-            user_id: user.id,
-            stripe_customer_id: null,
-            subscribed: false,
-            subscription_tier: subscriptionTier,
-            subscription_end: partnerData.trial_end,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'email' });
+          logStep("User has active trial", { daysRemaining });
           
           return new Response(JSON.stringify({
-            subscribed: false,
-            subscription_tier: subscriptionTier,
-            subscription_end: partnerData.trial_end,
-            trial_active: true
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          });
-        } else {
-          logStep("Trial period has expired");
-        }
-      }
-    }
-
-    // Also check subscribers table for trial status (including webhook-created records)
-    const { data: subscriberData, error: subscriberError } = await supabaseClient
-      .from('subscribers')
-      .select('*')
-      .eq('email', user.email)
-      .maybeSingle();
-
-    if (subscriberData && !subscriberError) {
-      logStep("Found subscriber data", { subscriberData });
-      logStep("DETAILED subscriber analysis", {
-        email: subscriberData.email,
-        subscribed: subscriberData.subscribed,
-        subscription_tier: subscriberData.subscription_tier,
-        stripe_subscription_id: subscriberData.stripe_subscription_id,
-        trial_end: subscriberData.subscription_end,
-        status: subscriberData.status
-      });
-      
-      // Check if temporary fix should apply
-      const shouldApplyFix = subscriberData.stripe_subscription_id && subscriberData.subscription_tier === 'Basic';
-      logStep("TEMPORARY FIX CHECK", {
-        has_stripe_subscription: !!subscriberData.stripe_subscription_id,
-        tier_is_basic: subscriberData.subscription_tier === 'Basic',
-        should_apply_fix: shouldApplyFix
-      });
-      
-      // Check if user has an active subscription (paid)
-      if (subscriberData.subscribed && subscriberData.stripe_subscription_id) {
-        logStep("User has active paid subscription");
-        logStep("PAID SUBSCRIPTION RESPONSE BEING SENT", {
-          subscribed: true,
-          subscription_tier: subscriberData.subscription_tier || 'Basic',
-          tier_source: subscriberData.subscription_tier ? 'database' : 'fallback',
-          subscription_end: subscriberData.subscription_end,
-          trial_active: false
-        });
-        return new Response(JSON.stringify({
-          subscribed: true,
-          subscription_tier: subscriberData.subscription_tier || 'Basic',
-          subscription_end: subscriberData.subscription_end,
-          trial_active: false,
-          stripe_subscription_id: subscriberData.stripe_subscription_id
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        });
-      }
-      
-      // Check if user is in trial period (webhook created or manual trial)
-      if (subscriberData.subscription_end) {
-        const trialEnd = new Date(subscriberData.subscription_end);
-        const now = new Date();
-        
-        if (trialEnd > now) {
-          logStep("User is in active trial period (from subscribers table)");
-          logStep("TRIAL RESPONSE BEING SENT", {
-            subscribed: false,
-            subscription_tier: subscriberData.subscription_tier || 'Basic',
-            tier_source: subscriberData.subscription_tier ? 'database' : 'fallback',
-            subscription_end: subscriberData.subscription_end,
-            trial_active: true
-          });
-          return new Response(JSON.stringify({
-            subscribed: false,
-            subscription_tier: subscriberData.subscription_tier || 'Basic',
-            subscription_end: subscriberData.subscription_end,
+            subscribed: false, // Trial users are not "subscribed" 
+            subscription_tier: subscriber.subscription_tier || 'Pro',
+            subscription_end: subscriber.trial_end,
             trial_active: true,
-            stripe_subscription_id: subscriberData.stripe_subscription_id
+            days_remaining: daysRemaining
           }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 200,
           });
-        } else {
-          logStep("Trial period has expired (from subscribers table)");
+        }
+      }
+      
+      // Check for active paid subscription
+      if (subscriber.subscribed && subscriber.stripe_subscription_id) {
+        const subscriptionEnd = subscriber.subscription_end ? new Date(subscriber.subscription_end) : null;
+        if (!subscriptionEnd || now < subscriptionEnd) {
+          subscriptionStatus = 'active';
+          isActive = true;
+          daysRemaining = subscriptionEnd ? Math.ceil((subscriptionEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 365;
+          
+          logStep("User has active paid subscription", { tier: subscriber.subscription_tier });
+          
+          return new Response(JSON.stringify({
+            subscribed: true,
+            subscription_tier: subscriber.subscription_tier || 'Pro',
+            subscription_end: subscriber.subscription_end,
+            trial_active: false,
+            stripe_subscription_id: subscriber.stripe_subscription_id
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
         }
       }
     }
 
-
-    // If no trial found, user needs to set up subscription
-    logStep("No subscription found for user");
+    // No subscription or trial found
+    logStep("No active subscription or trial found");
     
     return new Response(JSON.stringify({ 
       subscribed: false, 
       subscription_tier: null,
       subscription_end: null,
       trial_active: false,
-      price_id: null 
+      needs_setup: true
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

@@ -226,7 +226,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const newUserState: Partial<SubscriptionState> = {
           subscribed: false,
           tier: null,
-          status: 'expired', // They need to set up subscription
+          status: subscriptionData?.needs_setup ? 'expired' : 'loading', // Only show expired if user needs setup
           endDate: null,
           priceId: null,
           billingStatus: null,
@@ -237,24 +237,44 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      // Fetch partner data for billing info - try by user id first, then by email
-      const partnerId = session.user.user_metadata?.partner_id || session.user.id;
-      console.log('[SubscriptionContext] Looking for partner data with ID:', partnerId, 'and email:', session.user.email);
-      
-      let { data: partnerData, error: partnerError } = await supabase
-        .from('partners')
-        .select('billing_status, plan_type, trial_end, current_period_end, id, contact_email')
-        .eq('id', partnerId)
-        .maybeSingle();
+      // Process subscription data from check-subscription function - NO DIRECT DATABASE CALLS
+      if (subscriptionData) {
+        const subscriptionState: Partial<SubscriptionState> = {
+          subscribed: subscriptionData.subscribed || false,
+          tier: subscriptionData.subscription_tier as 'Basic' | 'Pro' | 'Premium' || null,
+          status: subscriptionData.trial_active ? 'trial' : (subscriptionData.subscribed ? 'active' : 'expired'),
+          endDate: subscriptionData.subscription_end || null,
+          priceId: subscriptionData.price_id || null,
+          billingStatus: subscriptionData.trial_active ? 'trialing' : (subscriptionData.subscribed ? 'active' : null),
+          planType: subscriptionData.subscription_tier?.toLowerCase() || null,
+          trialEnd: subscriptionData.trial_active ? subscriptionData.subscription_end : null,
+          lastUpdated: Date.now(),
+          isLoading: false,
+          error: null
+        };
 
-      // If no partner found by ID, try by email (webhook creates by email)
-      if (!partnerData && !partnerError) {
-        console.log('[SubscriptionContext] No partner found by ID, trying by email:', session.user.email);
-        const { data: partnerByEmail, error: partnerByEmailError } = await supabase
-          .from('partners')
-          .select('billing_status, plan_type, trial_end, current_period_end, id, contact_email')
-          .eq('contact_email', session.user.email)
-          .maybeSingle();
+        console.log('[SubscriptionContext] Setting subscription state from check-subscription:', subscriptionState);
+        dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: subscriptionState });
+        return;
+      }
+
+      // No subscription data returned - user needs setup
+      console.log('[SubscriptionContext] No subscription data returned from check-subscription function');
+      const noSubscriptionState: Partial<SubscriptionState> = {
+        subscribed: false,
+        tier: null,
+        status: 'expired',
+        endDate: null,
+        priceId: null,
+        billingStatus: null,
+        planType: null,
+        trialEnd: null,
+        lastUpdated: Date.now(),
+        isLoading: false,
+        error: null
+      };
+      dispatch({ type: 'SET_SUBSCRIPTION_DATA', payload: noSubscriptionState });
+
         
         partnerData = partnerByEmail;
         partnerError = partnerByEmailError;
