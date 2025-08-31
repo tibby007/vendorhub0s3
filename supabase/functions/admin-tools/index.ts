@@ -191,6 +191,9 @@ async function handleSetupUser(
     }
 
     // 2. Create/update partner record
+    const trialEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days from now
+    const subscriptionEndDate = billing_status === 'trialing' ? trialEndDate : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    
     const { data: partner, error: partnerError } = await supabase
       .from('partners')
       .upsert({
@@ -198,9 +201,10 @@ async function handleSetupUser(
         contact_email: email,
         plan_type: plan_type,
         billing_status: billing_status,
+        trial_end: billing_status === 'trialing' ? trialEndDate.toISOString() : null,
         vendor_limit: plan_type === 'pro' ? 7 : plan_type === 'premium' ? 15 : 1,
         storage_limit: plan_type === 'pro' ? 26843545600 : 5368709120, // 25GB or 5GB
-        current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+        current_period_end: subscriptionEndDate.toISOString()
       }, { 
         onConflict: 'contact_email',
         ignoreDuplicates: false 
@@ -244,8 +248,9 @@ async function handleSetupUser(
         user_id: authUser.id,
         subscribed: subscribed,
         subscription_tier: subscription_tier,
-        subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-        trial_active: false
+        subscription_end: subscriptionEndDate.toISOString(),
+        trial_end: billing_status === 'trialing' ? trialEndDate.toISOString() : null,
+        trial_active: billing_status === 'trialing'
       }, { 
         onConflict: 'email',
         ignoreDuplicates: false 
