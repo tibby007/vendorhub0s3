@@ -422,7 +422,8 @@ const VendorManagement = () => {
     }
   };
 
-  const VendorForm = ({ onSubmit, title }: { onSubmit: (e: React.FormEvent) => void; title: string }) => (
+  const VendorForm = ({ onSubmit, title }: { onSubmit: (e: React.FormEvent) => void; title: string }) => {
+    return (
     <form onSubmit={onSubmit} className="space-y-4">
       <Alert className="border-blue-200 bg-blue-50">
         <Shield className="h-4 w-4 text-blue-600" />
@@ -518,7 +519,8 @@ const VendorManagement = () => {
         </Button>
       </div>
     </form>
-  );
+    );
+  };
 
   if (!canManageVendors()) {
     console.log('❌ Access denied for vendor management. Current role:', currentRole);

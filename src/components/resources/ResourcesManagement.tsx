@@ -84,7 +84,7 @@ const ResourcesManagement = () => {
         file_size: selectedFile.size,
         mime_type: selectedFile.type,
         is_published: true,
-        partner_admin_id: user.id
+        partner_id: user.id
       });
 
       // Update storage usage after successful upload
@@ -120,7 +120,7 @@ const ResourcesManagement = () => {
         type: 'news',
         category: formData.category,
         is_published: true,
-        partner_admin_id: user.id
+        partner_id: user.id
       });
 
       toast({

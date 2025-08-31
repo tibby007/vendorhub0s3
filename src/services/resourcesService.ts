@@ -64,7 +64,7 @@ export const resourcesService = {
     const { data, error } = await supabase
       .from('resources')
       .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, created_at, updated_at')
-      .eq('partner_admin_id', partnerId)
+      .eq('partner_id', partnerId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -85,7 +85,7 @@ export const resourcesService = {
     }));
   },
 
-  async createResource(resource: Omit<ResourceFile, 'id' | 'created_at' | 'updated_at'> & { partner_admin_id: string }): Promise<ResourceFile> {
+  async createResource(resource: Omit<ResourceFile, 'id' | 'created_at' | 'updated_at'> & { partner_id: string }): Promise<ResourceFile> {
     // Check for demo mode - return mock data
     const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
     if (isDemoMode) {

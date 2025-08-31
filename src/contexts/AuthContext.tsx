@@ -20,19 +20,20 @@ interface AuthUser {
   partnerId?: string; // For compatibility
 }
 
-interface MockSubscriptionData {
-  subscriptionStatus: 'active';
-  planType: 'pro';
-  trialDaysRemaining: 0;
-  subscribed: true;
-  subscription_tier: 'pro';
-  subscription_end: string;
+interface SubscriptionData {
+  subscriptionStatus: 'active' | 'trialing' | 'inactive';
+  planType: 'basic' | 'pro' | 'premium';
+  trialDaysRemaining: number;
+  subscribed: boolean;
+  subscription_tier: 'Basic' | 'Pro' | 'Premium';
+  subscription_end: string | null;
+  status?: string;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
-  subscriptionData: MockSubscriptionData | null;
+  subscriptionData: SubscriptionData | null;
   loading: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -48,14 +49,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
 
   // Mock subscription data for demo mode
-  const mockSubscriptionData: MockSubscriptionData = {
+  const mockSubscriptionData: SubscriptionData = {
     subscriptionStatus: 'active',
     planType: 'pro', 
     trialDaysRemaining: 0,
     subscribed: true,
-    subscription_tier: 'pro',
+    subscription_tier: 'Pro',
     subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year from now
   };
 
@@ -190,6 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             setUser(mockUser);
             setSession(null);
+            setSubscriptionData(mockSubscriptionData);
             setLoading(false);
             console.log('✅ Demo user set:', mockUser);
           }
@@ -220,6 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             setUser(mockUser);
             setSession(null);
+            setSubscriptionData(mockSubscriptionData);
             setLoading(false);
             console.log('✅ Demo user set via event:', mockUser);
           }
@@ -230,6 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('🚫 Demo mode deactivated via event');
         if (user && (user.email === 'partner@demo.com' || user.email === 'vendor@demo.com')) {
           setUser(null);
+          setSubscriptionData(null);
           setLoading(false);
         }
       }
@@ -238,6 +243,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('demo-mode-changed', handleDemoModeChange);
     return () => window.removeEventListener('demo-mode-changed', handleDemoModeChange);
   }, []);
+
+  // Load subscription data when user changes
+  useEffect(() => {
+    if (user?.email) {
+      refreshSubscription();
+    } else {
+      setSubscriptionData(null);
+    }
+  }, [user?.email]);
 
   const login = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -258,16 +272,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      // Set loading to prevent other operations during logout
+      setLoading(true);
+      
+      // Clear state first to prevent React Error #310
+      setUser(null);
+      setSession(null);
+      
+      // Then call secure logout which will handle redirect
       await secureLogout.logout({
         clearAllSessions: true,
         reason: 'user_initiated',
         redirectTo: '/auth'
       });
       
-      setUser(null);
-      setSession(null);
-      setLoading(false);
+      // Don't set loading to false here - we're redirecting anyway
     } catch (error) {
+      console.error('Logout error:', error);
+      // Clear state even on error
       setUser(null);
       setSession(null);
       setLoading(false);
@@ -277,10 +299,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = logout; // Alias for compatibility
 
   const refreshSubscription = async (forceRefresh?: boolean) => {
-    // Mock implementation for demo mode
+    if (!user?.email) return;
+    
+    // Check for demo mode
     const demoCredentials = sessionStorage.getItem('demoCredentials');
-    if (demoCredentials) return;
-    // Real implementation would refresh subscription here
+    if (demoCredentials) {
+      setSubscriptionData(mockSubscriptionData);
+      return;
+    }
+    
+    try {
+      console.log('🔄 Refreshing subscription data for:', user.email);
+      
+      // Try to get subscription data from subscribers table
+      const { data: subscriber, error } = await supabase
+        .from('subscribers')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      if (subscriber) {
+        console.log('✅ Found subscriber data:', subscriber);
+        const subscriptionEnd = subscriber.subscription_end ? new Date(subscriber.subscription_end) : null;
+        const now = new Date();
+        const isActive = subscriber.subscribed && subscriptionEnd && subscriptionEnd > now;
+        const isTrialing = !subscriber.subscribed && subscriptionEnd && subscriptionEnd > now;
+        
+        setSubscriptionData({
+          subscriptionStatus: isActive ? 'active' : isTrialing ? 'trialing' : 'inactive',
+          planType: subscriber.subscription_tier?.toLowerCase() || 'basic',
+          trialDaysRemaining: isTrialing && subscriptionEnd ? Math.ceil((subscriptionEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,
+          subscribed: subscriber.subscribed || false,
+          subscription_tier: subscriber.subscription_tier || 'Basic',
+          subscription_end: subscriber.subscription_end,
+          status: subscriber.subscribed ? 'active' : 'trialing'
+        });
+      } else {
+        console.log('❌ No subscriber data found, setting default');
+        // Set a basic subscription state for users without subscriber data
+        setSubscriptionData({
+          subscriptionStatus: 'active',
+          planType: 'premium', // Default for existing users
+          trialDaysRemaining: 0,
+          subscribed: true,
+          subscription_tier: 'Premium',
+          subscription_end: null,
+          status: 'active'
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing subscription:', error);
+      // Set fallback subscription data
+      setSubscriptionData({
+        subscriptionStatus: 'active',
+        planType: 'premium',
+        trialDaysRemaining: 0,
+        subscribed: true,
+        subscription_tier: 'Premium',
+        subscription_end: null,
+        status: 'active'
+      });
+    }
   };
 
   const checkSubscriptionAccess = (requiredTier: string) => {
@@ -296,7 +379,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{
       user,
       session,
-      subscriptionData: sessionStorage.getItem('demoCredentials') ? mockSubscriptionData : null,
+      subscriptionData,
       loading, 
       isLoading: loading,
       login,

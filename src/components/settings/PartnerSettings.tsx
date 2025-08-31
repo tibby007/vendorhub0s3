@@ -184,37 +184,17 @@ const PartnerSettings = () => {
       console.log('[PartnerSettings] Saving profile:', profile);
       console.log('[PartnerSettings] Current user:', { id: user.id, email: user.email, partner_id: (user as any).partner_id });
       
-      // Check if we have existing subscription data to preserve
-      const { data: existingSubscriber } = await supabase
-        .from('subscribers')
-        .select('*')
-        .eq('email', user.email)
-        .maybeSingle();
-      
-      console.log('[PartnerSettings] Existing subscriber data:', existingSubscriber);
-      
-      // Prepare upsert data with all required fields, preserving subscription info
+      // Simplified upsert data - only include core partner fields
       const upsertData: any = {
         name: profile.name || user?.name || 'New Partner',
         contact_email: profile.contact_email || user?.email,
         contact_phone: profile.contact_phone || '',
         company_logo: profile.company_logo || null,
         brand_color: profile.brand_color || '#10B981',
-        notification_email: profile.notification_email,
-        notification_sms: profile.notification_sms,
-        auto_approval: profile.auto_approval,
-        approval_threshold: profile.approval_threshold,
-        plan_type: existingSubscriber?.subscription_tier?.toLowerCase() || 'basic',
-        billing_status: existingSubscriber?.status || 'trialing',
-        vendor_limit: existingSubscriber?.subscription_tier?.toLowerCase() === 'pro' ? 7 : 
-                     existingSubscriber?.subscription_tier?.toLowerCase() === 'premium' ? 999999 : 3,
-        storage_limit: existingSubscriber?.subscription_tier?.toLowerCase() === 'pro' ? 26843545600 : 
-                      existingSubscriber?.subscription_tier?.toLowerCase() === 'premium' ? 107374182400 : 5368709120,
-        storage_used: 0,
-        trial_end: existingSubscriber?.trial_end || null,
-        current_period_end: existingSubscriber?.subscription_end || null,
-        stripe_customer_id: existingSubscriber?.stripe_customer_id || null,
-        stripe_subscription_id: existingSubscriber?.stripe_subscription_id || null,
+        notification_email: profile.notification_email ?? true,
+        notification_sms: profile.notification_sms ?? false,
+        auto_approval: profile.auto_approval ?? false,
+        approval_threshold: profile.approval_threshold || 1000,
         updated_at: new Date().toISOString()
       };
       
@@ -223,11 +203,11 @@ const PartnerSettings = () => {
       // Try to update existing record first if we have an ID
       if (profile.id) {
         console.log('[PartnerSettings] Updating existing partner with ID:', profile.id);
-        upsertData.id = profile.id;
         
         const { data, error } = await supabase
           .from('partners')
-          .upsert(upsertData, { onConflict: 'id' })
+          .update(upsertData)
+          .eq('id', profile.id)
           .select()
           .single();
 
@@ -241,6 +221,12 @@ const PartnerSettings = () => {
         // Create new record
         console.log('[PartnerSettings] Creating new partner record');
         upsertData.created_at = new Date().toISOString();
+        // Set default values for required fields
+        upsertData.plan_type = 'basic';
+        upsertData.billing_status = 'trialing';
+        upsertData.vendor_limit = 3;
+        upsertData.storage_limit = 5368709120; // 5GB
+        upsertData.storage_used = 0;
         
         const { data, error } = await supabase
           .from('partners')
@@ -278,7 +264,7 @@ const PartnerSettings = () => {
       console.error('Error saving partner settings:', error);
       toast({
         title: "Error",
-        description: "Failed to save partner settings",
+        description: `Failed to save partner settings: ${error.message}`,
         variant: "destructive",
       });
     } finally {
