@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCorsHeaders, handleCorsPrelight } from "../_shared/cors-config.ts";
+import { createRateLimiter } from "../_shared/rate-limiter.ts";
 
 interface VendorInviteRequest {
   business_name: string;
@@ -45,6 +46,24 @@ serve(async (req) => {
     
     const user = userData.user;
     if (!user) throw new Error("User not authenticated");
+
+    // Apply rate limiting (100 requests per minute per user)
+    const rateLimiter = createRateLimiter(supabase);
+    const rateLimitCheck = await rateLimiter.middleware(req, user.id, { 
+      limit: 100,
+      skip_authenticated: false // Apply rate limiting even for authenticated users
+    });
+    
+    if (!rateLimitCheck.allowed) {
+      logStep("Rate limit exceeded", { user_id: user.id, count: rateLimitCheck.result.count });
+      return rateLimitCheck.response!;
+    }
+    
+    logStep("Rate limit check passed", { 
+      user_id: user.id, 
+      count: rateLimitCheck.result.count,
+      remaining: rateLimitCheck.result.remaining 
+    });
 
     // Get the request method and path
     const url = new URL(req.url);
