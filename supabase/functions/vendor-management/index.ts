@@ -4,7 +4,7 @@ import { getCorsHeaders, handleCorsPrelight } from "../_shared/cors-config.ts";
 import { createRateLimiter } from "../_shared/rate-limiter.ts";
 
 interface VendorInviteRequest {
-  business_name: string;
+  vendor_name: string;
   contact_email: string;
   contact_phone?: string;
   business_type?: string;
@@ -123,7 +123,7 @@ async function handleInviteVendor(
   corsHeaders: any
 ) {
   const requestBody = await req.json() as VendorInviteRequest;
-  logStep("Inviting vendor", { business_name: requestBody.business_name });
+  logStep("Inviting vendor", { vendor_name: requestBody.vendor_name });
 
   // Verify user is a broker/partner admin
   const { data: partnerData, error: partnerError } = await supabase
@@ -151,7 +151,7 @@ async function handleInviteVendor(
     .from('vendors')
     .insert({
       partner_id: partnerData.id,
-      business_name: requestBody.business_name,
+      vendor_name: requestBody.vendor_name,
       contact_email: requestBody.contact_email,
       contact_phone: requestBody.contact_phone,
       business_type: requestBody.business_type,
@@ -194,7 +194,7 @@ async function handleCreateVendor(
     .insert({
       id: requestBody.user_id,
       email: requestBody.contact_email,
-      name: requestBody.business_name,
+      name: requestBody.vendor_name,
       role: 'Vendor'
     })
     .select()
@@ -248,7 +248,7 @@ async function handleListVendors(
     .from('vendors')
     .select(`
       id,
-      business_name,
+      vendor_name,
       contact_email,
       contact_phone,
       business_type,
