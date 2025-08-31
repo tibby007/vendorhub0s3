@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { partnerAdminSchema } from '@/lib/validation';
 import { AlertCircle, Shield } from 'lucide-react';
+import type { PartnerAdminFormData } from '@/types/forms';
 
 interface AddPartnerAdminFormProps {
   onSuccess: () => void;
@@ -19,7 +20,7 @@ const AddPartnerAdminForm = ({ onSuccess }: AddPartnerAdminFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { canCreatePartnerAdmin, currentRole } = useRoleCheck();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PartnerAdminFormData>({
     name: '',
     email: '',
     password: '',
@@ -149,11 +150,12 @@ const AddPartnerAdminForm = ({ onSuccess }: AddPartnerAdminFormProps) => {
       });
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Security Error - Partner admin creation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create partner admin - access denied";
       toast({
         title: "Security Error",
-        description: error.message || "Failed to create partner admin - access denied",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

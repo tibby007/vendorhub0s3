@@ -18,5 +18,8 @@ export interface PreQualResult {
 }
 
 export interface PreQualToolProps {
-  onSubmitApplication?: (customerData: any) => void;
+  onSubmitApplication?: (customerData: CustomerApplicationFormData) => void;
 }
+
+// Import the CustomerApplicationFormData type
+import type { CustomerApplicationFormData } from './forms';

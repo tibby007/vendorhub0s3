@@ -11,15 +11,17 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Upload, User, Building, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import DocumentUpload from './DocumentUpload';
+import type { DetailedCustomerApplicationFormData } from '@/types/forms';
+import type { PreQualData } from '@/types/prequal';
 
 interface CustomerApplicationFormProps {
-  preQualData?: any;
+  preQualData?: PreQualData;
 }
 
 const CustomerApplicationForm = ({ preQualData }: CustomerApplicationFormProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<DetailedCustomerApplicationFormData>({
     // Personal Information
     customerName: '',
     email: '',

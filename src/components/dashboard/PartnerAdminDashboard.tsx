@@ -64,7 +64,7 @@ const PartnerAdminDashboard = () => {
     };
 
     fetchStats();
-  }, [user?.id, isDemo]);
+  }, [user?.id, user?.email, isDemo]);
 
   const vendorLimits = {
     basic: 3,

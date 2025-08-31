@@ -140,13 +140,14 @@ export const useLoginForm = (isDemoSession?: boolean) => {
         setTimeout(() => navigate('/dashboard', { replace: true }), 100);
       }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
       
         // Track failed demo login
         if (isDemoSession || email.includes('demo-')) {
           DemoAnalytics.trackEvent(DEMO_EVENTS.REGISTRATION_FAILED, {
-            error: error.message,
+            error: errorMessage,
             email
           });
         }

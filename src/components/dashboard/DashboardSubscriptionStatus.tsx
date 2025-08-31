@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle, Clock, CreditCard } from 'lucide-react';
+import type { AuthUser } from '@/types/auth';
+import type { PartnerData } from '@/types/api';
 
 interface DashboardSubscriptionStatusProps {
-  user: any;
+  user: AuthUser;
 }
 
 const DashboardSubscriptionStatus: React.FC<DashboardSubscriptionStatusProps> = ({ user }) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<'loading' | 'no_subscription' | 'active' | 'trial' | 'past_due'>('loading');
-  const [partnerData, setPartnerData] = useState<any>(null);
+  const [partnerData, setPartnerData] = useState<PartnerData | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {

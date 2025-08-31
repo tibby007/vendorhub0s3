@@ -5,7 +5,7 @@ interface MockUser {
   role: 'Partner Admin' | 'Vendor' | 'Super Admin';
   avatar_url?: string;
   created_at: string;
-  user_metadata?: any;
+  user_metadata?: Record<string, unknown>;
   partnerId?: string;
 }
 
@@ -74,6 +74,42 @@ interface MockDocument {
   uploaded_at: string;
   uploaded_by: string;
   folder: string;
+}
+
+interface MockAnalytics {
+  totalRevenue: number;
+  revenueGrowth: number;
+  totalVendors: number;
+  activeVendors: number;
+  totalSubmissions: number;
+  pendingSubmissions: number;
+  monthlyData: Array<{
+    month: string;
+    revenue: number;
+    vendors: number;
+    submissions: number;
+  }>;
+  topVendors: Array<{
+    name: string;
+    revenue: number;
+    submissions: number;
+  }>;
+}
+
+interface MockDashboardStats {
+  totalVendors: number;
+  activeVendors: number;
+  pendingApplications: number;
+  totalSubmissions: number;
+  pendingSubmissions: number;
+  approvedSubmissions: number;
+  totalRevenue: number;
+  monthlyRevenue: number;
+  recentActivity: Array<{
+    type: string;
+    message: string;
+    time: string;
+  }>;
 }
 
 class MockDataService {
@@ -441,7 +477,7 @@ class MockDataService {
     return [...this.mockDocuments];
   }
 
-  async getAnalytics(): Promise<any> {
+  async getAnalytics(): Promise<MockAnalytics> {
     await this.simulateNetworkDelay();
     return {
       totalRevenue: 542150,
@@ -490,7 +526,7 @@ class MockDataService {
     return submission || null;
   }
 
-  async getDashboardStats(): Promise<any> {
+  async getDashboardStats(): Promise<MockDashboardStats> {
     await this.simulateNetworkDelay();
     const now = new Date();
     const thisMonth = now.getMonth();

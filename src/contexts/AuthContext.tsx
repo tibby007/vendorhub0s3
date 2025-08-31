@@ -17,7 +17,7 @@ interface AuthUser {
   role: string;
   avatar_url?: string;
   created_at: string;
-  user_metadata?: any; // For compatibility
+  user_metadata?: Record<string, unknown>; // For compatibility
   partnerId?: string; // For compatibility
 }
 
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🔄 AuthContext initializing auth listener');
     
     let isCleanedUp = false;
-    let authSubscription: any = null;
+    let authSubscription: { unsubscribe: () => void } | null = null;
 
     // DEBUG: Force clear auth storage if in incognito and no demo mode
     const clearAuthIfIncognito = () => {

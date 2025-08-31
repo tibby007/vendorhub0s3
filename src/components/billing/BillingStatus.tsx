@@ -32,11 +32,7 @@ const BillingStatus = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchBillingData();
-  }, [user]);
-
-  const fetchBillingData = async () => {
+  const fetchBillingData = React.useCallback(async () => {
     if (!user) return;
 
     // Check for demo mode - return mock data
@@ -118,7 +114,11 @@ const BillingStatus = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchBillingData();
+  }, [fetchBillingData]);
 
   const openCustomerPortal = async () => {
     if (!billingData?.stripe_customer_id) {

@@ -5,13 +5,14 @@ import VendorResources from '@/components/vendor/VendorResources';
 import VendorDashboardOverview from './vendor/VendorDashboardOverview';
 import VendorSubmissionsView from './vendor/VendorSubmissionsView';
 import { useVendorStats } from '@/hooks/useVendorStats';
+import type { PreQualData } from '@/types/prequal';
 
 const VendorDashboard = () => {
   const [activeSection, setActiveSection] = useState<string>('overview');
-  const [preQualData, setPreQualData] = useState<any>(null);
+  const [preQualData, setPreQualData] = useState<PreQualData | null>(null);
   const submissionStats = useVendorStats();
 
-  const handleSubmitApplication = (customerData: any) => {
+  const handleSubmitApplication = (customerData: PreQualData) => {
     console.log('PreQual data for application:', customerData);
     setPreQualData(customerData);
     setActiveSection('new-application');

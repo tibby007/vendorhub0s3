@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+import type { ResellerFormData } from '@/types/forms';
 
 interface AddResellerFormProps {
   onSuccess: () => void;
@@ -12,7 +13,7 @@ interface AddResellerFormProps {
 
 const AddResellerForm = ({ onSuccess }: AddResellerFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ResellerFormData>({
     name: '',
     email: '',
     company: '',
@@ -48,11 +49,12 @@ const AddResellerForm = ({ onSuccess }: AddResellerFormProps) => {
       });
       
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating reseller:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit reseller application";
       toast({
         title: "Error",
-        description: error.message || "Failed to submit reseller application",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, AlertCircle } from 'lucide-react';
+import type { VendorData } from '@/types/api';
 
 interface VendorFormData {
   vendor_name: string;
@@ -17,7 +18,7 @@ interface VendorFormData {
 interface VendorFormProps {
   formData: VendorFormData;
   errors: Record<string, string>;
-  editingVendor: any;
+  editingVendor: VendorData | null;
   isLoading: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onInputChange: (field: string, value: string) => void;

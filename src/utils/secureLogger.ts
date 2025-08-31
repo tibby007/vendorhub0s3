@@ -55,7 +55,7 @@ class SecureLogger {
     return sanitized;
   }
 
-  private sanitizeObject(obj: any): any {
+  private sanitizeObject(obj: unknown): unknown {
     if (typeof obj === 'string') {
       return this.sanitizeMessage(obj);
     }
@@ -69,7 +69,7 @@ class SecureLogger {
     }
     
     if (typeof obj === 'object') {
-      const sanitized: any = {};
+      const sanitized: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
         const lowerKey = key.toLowerCase();
         if (lowerKey.includes('password') || 
@@ -135,7 +135,7 @@ class SecureLogger {
     this.logToService(sanitizedError);
   }
 
-  debug(message: string, data?: any): void {
+  debug(message: string, data?: unknown): void {
     if (this.isDevelopment) {
       const sanitizedMessage = this.sanitizeMessage(message);
       const sanitizedData = data ? this.sanitizeObject(data) : undefined;
@@ -197,7 +197,7 @@ class SecureLogger {
 export const secureLogger = SecureLogger.getInstance();
 
 export const createErrorBoundaryHandler = (component: string) => {
-  return (error: Error, errorInfo: any) => {
+  return (error: Error, errorInfo: Record<string, unknown>) => {
     secureLogger.error(error, {
       component,
       action: 'component_error',

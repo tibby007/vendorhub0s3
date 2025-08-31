@@ -46,3 +46,4 @@ update-user-metadata.*
 # Claude Code specific
 .claude/agents/
 .claude/settings.local.json
+.env

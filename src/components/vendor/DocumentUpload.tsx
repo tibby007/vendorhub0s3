@@ -52,10 +52,11 @@ const DocumentUpload = ({
         title: "Sales Invoice Uploaded",
         description: "File uploaded successfully",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       toast({
         title: "Upload Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -76,10 +77,11 @@ const DocumentUpload = ({
         title: "Driver's License Uploaded",
         description: "File uploaded successfully",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       toast({
         title: "Upload Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -105,10 +107,11 @@ const DocumentUpload = ({
         title: "Additional Documents Uploaded",
         description: `${urls.length} file(s) uploaded successfully`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       toast({
         title: "Upload Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

@@ -74,9 +74,9 @@ const VendorManagement = () => {
     } else {
       console.log('❌ Cannot manage vendors or no user');
     }
-  }, [user?.id, currentRole, isDemo]); // Fixed dependencies
+  }, [user?.id, currentRole, isDemo, canManageVendors, fetchVendors]);
 
-  const fetchVendors = async () => {
+  const fetchVendors = useCallback(async () => {
     setIsLoading(true);
     
     try {
@@ -124,17 +124,18 @@ const VendorManagement = () => {
       
       console.log('✅ Successfully fetched vendors:', data?.length || 0);
       setVendors(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Error fetching vendors:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: "Error",
-        description: `Failed to fetch vendors: ${error.message}`,
+        description: `Failed to fetch vendors: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id, user?.email, isDemo]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -271,11 +272,12 @@ const VendorManagement = () => {
       resetForm();
       setIsCreateDialogOpen(false);
       fetchVendors();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating vendor:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create vendor';
       toast({
         title: "Error",
-        description: error.message || "Failed to create vendor",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -336,11 +338,11 @@ const VendorManagement = () => {
       setEditingVendor(null);
       resetForm();
       fetchVendors();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating vendor:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update vendor",
+        description: error instanceof Error ? error.message : "Failed to update vendor",
         variant: "destructive",
       });
     } finally {
@@ -380,11 +382,11 @@ const VendorManagement = () => {
       });
 
       fetchVendors();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting vendor:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete vendor",
+        description: error instanceof Error ? error.message : "Failed to delete vendor",
         variant: "destructive",
       });
     } finally {

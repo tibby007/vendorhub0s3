@@ -13,7 +13,12 @@ console.log('[netlifyFunctions] Environment detection:', {
   willUseProxy: isNetlify
 });
 
-export async function invokeFunction(functionName: string, options?: any) {
+interface FunctionOptions {
+  headers?: Record<string, string>;
+  body?: Record<string, unknown>;
+}
+
+export async function invokeFunction(functionName: string, options?: FunctionOptions) {
   // Allow forcing direct Supabase calls via query parameter for debugging
   const urlParams = new URLSearchParams(window.location.search);
   const forceDirect = urlParams.get('direct') === 'true';
