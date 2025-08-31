@@ -271,7 +271,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.email]); // Removed refreshSubscription to prevent circular dependency
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     setUser({
@@ -286,9 +286,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(data.session);
     // Debounce session sync for login
     setTimeout(() => setGlobalSession(data.session), 100);
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     // Prevent concurrent logout attempts
     if (isLoggingOut) {
       console.log('⏳ Logout already in progress, skipping');
@@ -321,9 +321,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       setIsLoggingOut(false);
     }
-  };
+  }, [isLoggingOut]);
 
-  const signOut = logout; // Alias for compatibility
+  const signOut = useCallback(logout, [logout]); // Alias for compatibility
 
   const refreshSubscription = useCallback(async (forceRefresh?: boolean) => {
     if (!user?.email) return;
@@ -393,14 +393,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.email]);
 
-  const checkSubscriptionAccess = (requiredTier: string) => {
+  const checkSubscriptionAccess = useCallback((requiredTier: string) => {
     // Always allow access in demo mode
     const demoCredentials = sessionStorage.getItem('demoCredentials');
     if (demoCredentials) return true;
     
     // Real subscription check would go here
     return true;
-  };
+  }, []);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
