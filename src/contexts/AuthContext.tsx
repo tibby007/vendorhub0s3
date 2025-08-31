@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { mockPartnerUser } from '@/data/mockPartnerData';
@@ -244,14 +244,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('demo-mode-changed', handleDemoModeChange);
   }, []);
 
-  // Load subscription data when user changes
+  // Load subscription data when user changes - with proper dependency management
   useEffect(() => {
-    if (user?.email) {
+    if (user?.email && !subscriptionData) {
+      // Only load if we don't already have subscription data
       refreshSubscription();
-    } else {
+    } else if (!user?.email) {
       setSubscriptionData(null);
     }
-  }, [user?.email]);
+  }, [user?.email, refreshSubscription]);
 
   const login = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -298,7 +299,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = logout; // Alias for compatibility
 
-  const refreshSubscription = async (forceRefresh?: boolean) => {
+  const refreshSubscription = useCallback(async (forceRefresh?: boolean) => {
     if (!user?.email) return;
     
     // Check for demo mode
@@ -364,7 +365,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: 'active'
       });
     }
-  };
+  }, [user?.email]);
 
   const checkSubscriptionAccess = (requiredTier: string) => {
     // Always allow access in demo mode
