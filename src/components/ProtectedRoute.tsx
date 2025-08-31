@@ -12,9 +12,11 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles = [] }) => {
   useHookTripwire('ProtectedRoute');
+  
+  // STABLE HOOKS: Always call all hooks in same order, regardless of state
+  const location = useLocation();
   const { user, loading } = useAuth();
   const { isDemo } = useDemoMode();
-  const location = useLocation();
 
   if (loading) {
     return (

@@ -62,11 +62,14 @@ const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useHookTripwire('AuthProvider');
+  
+  // STABLE STATE: Always initialize all hooks in same order
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   // Mock subscription data for demo mode
   const mockSubscriptionData: SubscriptionData = {
@@ -139,6 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } finally {
         if (!isCleanedUp) {
           setLoading(false);
+          setAuthInitialized(true);
         }
       }
     };
@@ -282,7 +286,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('demo-mode-changed', handleDemoModeChange);
   }, []);
 
-  // Load subscription data when user changes - fixed dependency array
+  // Load subscription data when user changes - STABLE dependency array
   useEffect(() => {
     if (user?.email && !subscriptionData) {
       // Only load if we don't already have subscription data
@@ -290,7 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else if (!user?.email && subscriptionData) {
       setSubscriptionData(null);
     }
-  }, [user?.email]); // Removed refreshSubscription to prevent circular dependency
+  }, [user?.email, subscriptionData]); // FIXED: Always call same number of hooks
 
   const login = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -446,6 +450,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  // Always return context - never throw to prevent hook order changes
+  
+  // STABLE RETURN: Always return the same structure to prevent hook violations
+  if (!context) {
+    // Return stable default structure instead of throwing
+    return defaultAuthContext;
+  }
+  
   return context;
 };

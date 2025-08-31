@@ -96,20 +96,23 @@ let providerInstanceCount = 0;
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useHookTripwire('SubscriptionProvider');
+  
+  // STABLE HOOK ORDER: Always call hooks in exact same order
   const instanceId = useRef(++providerInstanceCount);
-  
-  // Only log for the first instance to reduce console noise
-  if (instanceId.current === 1) {
-    console.log('[SubscriptionContext] SubscriptionProvider initializing');
-  } else {
-    console.warn(`[SubscriptionContext] Multiple provider instances detected (${instanceId.current})`);
-  }
-  
   const [state, dispatch] = useReducer(subscriptionReducer, initialState);
   const sessionRef = useRef<Session | null>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const isRequestInFlight = useRef(false);
   const initializedRef = useRef(false);
+  
+  // Moved logging after hooks to prevent conditional execution
+  React.useEffect(() => {
+    if (instanceId.current === 1) {
+      console.log('[SubscriptionContext] SubscriptionProvider initializing');
+    } else {
+      console.warn(`[SubscriptionContext] Multiple provider instances detected (${instanceId.current})`);
+    }
+  }, []); // Only run once
 
   const isCacheValid = useCallback(() => {
     if (state.lastUpdated === 0) return false;
@@ -424,23 +427,31 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [debouncedRefresh]);
 
-  // Set the global session handler and check for existing session
+  // STABLE EFFECT: Set the global session handler - no conditional logic
   useEffect(() => {
     console.log('[SubscriptionContext] Setting up global session handler');
     globalSetSession = setSession;
     
-    // Check if there's already a session available (in case AuthContext initialized first)
-    if (!initializedRef.current) {
-      import('@/integrations/supabase/client').then(({ supabase }) => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
+    // ALWAYS run initialization logic to prevent hook order issues
+    const initializeSession = async () => {
+      if (!initializedRef.current) {
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data: { session } } = await supabase.auth.getSession();
+          
           if (session && !sessionRef.current) {
             console.log('[SubscriptionContext] Found existing session, initializing');
             setSession(session);
           }
+        } catch (error) {
+          console.warn('[SubscriptionContext] Session initialization failed:', error);
+        } finally {
           initializedRef.current = true;
-        });
-      });
-    }
+        }
+      }
+    };
+    
+    initializeSession();
     
     return () => {
       console.log('[SubscriptionContext] Cleaning up global session handler');
@@ -452,6 +463,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const isTrialUser = state.status === 'trial' || state.billingStatus === 'trialing';
   const isActiveSubscriber = state.subscribed && state.status === 'active';
   
+  // STABLE MEMO: Always called regardless of state values
   const daysRemaining = React.useMemo(() => {
     const endDateStr = state.endDate || state.trialEnd;
     if (!endDateStr) return null;
@@ -496,8 +508,22 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
 export const useSubscriptionManager = () => {
   const context = useContext(SubscriptionContext);
+  
+  // STABLE RETURN: Never throw during render to prevent hook violations
   if (context === undefined) {
-    throw new Error('useSubscriptionManager must be used within a SubscriptionProvider');
+    console.warn('useSubscriptionManager used outside SubscriptionProvider - returning fallback');
+    // Return stable fallback instead of throwing
+    return {
+      subscription: initialState,
+      refresh: async () => {},
+      checkAccess: () => false,
+      invalidateCache: () => {},
+      isTrialUser: false,
+      isActiveSubscriber: false,
+      daysRemaining: null,
+      canAccessFeature: () => false,
+    };
   }
+  
   return context;
 };
