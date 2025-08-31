@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, User } from 'lucide-react';
+import { ArrowRight, User, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface DemoSessionManagerProps {
@@ -46,6 +46,17 @@ const DemoSessionManager = ({
               <Link to="/auth">
                 Get Full Access
                 <ArrowRight className="w-3 h-3 ml-2" />
+              </Link>
+            </Button>
+            <Button 
+              asChild 
+              variant="outline"
+              size="sm" 
+              className="w-full"
+            >
+              <Link to="/landing">
+                <Home className="w-3 h-3 mr-2" />
+                Back to Home
               </Link>
             </Button>
           </div>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Play, User, Building2 } from 'lucide-react';
+import { Eye, EyeOff, Play, User, Building2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { mockDataService } from '@/services/mockDataService';
 import { secureSessionManager } from '@/utils/secureSessionManager';
@@ -108,6 +108,24 @@ const DemoLogin: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-yellow-50">
+      {/* Header Navigation */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-green-600">VendorHub</h1>
+              <Badge variant="secondary" className="ml-3">
+                Demo Mode
+              </Badge>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate('/landing')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Home
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="text-center mb-12">
@@ -252,9 +270,19 @@ const DemoLogin: React.FC = () => {
         <div className="text-center mt-12 text-gray-500">
           <p>
             Demo mode uses sample data and simulated API responses.{' '}
-            <a href="/auth" className="text-green-600 hover:underline">
-              Return to real login
-            </a>
+            <button 
+              onClick={() => navigate('/landing')}
+              className="text-green-600 hover:underline cursor-pointer"
+            >
+              Return to home page
+            </button>
+            {' or '}
+            <button 
+              onClick={() => navigate('/auth')}
+              className="text-green-600 hover:underline cursor-pointer"
+            >
+              real login
+            </button>
           </p>
         </div>
       </div>
