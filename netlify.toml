@@ -4,6 +4,10 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  # Increase Node memory limit for large builds
+  NODE_OPTIONS = "--max-old-space-size=4096"
+  # Ensure dependencies are installed with exact versions
+  NPM_FLAGS = "--production=false"
 
 # Security headers for all routes
 [[headers]]

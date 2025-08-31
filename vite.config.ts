@@ -19,4 +19,25 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // Increase chunk size limit to avoid warnings
+    chunkSizeWarningLimit: 1000,
+    // Enable source maps for better debugging
+    sourcemap: mode === 'development',
+    // Optimize chunking for better caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate vendor chunks
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-toast'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'query-vendor': ['@tanstack/react-query'],
+        },
+      },
+    },
+    // Increase memory limit for large builds
+    target: 'esnext',
+    minify: 'esbuild', // Use esbuild instead of terser for faster builds
+  },
 }));
