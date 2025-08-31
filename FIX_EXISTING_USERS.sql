@@ -25,33 +25,27 @@ INSERT INTO public.partners (
   vendor_limit = EXCLUDED.vendor_limit,
   storage_limit = EXCLUDED.storage_limit;
 
--- 2. Create partner record for keenan@getmybusinesscredit.com (3-day trial)
+-- 2. Create partner record for keenan@getmybusinesscredit.com (Enterprise - No subscription needed)
 INSERT INTO public.partners (
   name,
   contact_email,
   plan_type,
   billing_status,
-  trial_end,
-  current_period_end,
   vendor_limit,
   storage_limit,
   storage_used
 ) VALUES (
   'Keenan Business Credit',
   'keenan@getmybusinesscredit.com',
-  'basic',
-  'trialing',
-  NOW() + INTERVAL '3 days',
-  NOW() + INTERVAL '3 days',
-  1,
-  5368709120,
+  'enterprise',
+  'active',
+  999,
+  999999999999,
   0
 ) ON CONFLICT (contact_email) DO UPDATE SET
   name = EXCLUDED.name,
   plan_type = EXCLUDED.plan_type,
   billing_status = EXCLUDED.billing_status,
-  trial_end = EXCLUDED.trial_end,
-  current_period_end = EXCLUDED.current_period_end,
   vendor_limit = EXCLUDED.vendor_limit,
   storage_limit = EXCLUDED.storage_limit;
 
@@ -90,7 +84,7 @@ SELECT
   au.id,
   au.email,
   COALESCE(au.raw_user_meta_data->>'name', 'Keenan'),
-  'Partner Admin',
+  'Enterprise Admin',
   p.id
 FROM auth.users au
 JOIN public.partners p ON p.contact_email = au.email
@@ -125,31 +119,28 @@ ON CONFLICT (email) DO UPDATE SET
   subscription_end = EXCLUDED.subscription_end,
   trial_active = EXCLUDED.trial_active;
 
--- For keenan@getmybusinesscredit.com (trial)
+-- For keenan@getmybusinesscredit.com (Enterprise - No subscription needed)
 INSERT INTO public.subscribers (
   user_id,
   email,
   subscribed,
   subscription_tier,
   subscription_end,
-  trial_end,
   trial_active
 )
 SELECT 
   au.id,
   au.email,
-  false,
-  'Basic',
-  NOW() + INTERVAL '3 days',
-  NOW() + INTERVAL '3 days',
-  true
+  true,
+  'Enterprise',
+  NOW() + INTERVAL '10 years',
+  false
 FROM auth.users au
 WHERE au.email = 'keenan@getmybusinesscredit.com'
 ON CONFLICT (email) DO UPDATE SET
   subscribed = EXCLUDED.subscribed,
   subscription_tier = EXCLUDED.subscription_tier,
   subscription_end = EXCLUDED.subscription_end,
-  trial_end = EXCLUDED.trial_end,
   trial_active = EXCLUDED.trial_active;
 
 -- 5. Verify the setup
@@ -182,7 +173,11 @@ UNION ALL
 
 SELECT 
   'SUBSCRIBERS' as table_name,
-  CASE WHEN s.trial_active THEN 'TRIAL USER' ELSE 'PAID USER' END,
+  CASE 
+    WHEN s.email = 'support@emergestack.dev' THEN 'SUPER ADMIN'
+    WHEN s.email = 'keenan@getmybusinesscredit.com' THEN 'ENTERPRISE'
+    ELSE 'OTHER'
+  END,
   s.email,
   s.subscription_tier,
   CASE WHEN s.subscribed THEN 'SUBSCRIBED' ELSE 'NOT SUBSCRIBED' END,
