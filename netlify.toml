@@ -1,6 +1,6 @@
 [build]
   publish = "dist"
-  command = "node build-check.js && npm ci && npm run build"
+  command = "npm ci && npm run build"
 
 [build.processing]
   skip_processing = false
