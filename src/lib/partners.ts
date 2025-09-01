@@ -12,7 +12,7 @@ export async function getCurrentPartner() {
   const email = await getCurrentUserEmail();
   const { data, error } = await supabase
     .from("partners")
-    .select("id, contact_email, name, brand_color, company_logo, contact_phone")
+    .select("id, contact_email, name, contact_phone")
     .eq("contact_email", email)
     .single();
   if (error || !data) throw new Error(error?.message || "Partner not found for " + email);

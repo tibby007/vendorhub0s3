@@ -25,8 +25,6 @@ interface PartnerProfile {
   name: string;
   contact_email: string;
   contact_phone?: string;
-  company_logo?: string;
-  brand_color?: string;
   notification_email?: boolean;
   notification_sms?: boolean;
   auto_approval?: boolean;
@@ -45,8 +43,6 @@ const PartnerSettings = () => {
     name: '',
     contact_email: '',
     contact_phone: '',
-    company_logo: '',
-    brand_color: '#10B981',
     notification_email: true,
     notification_sms: false,
     auto_approval: false,
@@ -72,8 +68,6 @@ const PartnerSettings = () => {
         name: 'Demo Partner Company',
         contact_email: 'partner@demo.com',
         contact_phone: '(555) 123-4567',
-        company_logo: '',
-        brand_color: '#10B981',
         notification_email: true,
         notification_sms: false,
         auto_approval: false,
@@ -92,8 +86,6 @@ const PartnerSettings = () => {
         name: partner.name || '',
         contact_email: partner.contact_email,
         contact_phone: partner.contact_phone || '',
-        company_logo: partner.company_logo || '',
-        brand_color: partner.brand_color || '#10B981',
         notification_email: true, // Default values for fields not in helper
         notification_sms: false,
         auto_approval: false,
@@ -147,9 +139,7 @@ const PartnerSettings = () => {
       await savePartnerSettings({
         name: profile.name || undefined,
         contact_email: profile.contact_email || undefined,
-        contact_phone: profile.contact_phone || undefined,
-        brand_color: profile.brand_color || undefined,
-        company_logo: profile.company_logo || undefined
+        contact_phone: profile.contact_phone || undefined
       });
 
       // Refetch the partner profile to reflect the saved changes
@@ -301,35 +291,9 @@ const PartnerSettings = () => {
               <CardDescription>Customize your brand appearance in the vendor portal</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="brand-color">Brand Color</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    id="brand-color"
-                    type="color"
-                    value={profile.brand_color}
-                    onChange={(e) => handleInputChange('brand_color', e.target.value)}
-                    className="w-20 h-10"
-                  />
-                  <Input
-                    value={profile.brand_color}
-                    onChange={(e) => handleInputChange('brand_color', e.target.value)}
-                    placeholder="#10B981"
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="logo">Company Logo URL</Label>
-                <Input
-                  id="logo"
-                  value={profile.company_logo}
-                  onChange={(e) => handleInputChange('company_logo', e.target.value)}
-                  placeholder="https://example.com/logo.png"
-                />
-                <p className="text-sm text-gray-600">
-                  Upload your logo to a hosting service and paste the URL here
-                </p>
+              <div className="text-center py-8">
+                <p className="text-gray-600">Branding features are currently being updated.</p>
+                <p className="text-sm text-gray-500 mt-2">This feature will be available soon.</p>
               </div>
             </CardContent>
           </Card>

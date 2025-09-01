@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Partner Settings Save</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        .code-block { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Partner Settings Save Debug Tool</h1>
+    
+    <div class="debug-section">
+        <h3>Instructions</h3>
+        <p>This tool helps debug Partner Settings save issues. Follow these steps:</p>
+        <ol>
+            <li>Open your main application in another tab</li>
+            <li>Log in as a partner user</li>
+            <li>Open the browser console (F12)</li>
+            <li>Copy and paste the debug script below into the console</li>
+            <li>Run the script to test partner settings save functionality</li>
+        </ol>
+    </div>
+
+    <div class="debug-section">
+        <h3>Debug Script</h3>
+        <p>Copy this script and paste it into your browser console while on the main application:</p>
+        <div class="code-block">
+            <pre id="debug-script">// Partner Settings Save Debug Script
+(async function debugPartnerSettings() {
+    console.log('🔍 Starting Partner Settings Debug...');
+    
+    // Test 1: Check if user is authenticated
+    console.log('\n1. Checking authentication...');
+    try {
+        const authModule = await import('/src/contexts/AuthContext.tsx');
+        console.log('✅ Auth module loaded');
+    } catch (error) {
+        console.error('❌ Failed to load auth module:', error);
+    }
+    
+    // Test 2: Check Supabase client
+    console.log('\n2. Testing Supabase client...');
+    try {
+        const { createBrowserClient } = await import('/src/lib/supabase-browser.ts');
+        const supabase = createBrowserClient();
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) throw error;
+        if (!user) throw new Error('No authenticated user');
+        
+        console.log('✅ User authenticated:', { id: user.id, email: user.email });
+        
+        // Test 3: Get current partner
+        console.log('\n3. Testing getCurrentPartner...');
+        const { getCurrentPartner } = await import('/src/lib/partners.ts');
+        const partner = await getCurrentPartner();
+        console.log('✅ Partner found:', partner);
+        
+        // Test 4: Test partner settings save
+        console.log('\n4. Testing savePartnerSettings...');
+        const { savePartnerSettings } = await import('/src/lib/partner-settings.ts');
+        
+        const testData = {
+            name: 'Debug Test ' + new Date().toISOString(),
+            brand_color: '#FF5733'
+        };
+        
+        console.log('Attempting to save:', testData);
+        const result = await savePartnerSettings(testData);
+        console.log('✅ Save successful:', result);
+        
+        // Test 5: Verify the save worked
+        console.log('\n5. Verifying save...');
+        const updatedPartner = await getCurrentPartner();
+        console.log('✅ Updated partner data:', updatedPartner);
+        
+        if (updatedPartner.name === testData.name) {
+            console.log('✅ Save verification successful - name updated correctly');
+        } else {
+            console.log('⚠️ Save verification failed - name not updated');
+        }
+        
+        console.log('\n🎉 All tests completed successfully!');
+        
+    } catch (error) {
+        console.error('❌ Debug failed:', error);
+        console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint,
+            stack: error.stack
+        });
+    }
+})();</pre>
+        </div>
+        <button onclick="copyScript()">Copy Script to Clipboard</button>
+    </div>
+
+    <div class="debug-section">
+        <h3>Alternative: Direct Database Test</h3>
+        <p>If the above script doesn't work, try this direct database test:</p>
+        <div class="code-block">
+            <pre id="db-script">// Direct Database Test
+(async function testDirectDB() {
+    console.log('🔍 Testing direct database access...');
+    
+    try {
+        const { createBrowserClient } = await import('/src/lib/supabase-browser.ts');
+        const supabase = createBrowserClient();
+        
+        // Get current user
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Authentication failed');
+        
+        console.log('✅ User:', user.email);
+        
+        // Test SELECT
+        const { data: selectData, error: selectError } = await supabase
+            .from('partners')
+            .select('*')
+            .eq('contact_email', user.email)
+            .single();
+            
+        if (selectError) {
+            console.error('❌ SELECT failed:', selectError);
+            return;
+        }
+        
+        console.log('✅ SELECT successful:', selectData);
+        
+        // Test UPDATE
+        const testUpdate = {
+            name: 'Direct DB Test ' + new Date().toISOString()
+        };
+        
+        const { data: updateData, error: updateError } = await supabase
+            .from('partners')
+            .update(testUpdate)
+            .eq('id', selectData.id)
+            .select('*')
+            .single();
+            
+        if (updateError) {
+            console.error('❌ UPDATE failed:', updateError);
+            console.error('Error details:', {
+                message: updateError.message,
+                code: updateError.code,
+                details: updateError.details,
+                hint: updateError.hint
+            });
+            return;
+        }
+        
+        console.log('✅ UPDATE successful:', updateData);
+        console.log('🎉 Direct database test completed successfully!');
+        
+    } catch (error) {
+        console.error('❌ Direct DB test failed:', error);
+    }
+})();</pre>
+        </div>
+        <button onclick="copyDbScript()">Copy DB Script to Clipboard</button>
+    </div>
+
+    <div class="debug-section">
+        <h3>Expected Results</h3>
+        <ul>
+            <li><strong>Success:</strong> All tests pass and you see "🎉 All tests completed successfully!"</li>
+            <li><strong>Auth Error:</strong> Check if user is logged in properly</li>
+            <li><strong>Partner Not Found:</strong> User might not have a partner record</li>
+            <li><strong>Permission Error:</strong> RLS policies might be blocking the update</li>
+            <li><strong>Network Error:</strong> Supabase connection issues</li>
+        </ul>
+    </div>
+
+    <script>
+        function copyScript() {
+            const script = document.getElementById('debug-script').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('Debug script copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy script. Please copy manually.');
+            });
+        }
+        
+        function copyDbScript() {
+            const script = document.getElementById('db-script').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('Database script copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy script. Please copy manually.');
+            });
+        }
+    </script>
+</body>
+</html>

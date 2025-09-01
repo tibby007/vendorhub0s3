@@ -200,21 +200,29 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      // DEVELOPMENT MODE: Always provide Pro access
+      // DEVELOPMENT MODE: Provide trial access for testing
       if (import.meta.env.DEV) {
-        console.log('🔧 Development mode - providing Pro access');
+        console.log('🔧 Development mode - providing trial access for testing');
+        const trialEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(); // 3 days from now
+        
         safeSetSubscription({
           ...defaultSubscription,
-          subscribed: true,
+          subscribed: false,
           tier: 'Pro',
-          status: 'active',
+          status: 'trial',
+          trialEnd: trialEndDate,
+          endDate: trialEndDate,
           lastUpdated: Date.now(),
           isLoading: false,
         });
         safeSetSubscriptionData({
-          ...mockSubscriptionData,
+          subscriptionStatus: 'trialing',
+          planType: 'pro',
+          trialDaysRemaining: 3,
+          subscribed: false,
           subscription_tier: 'Pro',
-          planType: 'pro'
+          subscription_end: trialEndDate,
+          status: 'trialing'
         });
         safeSetInitialized(true);
         return;
