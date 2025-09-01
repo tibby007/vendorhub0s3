@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { resourcesService, ResourceFile } from '@/services/resourcesService';
 import { checkStorageLimit, updateStorageUsage } from '@/utils/storageUtils';
 import { listResourcesForPartner, createResourceForPartner, createNewsForPartner } from '@/lib/resources';

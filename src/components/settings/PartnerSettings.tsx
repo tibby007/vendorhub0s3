@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Save, Settings, Bell, Shield, Palette, CreditCard, FileText } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
