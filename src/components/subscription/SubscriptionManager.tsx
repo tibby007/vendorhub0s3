@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
+import { useSubscriptionManager } from '@/providers/SubscriptionProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,8 @@ import { RefreshCw, ExternalLink, CreditCard, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const SubscriptionManager = () => {
-  const { user, session, subscriptionData, refreshSubscription } = useAuth();
+  const { user, session } = useAuth();
+  const { subscriptionData, refreshSubscription } = useSubscriptionManager();
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
