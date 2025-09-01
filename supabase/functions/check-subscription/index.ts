@@ -177,7 +177,8 @@ serve(async (req) => {
             subscription_tier: subscriber.subscription_tier || 'Pro',
             subscription_end: subscriber.subscription_end,
             trial_active: false,
-            stripe_subscription_id: subscriber.stripe_subscription_id
+            stripe_subscription_id: subscriber.stripe_subscription_id,
+            trialEnd: null // No trial for paid subscribers
           }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 200,
@@ -194,7 +195,8 @@ serve(async (req) => {
       subscription_tier: null,
       subscription_end: null,
       trial_active: false,
-      needs_setup: true
+      needs_setup: true,
+      trialEnd: null // No trial for unsubscribed users
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

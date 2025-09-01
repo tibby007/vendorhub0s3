@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';

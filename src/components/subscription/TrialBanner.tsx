@@ -124,15 +124,15 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
         refresh(true);
       }, 5000);
     }
-  }, [refresh]);
+  }, []); // Remove refresh from dependency array to prevent loops
   
-  // Also refresh when subscription tier changes
+  // Also refresh when subscription tier changes (only once per tier change)
   useEffect(() => {
     if (subscription.tier && subscription.tier !== 'Basic' && refresh) {
       console.log('[TrialBanner] Non-basic tier detected, refreshing to ensure latest data');
       refresh(true);
     }
-  }, [subscription.tier, refresh]);
+  }, [subscription.tier]); // Remove refresh from dependency array to prevent loops
 
   const handleUpgrade = () => {
     if (onUpgrade) {
@@ -142,8 +142,9 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
     }
   };
 
-  // Don't show banner if not a trial user, if date is invalid, if already subscribed, or if in demo mode
-  if (!isTrialUser || !isValidDate || subscription.subscribed || isDemo) {
+  // Don't show banner if not a trial user, if date is invalid, or if already subscribed
+  // Allow demo users to see trial banner if they have trial data
+  if (!isTrialUser || !isValidDate || subscription.subscribed) {
     return null;
   }
   

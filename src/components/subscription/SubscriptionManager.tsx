@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSubscriptionManager } from '@/providers/SubscriptionProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +17,7 @@ const SubscriptionManager = () => {
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  const checkSubscription = async () => {
+  const checkSubscription = useCallback(async () => {
     if (!session) return;
     
     // Skip subscription checks in demo mode
@@ -53,7 +53,7 @@ const SubscriptionManager = () => {
     } finally {
       setIsCheckingSubscription(false);
     }
-  };
+  }, [session, refreshSubscription]);
 
   const openCustomerPortal = async () => {
     if (!session) return;
@@ -111,7 +111,7 @@ const SubscriptionManager = () => {
 
       return () => clearTimeout(timeout);
     }
-  }, [session, subscriptionData, retryCount]);
+  }, [session, subscriptionData, retryCount, checkSubscription]);
 
   if (!user) {
     return null;

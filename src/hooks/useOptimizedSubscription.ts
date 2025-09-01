@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { secureLogger } from '@/utils/secureLogger';
 import { useMemo } from 'react';
 

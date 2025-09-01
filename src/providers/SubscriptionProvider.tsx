@@ -351,7 +351,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     return () => {
       cancelled = true;
     };
-  }, [session, user, refresh, safeSetInitialized]); // Removed 'initialized' to prevent infinite loop
+  }, [session, user, safeSetInitialized]); // Removed 'refresh' to prevent dependency loop
 
   // Computed properties - always calculated, no conditional logic
   const isTrialUser = subscription.status === 'trial' || subscription.status === 'trialing' || subscription.billingStatus === 'trialing';

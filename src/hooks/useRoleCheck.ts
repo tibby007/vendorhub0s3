@@ -1,5 +1,5 @@
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 
 export const useRoleCheck = () => {
   const { user } = useAuth();

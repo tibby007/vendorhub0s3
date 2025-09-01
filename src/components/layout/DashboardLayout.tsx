@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { LogOut, Building2 } from 'lucide-react';
 import DemoSessionTimer from '@/components/demo/DemoSessionTimer';

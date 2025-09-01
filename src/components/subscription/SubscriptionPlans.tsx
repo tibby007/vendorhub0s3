@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { invokeFunction } from '@/utils/netlifyFunctions';
 import { Users, Zap, Star } from 'lucide-react';

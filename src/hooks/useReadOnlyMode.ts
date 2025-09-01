@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 
 export const useReadOnlyMode = () => {
   const { subscription, isTrialUser } = useSubscriptionManager();

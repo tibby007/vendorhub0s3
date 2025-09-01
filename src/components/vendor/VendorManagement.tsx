@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { mockVendors } from '@/data/mockPartnerData';
