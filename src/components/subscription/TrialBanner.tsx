@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -100,39 +100,46 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
     return () => clearInterval(timer);
   }, [trialEnd]);
 
-  // Force refresh subscription data after potential payment
+  // Check for payment success and refresh subscription data - using ref to avoid stale closures
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+  
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const subscriptionSuccess = urlParams.get('subscription');
     const sessionId = urlParams.get('session_id');
     
-    if ((subscriptionSuccess === 'success' || sessionId) && refresh) {
-      console.log('[TrialBanner] Payment success detected, refreshing subscription data multiple times');
+    if ((subscriptionSuccess === 'success' || sessionId) && refreshRef.current) {
+      console.log('[TrialBanner] Payment success detected, refreshing subscription data');
       
       // Refresh immediately
-      refresh(true);
+      refreshRef.current(true);
       
-      // Refresh again after 2 seconds
-      setTimeout(() => {
-        console.log('[TrialBanner] Second refresh after payment');
-        refresh(true);
-      }, 2000);
+      // Single delayed refresh to catch webhook processing
+      const timeoutId = setTimeout(() => {
+        console.log('[TrialBanner] Delayed refresh after payment');
+        if (refreshRef.current) {
+          refreshRef.current(true);
+        }
+      }, 3000);
       
-      // Refresh again after 5 seconds to catch any delayed webhook processing
-      setTimeout(() => {
-        console.log('[TrialBanner] Third refresh after payment');
-        refresh(true);
-      }, 5000);
+      return () => clearTimeout(timeoutId);
     }
-  }, []); // Remove refresh from dependency array to prevent loops
+  }, []); // Empty dependency array - only run once on mount
   
-  // Also refresh when subscription tier changes (only once per tier change)
+  // Track tier changes to avoid unnecessary refreshes
+  const lastTierRef = useRef(subscription.tier);
   useEffect(() => {
-    if (subscription.tier && subscription.tier !== 'Basic' && refresh) {
-      console.log('[TrialBanner] Non-basic tier detected, refreshing to ensure latest data');
-      refresh(true);
+    if (subscription.tier && subscription.tier !== lastTierRef.current && subscription.tier !== 'Basic') {
+      lastTierRef.current = subscription.tier;
+      console.log('[TrialBanner] Tier upgraded, refreshing to ensure latest data');
+      if (refreshRef.current) {
+        refreshRef.current(true);
+      }
+    } else {
+      lastTierRef.current = subscription.tier;
     }
-  }, [subscription.tier]); // Remove refresh from dependency array to prevent loops
+  }, [subscription.tier]);
 
   const handleUpgrade = () => {
     if (onUpgrade) {

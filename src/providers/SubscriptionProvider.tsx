@@ -331,27 +331,23 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session, user, isRateLimited, safeSetSubscription, safeSetSubscriptionData, safeSetInitialized]);
 
-  // Initialize subscription when session changes
+  // Initialize subscription when session changes - using ref to avoid dependency loops
+  const sessionIdRef = useRef<string | null>(null);
+  const userIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
-    let cancelled = false;
+    const currentSessionId = session?.access_token || null;
+    const currentUserId = user?.id || null;
     
-    const initializeSubscription = async () => {
-      if (cancelled || !mountedRef.current) return;
+    // Only refresh if session or user actually changed
+    if (currentSessionId !== sessionIdRef.current || currentUserId !== userIdRef.current) {
+      sessionIdRef.current = currentSessionId;
+      userIdRef.current = currentUserId;
       
-      console.log('🔄 Initializing subscription for session change');
-      await refresh();
-      
-      if (!cancelled && mountedRef.current && !initialized) {
-        safeSetInitialized(true);
-      }
-    };
-    
-    initializeSubscription();
-    
-    return () => {
-      cancelled = true;
-    };
-  }, [session, user, safeSetInitialized]); // Removed 'refresh' to prevent dependency loop
+      console.log('🔄 Session/User changed, refreshing subscription');
+      refresh(false); // Don't force refresh on session changes
+    }
+  }, [session?.access_token, user?.id]); // Only depend on the actual values that matter
 
   // Computed properties - always calculated, no conditional logic
   const isTrialUser = subscription.status === 'trial' || subscription.status === 'trialing' || subscription.billingStatus === 'trialing';

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { invokeFunction } from '@/utils/netlifyFunctions';
@@ -89,7 +89,7 @@ const SubscriptionPlans = () => {
     }
   ];
 
-  const handleSubscribe = async (plan: SubscriptionPlan) => {
+  const handleSubscribe = useCallback(async (plan: SubscriptionPlan) => {
     console.log('🎯 handleSubscribe called with plan:', { id: plan.id, name: plan.name });
     console.log('🎯 isAnnual state:', isAnnual);
     
@@ -147,14 +147,28 @@ const SubscriptionPlans = () => {
     } finally {
       setLoadingPlan(null);
     }
-  };
+  }, [session, navigate, isAnnual]);
 
-  // Check for auto-checkout from URL parameters (smoother than events)
+  // Use ref to avoid stale closure issues with handleSubscribe
+  const handleSubscribeRef = useRef(handleSubscribe);
+  handleSubscribeRef.current = handleSubscribe;
+  
+  // Check for auto-checkout from URL parameters - only run once per URL change
+  const processedAutoCheckoutRef = useRef<string | null>(null);
+  
   useEffect(() => {
     const autoCheckout = searchParams.get('auto');
     const planParam = searchParams.get('plan');
+    const currentParams = `${autoCheckout}-${planParam}`;
+    
+    // Prevent processing the same auto-checkout twice
+    if (currentParams === processedAutoCheckoutRef.current) {
+      return;
+    }
     
     if (autoCheckout === 'true' && planParam && session) {
+      processedAutoCheckoutRef.current = currentParams;
+      
       try {
         const planData = JSON.parse(decodeURIComponent(planParam));
         console.log('🚀 Auto-proceeding to checkout with plan from URL:', planData);
@@ -172,16 +186,19 @@ const SubscriptionPlans = () => {
           // Clear URL parameters to prevent re-triggering
           navigate('/subscription', { replace: true });
           
-          // Immediately proceed to checkout (no delays)
-          handleSubscribe(plan);
+          // Use ref to avoid stale closure
+          handleSubscribeRef.current(plan);
         } else {
           console.error('❌ Could not find plan with tierId:', planData.tierId);
         }
       } catch (error) {
         console.error('Error parsing plan from URL:', error);
       }
+    } else {
+      // Reset if not auto-checkout
+      processedAutoCheckoutRef.current = null;
     }
-  }, [searchParams, session, plans, navigate, handleSubscribe]);
+  }, [searchParams, session, navigate]); // Removed plans and handleSubscribe from dependencies
 
   return (
     <div className="space-y-8">
