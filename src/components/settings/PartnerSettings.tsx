@@ -25,6 +25,8 @@ interface PartnerProfile {
   name: string;
   contact_email: string;
   contact_phone?: string;
+  company_logo?: string;
+  brand_color?: string;
   notification_email?: boolean;
   notification_sms?: boolean;
   auto_approval?: boolean;
@@ -291,9 +293,53 @@ const PartnerSettings = () => {
               <CardDescription>Customize your brand appearance in the vendor portal</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-center py-8">
-                <p className="text-gray-600">Branding features are currently being updated.</p>
-                <p className="text-sm text-gray-500 mt-2">This feature will be available soon.</p>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="company-logo">Company Logo URL</Label>
+                  <Input
+                    id="company-logo"
+                    type="url"
+                    placeholder="https://example.com/logo.png"
+                    value={profile.company_logo || ''}
+                    onChange={(e) => handleInputChange('company_logo', e.target.value)}
+                  />
+                  <p className="text-sm text-gray-600 mt-1">Enter a URL for your company logo</p>
+                </div>
+                <div>
+                  <Label htmlFor="brand-color">Brand Color</Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      id="brand-color"
+                      type="color"
+                      value={profile.brand_color || '#10B981'}
+                      onChange={(e) => handleInputChange('brand_color', e.target.value)}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      type="text"
+                      value={profile.brand_color || '#10B981'}
+                      onChange={(e) => handleInputChange('brand_color', e.target.value)}
+                      placeholder="#10B981"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Choose your primary brand color</p>
+                </div>
+                {profile.company_logo && (
+                  <div>
+                    <Label>Logo Preview</Label>
+                    <div className="mt-2 p-4 border rounded-lg bg-gray-50">
+                      <img
+                        src={profile.company_logo}
+                        alt="Company Logo Preview"
+                        className="max-h-16 max-w-32 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

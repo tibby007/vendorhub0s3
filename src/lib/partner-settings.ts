@@ -5,6 +5,12 @@ type PartnerUpdate = Partial<{
   name: string;
   contact_email: string;
   contact_phone: string;
+  company_logo: string;
+  brand_color: string;
+  notification_email: boolean;
+  notification_sms: boolean;
+  auto_approval: boolean;
+  approval_threshold: number;
 }>;
 
 export async function savePartnerSettings(update: PartnerUpdate) {
