@@ -94,26 +94,71 @@ serve(async (req) => {
       const now = new Date();
       
       // Check for active trial
-      if (partner.billing_status === 'trialing' && subscriber.trial_end) {
-        const trialEnd = new Date(subscriber.trial_end);
-        if (now < trialEnd) {
-          trialActive = true;
-          subscriptionStatus = 'trial';
-          isActive = true;
-          daysRemaining = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-          
-          logStep("User has active trial", { daysRemaining });
-          
-          return new Response(JSON.stringify({
-            subscribed: false, // Trial users are not "subscribed" 
-            subscription_tier: subscriber.subscription_tier || 'Pro',
-            subscription_end: subscriber.trial_end,
-            trial_active: true,
-            days_remaining: daysRemaining
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
+      if (partner.billing_status === 'trialing') {
+        // Fix missing trial_end dates automatically
+        if (!subscriber.trial_end || !partner.trial_end) {
+          logStep("Fixing missing trial end dates", { 
+            hasSubscriberTrialEnd: !!subscriber.trial_end,
+            hasPartnerTrialEnd: !!partner.trial_end 
           });
+          
+          const trialEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days from now
+          
+          // Update subscriber table
+          if (!subscriber.trial_end) {
+            await supabaseClient
+              .from('subscribers')
+              .update({
+                trial_end: trialEndDate.toISOString(),
+                subscription_end: trialEndDate.toISOString(),
+                trial_active: true,
+                updated_at: new Date().toISOString()
+              })
+              .eq('email', user.email);
+            
+            subscriber.trial_end = trialEndDate.toISOString();
+            subscriber.subscription_end = trialEndDate.toISOString();
+          }
+          
+          // Update partner table
+          if (!partner.trial_end) {
+            await supabaseClient
+              .from('partners')
+              .update({
+                trial_end: trialEndDate.toISOString(),
+                current_period_end: trialEndDate.toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .eq('contact_email', user.email);
+            
+            partner.trial_end = trialEndDate.toISOString();
+          }
+          
+          logStep("Trial end dates fixed", { trialEndDate: trialEndDate.toISOString() });
+        }
+        
+        if (subscriber.trial_end) {
+          const trialEnd = new Date(subscriber.trial_end);
+          if (now < trialEnd) {
+            trialActive = true;
+            subscriptionStatus = 'trial';
+            isActive = true;
+            daysRemaining = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            
+            logStep("User has active trial", { daysRemaining, trialEnd: subscriber.trial_end });
+            
+            return new Response(JSON.stringify({
+              subscribed: false, // Trial users are not "subscribed" 
+              subscription_tier: subscriber.subscription_tier || 'Pro',
+              subscription_end: subscriber.trial_end,
+              trial_active: true,
+              days_remaining: daysRemaining,
+              trialEnd: subscriber.trial_end // Add this for TrialBanner
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            });
+          }
         }
       }
       
