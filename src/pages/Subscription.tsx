@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,13 +11,13 @@ import SubscriptionPlans from '@/components/subscription/SubscriptionPlans';
 import { needsSubscriptionSetup } from '@/utils/subscriptionUtils';
 
 const Subscription = () => {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const { subscription } = useSubscriptionManager();
   const navigate = useNavigate();
   const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && user) {
+    if (!loading && user) {
       // Check if user just completed payment
       const urlParams = new URLSearchParams(window.location.search);
       const success = urlParams.get('success');
@@ -69,9 +69,9 @@ const Subscription = () => {
         }
       }
     }
-  }, [user, isLoading, subscription]);
+  }, [user, loading, subscription]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -84,7 +84,7 @@ const Subscription = () => {
 
   // Show loading when redirecting to auto checkout
   const selectedPlan = sessionStorage.getItem('selectedPlan');
-  if (selectedPlan && !isLoading) {
+  if (selectedPlan && !loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
         <div className="text-center">

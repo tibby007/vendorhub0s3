@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface SubscriptionState {
   subscribed: boolean;
   tier: 'Basic' | 'Pro' | 'Premium' | null;
-  status: 'active' | 'trial' | 'expired' | 'loading' | 'error';
+  status: 'active' | 'trial' | 'trialing' | 'expired' | 'loading' | 'error';
   endDate: string | null;
   priceId: string | null;
   billingStatus: 'active' | 'trialing' | 'past_due' | null;
@@ -254,7 +254,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             ...defaultSubscription,
             subscribed: subData.subscribed,
             tier: subData.subscription_tier,
-            status: subData.subscriptionStatus,
+            status: subData.subscriptionStatus === 'trialing' ? 'trial' : subData.subscriptionStatus === 'inactive' ? 'expired' : subData.subscriptionStatus,
             lastUpdated: Date.now(),
             isLoading: false,
           });
@@ -339,7 +339,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     return () => {
       cancelled = true;
     };
-  }, [session, user, refresh, initialized, safeSetInitialized]);
+  }, [session, user, refresh, safeSetInitialized]); // Removed 'initialized' to prevent infinite loop
 
   // Computed properties - always calculated, no conditional logic
   const isTrialUser = subscription.status === 'trial' || subscription.status === 'trialing' || subscription.billingStatus === 'trialing';

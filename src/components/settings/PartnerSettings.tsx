@@ -91,9 +91,9 @@ const PartnerSettings = () => {
         id: partner.id,
         name: partner.name || '',
         contact_email: partner.contact_email,
-        contact_phone: partner.support_phone || '',
+        contact_phone: partner.contact_phone || '',
         company_logo: partner.company_logo || '',
-        brand_color: partner.brand_color_primary || '#10B981',
+        brand_color: partner.brand_color || '#10B981',
         notification_email: true, // Default values for fields not in helper
         notification_sms: false,
         auto_approval: false,
@@ -146,11 +146,14 @@ const PartnerSettings = () => {
       
       await savePartnerSettings({
         name: profile.name || undefined,
-        support_email: profile.contact_email || undefined,
-        support_phone: profile.contact_phone || undefined,
-        brand_color_primary: profile.brand_color || undefined,
+        contact_email: profile.contact_email || undefined,
+        contact_phone: profile.contact_phone || undefined,
+        brand_color: profile.brand_color || undefined,
         company_logo: profile.company_logo || undefined
       });
+
+      // Refetch the partner profile to reflect the saved changes
+      await fetchPartnerProfile();
 
       toast({
         title: "Success",

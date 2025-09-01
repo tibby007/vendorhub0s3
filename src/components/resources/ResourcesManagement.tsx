@@ -63,10 +63,26 @@ const ResourcesManagement = () => {
 
     setIsLoading(true);
     try {
+      console.log('Starting file upload:', {
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileType: selectedFile.type,
+          userId: user.id,
+          title: formData.title,
+          category: formData.category,
+          timestamp: new Date().toISOString()
+        });
+      
       // Check storage limit before upload
       const canUpload = await checkStorageLimit(user.id, selectedFile.size);
       
       if (!canUpload) {
+        console.warn('Storage limit exceeded:', {
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          userId: user.id,
+          timestamp: new Date().toISOString()
+        });
         toast({
           title: "Storage Limit Exceeded",
           description: "Please upgrade your plan or delete some files to make space",
@@ -76,7 +92,9 @@ const ResourcesManagement = () => {
         return;
       }
 
+      console.log('Storage check passed, proceeding with upload');
       const fileUrl = await resourcesService.uploadFile(selectedFile, user.id);
+      console.log('File uploaded successfully:', { fileUrl, fileName: selectedFile.name });
       
       await createResourceForPartner({
         title: formData.title,
@@ -86,6 +104,8 @@ const ResourcesManagement = () => {
         mime_type: selectedFile.type,
         is_published: true
       });
+
+      console.log('Resource entry created successfully');
 
       // Update storage usage after successful upload
       await updateStorageUsage(user.id, selectedFile.size);
@@ -98,10 +118,37 @@ const ResourcesManagement = () => {
       setIsUploadDialogOpen(false);
       fetchResources();
     } catch (error: any) {
-      console.error('Error uploading file:', error);
+      console.error('Upload error details:', {
+          error: error,
+          message: error?.message,
+          stack: error?.stack,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileType: selectedFile.type,
+          userId: user.id,
+          title: formData.title,
+          category: formData.category,
+          timestamp: new Date().toISOString()
+        });
+      
+      // More specific error messages based on error type
+      let errorMessage = "Failed to upload file";
+      
+      if (error?.message?.includes('File size')) {
+        errorMessage = "File size is too large. Please choose a smaller file.";
+      } else if (error?.message?.includes('File type') || error?.message?.includes('mime')) {
+        errorMessage = "File type not supported. Please upload a PDF, DOC, or image file.";
+      } else if (error?.message?.includes('Network') || error?.message?.includes('network')) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (error?.message?.includes('Storage') || error?.message?.includes('storage')) {
+        errorMessage = "Storage error. Please try again or contact support.";
+      } else if (error?.message?.includes('Permission') || error?.message?.includes('permission')) {
+        errorMessage = "Permission denied. Please check your account permissions.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to upload file",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -229,8 +276,8 @@ const ResourcesManagement = () => {
     }));
   };
 
-  const fileResources = resources.filter(r => r.type === 'file');
-  const newsResources = resources.filter(r => r.type === 'news');
+  const fileResources = resources.filter(r => r.file_url);
+  const newsResources = resources.filter(r => !r.file_url && r.content);
 
   return (
     <div className="space-y-6">

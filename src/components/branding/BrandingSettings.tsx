@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Upload, Palette, Type, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { savePartnerSettings } from '@/lib/partner-settings';
 
 interface BrandingData {
   portalName: string;
@@ -64,15 +65,21 @@ const BrandingSettings = () => {
         });
       } else {
         // Save branding settings to database in real mode
+        await savePartnerSettings({
+          brand_color: branding.primaryColor,
+          company_logo: branding.logoUrl || null
+        });
+        
         toast({
           title: "Branding settings saved",
-          description: "Your white-label configuration has been updated."
+          description: "Your branding settings have been updated successfully."
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error saving branding settings:', error);
       toast({
         title: "Save failed",
-        description: "Please try again.",
+        description: error.message || "Please try again.",
         variant: "destructive"
       });
     }
@@ -102,33 +109,50 @@ const BrandingSettings = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              {branding.logoUrl ? (
-                <div className="space-y-4">
-                  <img 
-                    src={branding.logoUrl} 
-                    alt="Brand logo" 
-                    className="h-16 mx-auto object-contain"
-                  />
-                  <p className="text-sm text-gray-600">Current logo</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto" />
-                  <p className="text-gray-600">Upload your company logo</p>
-                  <p className="text-xs text-gray-500">Recommended: PNG or SVG, max 2MB</p>
-                </div>
-              )}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                disabled={isUploading}
-                className="mt-4"
-              />
-              {isUploading && (
-                <p className="text-sm text-blue-600 mt-2">Uploading...</p>
-              )}
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                {branding.logoUrl ? (
+                  <div className="space-y-4">
+                    <img 
+                      src={branding.logoUrl} 
+                      alt="Brand logo" 
+                      className="h-16 mx-auto object-contain"
+                    />
+                    <p className="text-sm text-gray-600">Current logo</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto" />
+                    <p className="text-gray-600">Upload your company logo</p>
+                    <p className="text-xs text-gray-500">Recommended: PNG or SVG, max 2MB</p>
+                  </div>
+                )}
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  disabled={isUploading}
+                  className="mt-4"
+                />
+                {isUploading && (
+                  <p className="text-sm text-blue-600 mt-2">Uploading...</p>
+                )}
+              </div>
+              
+              <div className="text-center text-sm text-gray-500">or</div>
+              
+              <div>
+                <Label htmlFor="logoUrl">Logo URL</Label>
+                <Input
+                  id="logoUrl"
+                  type="url"
+                  value={branding.logoUrl}
+                  onChange={(e) => setBranding(prev => ({ ...prev, logoUrl: e.target.value }))}
+                  placeholder="https://example.com/logo.png"
+                  className="mt-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">Enter a direct URL to your logo image</p>
+              </div>
             </div>
           </CardContent>
         </Card>
