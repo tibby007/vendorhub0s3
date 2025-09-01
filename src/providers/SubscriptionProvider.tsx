@@ -220,33 +220,27 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      // Production subscription check using Supabase
+      // Production subscription check using check-subscription function
       try {
-        const { data: subscriber, error } = await supabase
-          .from('subscribers')
-          .select('*')
-          .eq('email', userEmail)
-          .maybeSingle();
-          
-        if (error && error.code !== 'PGRST116') {
+        const { data: checkResult, error } = await supabase.functions.invoke('check-subscription', {
+          body: { userEmail }
+        });
+        
+        if (error) {
           throw error;
         }
         
-        if (subscriber) {
-          console.log('✅ Found subscriber data:', subscriber.email);
-          const subscriptionEnd = subscriber.subscription_end ? new Date(subscriber.subscription_end) : null;
-          const now = new Date();
-          const isActive = subscriber.subscribed && subscriptionEnd && subscriptionEnd > now;
-          const isTrialing = !subscriber.subscribed && subscriptionEnd && subscriptionEnd > now;
+        if (checkResult) {
+          console.log('✅ Check-subscription result:', checkResult);
           
           const subData: SubscriptionData = {
-            subscriptionStatus: isActive ? 'active' : isTrialing ? 'trialing' : 'inactive',
-            planType: subscriber.subscription_tier?.toLowerCase() as 'basic' | 'pro' | 'premium' || 'basic',
-            trialDaysRemaining: isTrialing && subscriptionEnd ? Math.ceil((subscriptionEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,
-            subscribed: subscriber.subscribed || false,
-            subscription_tier: subscriber.subscription_tier as 'Basic' | 'Pro' | 'Premium' || 'Basic',
-            subscription_end: subscriber.subscription_end,
-            status: subscriber.subscribed ? 'active' : 'trialing'
+            subscriptionStatus: checkResult.trial_active ? 'trialing' : checkResult.subscribed ? 'active' : 'inactive',
+            planType: checkResult.subscription_tier?.toLowerCase() as 'basic' | 'pro' | 'premium' || 'pro',
+            trialDaysRemaining: checkResult.trial_active ? checkResult.remaining_days : 0,
+            subscribed: checkResult.subscribed || false,
+            subscription_tier: checkResult.subscription_tier as 'Basic' | 'Pro' | 'Premium' || 'Pro',
+            subscription_end: checkResult.subscription_end,
+            status: checkResult.trial_active ? 'trialing' : checkResult.subscribed ? 'active' : 'inactive'
           };
           
           safeSetSubscriptionData(subData);
@@ -255,8 +249,18 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             subscribed: subData.subscribed,
             tier: subData.subscription_tier,
             status: subData.subscriptionStatus === 'trialing' ? 'trial' : subData.subscriptionStatus === 'inactive' ? 'expired' : subData.subscriptionStatus,
+            trialEnd: checkResult.trialEnd,
+            endDate: checkResult.trial_active ? checkResult.trialEnd : checkResult.subscription_end,
             lastUpdated: Date.now(),
             isLoading: false,
+          });
+          
+          console.log('🔄 Subscription state updated:', {
+            trial_active: checkResult.trial_active,
+            subscribed: checkResult.subscribed,
+            status: subData.subscriptionStatus,
+            trialEnd: checkResult.trialEnd,
+            trialDaysRemaining: subData.trialDaysRemaining
           });
         } else {
           console.log('❌ No subscriber found - setting premium default for existing users');
