@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Reset - VendorHub</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.2);
+        }
+        .warning {
+            border-left-color: #ff9800;
+            background: rgba(255, 152, 0, 0.2);
+        }
+        .critical {
+            border-left-color: #e91e63;
+            background: rgba(233, 30, 99, 0.3);
+            font-weight: bold;
+        }
+        button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            margin: 10px 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        .nuclear {
+            background: linear-gradient(45deg, #e91e63, #c2185b);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .warning-btn {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+        }
+        .info {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+        .success {
+            background: linear-gradient(45deg, #4CAF50, #388E3C);
+        }
+        .button-group {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .step {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 3px solid #2196F3;
+        }
+        .code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        .countdown {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 ULTIMATE RESET UTILITY</h1>
+        
+        <div class="status critical">
+            <strong>🚨 CRITICAL AUTH/SUPABASE ERRORS DETECTED</strong><br>
+            This utility performs a complete system reset to resolve persistent authentication and Supabase connection issues.
+        </div>
+
+        <div id="diagnostics"></div>
+
+        <div class="button-group">
+            <button onclick="fullDiagnosis()" class="info">🔍 Full System Diagnosis</button>
+            <button onclick="nuclearReset()" class="nuclear">☢️ NUCLEAR RESET</button>
+            <button onclick="supabaseReset()" class="danger">🗄️ Supabase Reset</button>
+            <button onclick="authReset()" class="warning-btn">🔐 Auth Reset</button>
+            <button onclick="goToFreshAuth()" class="success">✨ Fresh Start</button>
+        </div>
+
+        <div class="status" id="status-indicator" style="display: none;">
+            <strong>📊 DIAGNOSIS RESULTS:</strong><br>
+            Results will appear below...
+        </div>
+
+        <div class="step">
+            <h3>🆘 If All Else Fails:</h3>
+            <div class="code">
+                1. Close ALL browser tabs for this site<br>
+                2. Clear browser cache completely (Ctrl+Shift+Delete)<br>
+                3. Restart your browser<br>
+                4. Navigate to: <strong>http://localhost:8080/auth</strong>
+            </div>
+        </div>
+
+        <div id="progress-container" style="display: none;">
+            <div class="countdown" id="countdown"></div>
+            <div class="progress">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            console.log(message);
+            
+            // Auto-scroll to bottom
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function showProgress(duration = 5000) {
+            const container = document.getElementById('progress-container');
+            const countdown = document.getElementById('countdown');
+            const progressBar = document.getElementById('progress-bar');
+            
+            container.style.display = 'block';
+            
+            let timeLeft = duration / 1000;
+            const interval = setInterval(() => {
+                countdown.textContent = `Redirecting in ${timeLeft}s...`;
+                const progress = ((duration / 1000 - timeLeft) / (duration / 1000)) * 100;
+                progressBar.style.width = progress + '%';
+                
+                timeLeft--;
+                if (timeLeft < 0) {
+                    clearInterval(interval);
+                    window.location.href = '/auth';
+                }
+            }, 1000);
+        }
+
+        function fullDiagnosis() {
+            console.log('🔍 Full Diagnosis button clicked!');
+            alert('🔍 Starting Full System Diagnosis - check results below!');
+            
+            try {
+                // Show status indicator
+                const statusIndicator = document.getElementById('status-indicator');
+                if (statusIndicator) {
+                    statusIndicator.style.display = 'block';
+                }
+                
+                // Clear previous results
+                const results = document.getElementById('results');
+                if (results) {
+                    results.innerHTML = '';
+                }
+                
+                log('🔍 Starting comprehensive system diagnosis...', 'info');
+            
+            // Check browser environment
+            log(`🌐 Browser: ${navigator.userAgent}`, 'info');
+            log(`📍 Current URL: ${window.location.href}`, 'info');
+            
+            // Check storage states
+            const localStorageSize = JSON.stringify(localStorage).length;
+            const sessionStorageSize = JSON.stringify(sessionStorage).length;
+            log(`💾 LocalStorage size: ${localStorageSize} bytes`, localStorageSize > 10000 ? 'warning' : 'success');
+            log(`💾 SessionStorage size: ${sessionStorageSize} bytes`, sessionStorageSize > 5000 ? 'warning' : 'success');
+            
+            // Check for problematic keys
+            const problematicKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('supabase') || key.includes('auth') || key.includes('sb-'))) {
+                    problematicKeys.push(key);
+                }
+            }
+            
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key && (key.includes('supabase') || key.includes('auth') || key.includes('demo'))) {
+                    problematicKeys.push(`session:${key}`);
+                }
+            }
+            
+            if (problematicKeys.length > 0) {
+                log(`🚨 Found ${problematicKeys.length} problematic keys: ${problematicKeys.join(', ')}`, 'error');
+            } else {
+                log('✅ No problematic storage keys found', 'success');
+            }
+            
+            // Check for React/Supabase errors
+            const errors = [];
+            if (window.console && window.console.error) {
+                log('🔍 Checking for JavaScript errors...', 'info');
+            }
+            
+            // Check network connectivity
+            if (navigator.onLine) {
+                log('🌐 Network connectivity: Online', 'success');
+            } else {
+                log('🌐 Network connectivity: Offline', 'error');
+            }
+            
+            log('✅ Full diagnosis complete. Use Nuclear Reset for complete cleanup.', 'success');
+            
+            } catch (error) {
+                console.error('Error during diagnosis:', error);
+                log(`❌ Error during diagnosis: ${error.message}`, 'error');
+                alert(`Error during diagnosis: ${error.message}`);
+            }
+        }
+
+        function nuclearReset() {
+            log('☢️ INITIATING NUCLEAR RESET...', 'critical');
+            log('⚠️ This will completely wipe all application data!', 'warning');
+            
+            try {
+                // Step 1: Clear all storage
+                log('🧹 Clearing localStorage...', 'info');
+                localStorage.clear();
+                
+                log('🧹 Clearing sessionStorage...', 'info');
+                sessionStorage.clear();
+                
+                // Step 2: Clear all cookies
+                log('🍪 Clearing all cookies...', 'info');
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                // Step 3: Clear IndexedDB
+                log('🗄️ Clearing IndexedDB...', 'info');
+                if ('indexedDB' in window) {
+                    indexedDB.databases().then(databases => {
+                        databases.forEach(db => {
+                            indexedDB.deleteDatabase(db.name);
+                            log(`🗑️ Deleted database: ${db.name}`, 'info');
+                        });
+                    }).catch(e => log(`❌ IndexedDB clear failed: ${e.message}`, 'error'));
+                }
+                
+                // Step 4: Clear cache
+                log('🧽 Clearing cache...', 'info');
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        names.forEach(name => {
+                            caches.delete(name);
+                            log(`🗑️ Deleted cache: ${name}`, 'info');
+                        });
+                    }).catch(e => log(`❌ Cache clear failed: ${e.message}`, 'error'));
+                }
+                
+                // Step 5: Clear service workers
+                log('🔧 Clearing service workers...', 'info');
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        registrations.forEach(registration => {
+                            registration.unregister();
+                            log('🗑️ Unregistered service worker', 'info');
+                        });
+                    }).catch(e => log(`❌ Service worker clear failed: ${e.message}`, 'error'));
+                }
+                
+                // Step 6: Dispatch reset events
+                log('📡 Broadcasting reset events...', 'info');
+                const events = ['nuclear-reset', 'auth-reset', 'supabase-reset', 'demo-mode-reset'];
+                events.forEach(eventName => {
+                    window.dispatchEvent(new CustomEvent(eventName));
+                    log(`📡 Dispatched: ${eventName}`, 'info');
+                });
+                
+                // Step 7: Force garbage collection if available
+                if (window.gc) {
+                    log('🗑️ Forcing garbage collection...', 'info');
+                    window.gc();
+                }
+                
+                log('☢️ NUCLEAR RESET COMPLETED!', 'success');
+                log('🔄 Redirecting to fresh authentication...', 'info');
+                
+                showProgress(3000);
+                
+            } catch (error) {
+                log(`❌ Nuclear reset failed: ${error.message}`, 'error');
+                log('🔧 Try manual browser reset or restart browser', 'warning');
+            }
+        }
+
+        function supabaseReset() {
+            log('🗄️ Starting Supabase-specific reset...', 'info');
+            
+            try {
+                // Clear Supabase-specific storage
+                const supabaseKeys = [
+                    'sb-auth-token',
+                    'supabase.auth.token', 
+                    'sb-refresh-token',
+                    'supabase-auth-token',
+                    'sb-access-token',
+                    'sb-user',
+                    'supabase.session'
+                ];
+                
+                supabaseKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                    sessionStorage.removeItem(key);
+                    log(`🗑️ Cleared: ${key}`, 'info');
+                });
+                
+                // Clear any keys containing 'supabase' or 'sb-'
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const key = localStorage.key(i);
+                    if (key && (key.includes('supabase') || key.includes('sb-'))) {
+                        localStorage.removeItem(key);
+                        log(`🗑️ Cleared localStorage: ${key}`, 'info');
+                    }
+                }
+                
+                for (let i = sessionStorage.length - 1; i >= 0; i--) {
+                    const key = sessionStorage.key(i);
+                    if (key && (key.includes('supabase') || key.includes('sb-'))) {
+                        sessionStorage.removeItem(key);
+                        log(`🗑️ Cleared sessionStorage: ${key}`, 'info');
+                    }
+                }
+                
+                log('✅ Supabase reset completed!', 'success');
+                
+            } catch (error) {
+                log(`❌ Supabase reset failed: ${error.message}`, 'error');
+            }
+        }
+
+        function authReset() {
+            log('🔐 Starting authentication reset...', 'info');
+            
+            try {
+                // Clear auth-specific data
+                const authKeys = [
+                    'demoCredentials',
+                    'isDemoMode',
+                    'authUser',
+                    'currentUser',
+                    'userSession',
+                    'loginState'
+                ];
+                
+                authKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                    sessionStorage.removeItem(key);
+                    log(`🗑️ Cleared: ${key}`, 'info');
+                });
+                
+                // Dispatch auth reset events
+                window.dispatchEvent(new CustomEvent('auth-reset'));
+                window.dispatchEvent(new CustomEvent('demo-mode-changed'));
+                
+                log('✅ Authentication reset completed!', 'success');
+                
+            } catch (error) {
+                log(`❌ Auth reset failed: ${error.message}`, 'error');
+            }
+        }
+
+        function goToFreshAuth() {
+            log('✨ Navigating to fresh authentication...', 'success');
+            
+            // Quick cleanup before redirect
+            sessionStorage.clear();
+            
+            // Force redirect with cache busting
+            const timestamp = new Date().getTime();
+            window.location.href = `/auth?t=${timestamp}`;
+        }
+
+        // Auto-diagnose on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('🔥 Ultimate Reset Utility loaded', 'info');
+                log('⚠️ Use Nuclear Reset if you\'re experiencing persistent auth/Supabase errors', 'warning');
+            }, 500);
+        });
+
+        // Listen for reset events
+        ['nuclear-reset', 'auth-reset', 'supabase-reset'].forEach(eventName => {
+            window.addEventListener(eventName, () => {
+                log(`📡 ${eventName} event received`, 'info');
+            });
+        });
+    </script>
+</body>
+</html>

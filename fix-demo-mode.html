@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Demo Mode Issues</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #718096;
+            font-size: 16px;
+        }
+        .fix-section {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .fix-section.critical {
+            border-color: #f56565;
+            background: #fed7d7;
+        }
+        .fix-section.success {
+            border-color: #48bb78;
+            background: #c6f6d5;
+        }
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 8px 8px 8px 0;
+            transition: all 0.3s ease;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .button.danger {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+        }
+        .button.success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .status.error {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+        .status.success {
+            background: #c6f6d5;
+            color: #2f855a;
+            border: 1px solid #9ae6b4;
+        }
+        .status.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+        }
+        .status.warning {
+            background: #faf089;
+            color: #744210;
+            border: 1px solid #f6e05e;
+        }
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .step h4 {
+            margin: 0 0 10px 0;
+            color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Fix Demo Mode Issues</h1>
+            <p>Comprehensive solution for settings save and logout problems</p>
+        </div>
+        
+        <div class="fix-section critical">
+            <h3>🚨 Critical Issue Detection</h3>
+            <p>If you're experiencing issues with saving settings or logging out, you might be stuck in demo mode.</p>
+            <button class="button" onclick="detectIssues()">🔍 Detect Issues</button>
+            <div id="detection-result"></div>
+        </div>
+        
+        <div class="fix-section">
+            <h3>🛠️ Quick Fixes</h3>
+            
+            <div class="step">
+                <h4>Step 1: Clear Demo Mode</h4>
+                <p>Remove all demo mode flags and credentials</p>
+                <button class="button danger" onclick="clearDemoMode()">Clear Demo Mode</button>
+                <div id="demo-clear-result"></div>
+            </div>
+            
+            <div class="step">
+                <h4>Step 2: Force Logout</h4>
+                <p>Clear all session data and force logout</p>
+                <button class="button danger" onclick="forceLogout()">Force Logout</button>
+                <div id="logout-result"></div>
+            </div>
+            
+            <div class="step">
+                <h4>Step 3: Reset Session</h4>
+                <p>Clear all browser storage and reset session</p>
+                <button class="button danger" onclick="resetSession()">Reset Session</button>
+                <div id="reset-result"></div>
+            </div>
+        </div>
+        
+        <div class="fix-section success">
+            <h3>✅ Verification & Navigation</h3>
+            
+            <div class="step">
+                <h4>Verify Fix</h4>
+                <p>Check if the issues have been resolved</p>
+                <button class="button success" onclick="verifyFix()">Verify Fix</button>
+                <div id="verify-result"></div>
+            </div>
+            
+            <div class="step">
+                <h4>Navigate to App</h4>
+                <p>Go back to the application with fresh session</p>
+                <button class="button success" onclick="goToAuth()">Go to Login</button>
+                <button class="button" onclick="goToApp()">Go to App</button>
+            </div>
+        </div>
+        
+        <div class="fix-section">
+            <h3>📋 Current Status</h3>
+            <div id="status-display"></div>
+            <button class="button" onclick="refreshStatus()">🔄 Refresh Status</button>
+        </div>
+    </div>
+
+    <script>
+        function detectIssues() {
+            const result = document.getElementById('detection-result');
+            try {
+                const issues = [];
+                
+                // Check for demo mode indicators
+                if (localStorage.getItem('demoCredentials') || sessionStorage.getItem('demoCredentials')) {
+                    issues.push('Demo credentials found in storage');
+                }
+                
+                if (localStorage.getItem('demo') || sessionStorage.getItem('demo')) {
+                    issues.push('Demo mode flag detected');
+                }
+                
+                // Check for any demo-related keys
+                const allKeys = [...Object.keys(localStorage), ...Object.keys(sessionStorage)];
+                const demoKeys = allKeys.filter(key => key.toLowerCase().includes('demo'));
+                if (demoKeys.length > 0) {
+                    issues.push(`Demo-related keys found: ${demoKeys.join(', ')}`);
+                }
+                
+                // Check for Supabase session issues
+                const supabaseKeys = allKeys.filter(key => key.includes('supabase'));
+                if (supabaseKeys.length === 0) {
+                    issues.push('No Supabase session found');
+                }
+                
+                if (issues.length === 0) {
+                    result.innerHTML = '<div class="status success">✅ No obvious issues detected</div>';
+                } else {
+                    result.innerHTML = `
+                        <div class="status error">
+                            <strong>🚨 Issues Detected:</strong>
+                            <ul>${issues.map(issue => `<li>${issue}</li>`).join('')}</ul>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="status error">Error detecting issues: ${error.message}</div>`;
+            }
+        }
+        
+        function clearDemoMode() {
+            const result = document.getElementById('demo-clear-result');
+            try {
+                const clearedItems = [];
+                
+                // Clear demo credentials
+                if (localStorage.getItem('demoCredentials')) {
+                    localStorage.removeItem('demoCredentials');
+                    clearedItems.push('localStorage.demoCredentials');
+                }
+                if (sessionStorage.getItem('demoCredentials')) {
+                    sessionStorage.removeItem('demoCredentials');
+                    clearedItems.push('sessionStorage.demoCredentials');
+                }
+                
+                // Clear demo flags
+                if (localStorage.getItem('demo')) {
+                    localStorage.removeItem('demo');
+                    clearedItems.push('localStorage.demo');
+                }
+                if (sessionStorage.getItem('demo')) {
+                    sessionStorage.removeItem('demo');
+                    clearedItems.push('sessionStorage.demo');
+                }
+                
+                // Clear any other demo-related keys
+                const allKeys = [...Object.keys(localStorage), ...Object.keys(sessionStorage)];
+                allKeys.forEach(key => {
+                    if (key.toLowerCase().includes('demo')) {
+                        if (localStorage.getItem(key)) {
+                            localStorage.removeItem(key);
+                            clearedItems.push(`localStorage.${key}`);
+                        }
+                        if (sessionStorage.getItem(key)) {
+                            sessionStorage.removeItem(key);
+                            clearedItems.push(`sessionStorage.${key}`);
+                        }
+                    }
+                });
+                
+                if (clearedItems.length > 0) {
+                    result.innerHTML = `
+                        <div class="status success">
+                            ✅ Cleared demo mode items:
+                            <ul>${clearedItems.map(item => `<li>${item}</li>`).join('')}</ul>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = '<div class="status info">ℹ️ No demo mode items found to clear</div>';
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="status error">Error clearing demo mode: ${error.message}</div>`;
+            }
+        }
+        
+        function forceLogout() {
+            const result = document.getElementById('logout-result');
+            try {
+                // Clear all Supabase related items
+                const supabaseKeys = Object.keys(localStorage).filter(key => key.includes('supabase'));
+                supabaseKeys.forEach(key => localStorage.removeItem(key));
+                
+                const sessionSupabaseKeys = Object.keys(sessionStorage).filter(key => key.includes('supabase'));
+                sessionSupabaseKeys.forEach(key => sessionStorage.removeItem(key));
+                
+                // Clear auth related items
+                localStorage.removeItem('auth');
+                localStorage.removeItem('user');
+                localStorage.removeItem('session');
+                sessionStorage.removeItem('auth');
+                sessionStorage.removeItem('user');
+                sessionStorage.removeItem('session');
+                
+                result.innerHTML = `
+                    <div class="status success">
+                        ✅ Force logout completed:
+                        <ul>
+                            <li>Cleared ${supabaseKeys.length} localStorage Supabase items</li>
+                            <li>Cleared ${sessionSupabaseKeys.length} sessionStorage Supabase items</li>
+                            <li>Cleared auth/user/session items</li>
+                        </ul>
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="status error">Error during force logout: ${error.message}</div>`;
+            }
+        }
+        
+        function resetSession() {
+            const result = document.getElementById('reset-result');
+            try {
+                const localCount = localStorage.length;
+                const sessionCount = sessionStorage.length;
+                
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                result.innerHTML = `
+                    <div class="status success">
+                        ✅ Session reset completed:
+                        <ul>
+                            <li>Cleared ${localCount} localStorage items</li>
+                            <li>Cleared ${sessionCount} sessionStorage items</li>
+                        </ul>
+                        <div class="status warning">⚠️ You will need to log in again</div>
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="status error">Error resetting session: ${error.message}</div>`;
+            }
+        }
+        
+        function verifyFix() {
+            const result = document.getElementById('verify-result');
+            try {
+                const checks = {
+                    noDemoCredentials: !localStorage.getItem('demoCredentials') && !sessionStorage.getItem('demoCredentials'),
+                    noDemoFlags: !localStorage.getItem('demo') && !sessionStorage.getItem('demo'),
+                    noSupabaseSession: Object.keys(localStorage).filter(key => key.includes('supabase')).length === 0,
+                    cleanStorage: localStorage.length === 0 && sessionStorage.length === 0
+                };
+                
+                const allPassed = Object.values(checks).every(Boolean);
+                
+                result.innerHTML = `
+                    <div class="status ${allPassed ? 'success' : 'warning'}">
+                        <strong>${allPassed ? '✅ All checks passed!' : '⚠️ Some issues remain:'}</strong>
+                        <ul>
+                            <li>${checks.noDemoCredentials ? '✅' : '❌'} No demo credentials</li>
+                            <li>${checks.noDemoFlags ? '✅' : '❌'} No demo flags</li>
+                            <li>${checks.noSupabaseSession ? '✅' : '❌'} No old Supabase session</li>
+                            <li>${checks.cleanStorage ? '✅' : '❌'} Clean storage</li>
+                        </ul>
+                        ${allPassed ? '<div class="status info">🎉 You can now log in normally and settings should save properly!</div>' : ''}
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="status error">Error verifying fix: ${error.message}</div>`;
+            }
+        }
+        
+        function refreshStatus() {
+            const display = document.getElementById('status-display');
+            try {
+                const status = {
+                    localStorage: {
+                        count: localStorage.length,
+                        keys: Object.keys(localStorage)
+                    },
+                    sessionStorage: {
+                        count: sessionStorage.length,
+                        keys: Object.keys(sessionStorage)
+                    },
+                    url: window.location.href,
+                    timestamp: new Date().toLocaleString()
+                };
+                
+                display.innerHTML = `
+                    <div class="status info">
+                        <strong>Current Status (${status.timestamp}):</strong>
+                        <pre>${JSON.stringify(status, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                display.innerHTML = `<div class="status error">Error getting status: ${error.message}</div>`;
+            }
+        }
+        
+        function goToAuth() {
+            window.location.href = '/auth';
+        }
+        
+        function goToApp() {
+            window.location.href = '/';
+        }
+        
+        // Auto-detect issues on load
+        window.addEventListener('load', () => {
+            detectIssues();
+            refreshStatus();
+        });
+    </script>
+</body>
+</html>

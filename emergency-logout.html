@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Logout - VendorHub</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.2);
+        }
+        .warning {
+            border-left-color: #ff9800;
+            background: rgba(255, 152, 0, 0.2);
+        }
+        button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            margin: 10px 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+        .warning-btn {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+        }
+        .info {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+        .success {
+            background: linear-gradient(45deg, #4CAF50, #388E3C);
+        }
+        .button-group {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .step {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 3px solid #2196F3;
+        }
+        .code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 Emergency Logout Utility</h1>
+        
+        <div class="status warning">
+            <strong>⚠️ AuthProvider Error Detected</strong><br>
+            This utility bypasses the AuthProvider entirely to force logout.
+        </div>
+
+        <div id="diagnostics"></div>
+
+        <div class="button-group">
+            <button onclick="diagnoseIssue()" class="info">🔍 Diagnose Issue</button>
+            <button onclick="emergencyLogout()" class="danger">🚨 Emergency Logout</button>
+            <button onclick="clearEverything()" class="warning-btn">🧹 Clear Everything</button>
+            <button onclick="goToAuth()" class="success">🔐 Go to Login</button>
+        </div>
+
+        <div class="step">
+            <h3>🔧 Manual Steps if Buttons Don't Work:</h3>
+            <ol>
+                <li>Open browser DevTools (F12)</li>
+                <li>Go to Application/Storage tab</li>
+                <li>Clear all localStorage and sessionStorage</li>
+                <li>Clear all cookies for this domain</li>
+                <li>Navigate to <code>/auth</code> manually</li>
+            </ol>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        function diagnoseIssue() {
+            log('🔍 Starting comprehensive diagnosis...', 'info');
+            
+            // Check for AuthProvider context issues
+            try {
+                const hasReact = window.React !== undefined;
+                log(`React available: ${hasReact}`, hasReact ? 'success' : 'error');
+            } catch (e) {
+                log(`React check failed: ${e.message}`, 'error');
+            }
+
+            // Check storage states
+            const localStorage_items = Object.keys(localStorage).length;
+            const sessionStorage_items = Object.keys(sessionStorage).length;
+            log(`LocalStorage items: ${localStorage_items}`, localStorage_items > 0 ? 'warning' : 'success');
+            log(`SessionStorage items: ${sessionStorage_items}`, sessionStorage_items > 0 ? 'warning' : 'success');
+
+            // Check for demo mode
+            const demoCredentials = sessionStorage.getItem('demoCredentials');
+            const isDemoMode = sessionStorage.getItem('isDemoMode');
+            if (demoCredentials || isDemoMode) {
+                log('🎭 Demo mode detected - this may be causing AuthProvider issues', 'warning');
+            }
+
+            // Check for auth tokens
+            const authTokens = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('auth') || key.includes('supabase') || key.includes('token'))) {
+                    authTokens.push(key);
+                }
+            }
+            if (authTokens.length > 0) {
+                log(`🔑 Found auth tokens: ${authTokens.join(', ')}`, 'warning');
+            }
+
+            // Check current URL
+            log(`📍 Current URL: ${window.location.href}`, 'info');
+            
+            log('✅ Diagnosis complete. Use Emergency Logout to bypass AuthProvider.', 'success');
+        }
+
+        function emergencyLogout() {
+            log('🚨 Starting emergency logout procedure...', 'warning');
+            
+            try {
+                // Step 1: Clear all storage
+                log('🧹 Clearing localStorage...', 'info');
+                localStorage.clear();
+                
+                log('🧹 Clearing sessionStorage...', 'info');
+                sessionStorage.clear();
+                
+                // Step 2: Clear cookies
+                log('🍪 Clearing cookies...', 'info');
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                // Step 3: Clear any Supabase specific items
+                const supabaseKeys = ['sb-auth-token', 'supabase.auth.token', 'sb-refresh-token'];
+                supabaseKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                    sessionStorage.removeItem(key);
+                });
+                
+                // Step 4: Dispatch custom logout event
+                log('📡 Dispatching logout events...', 'info');
+                window.dispatchEvent(new CustomEvent('emergency-logout'));
+                window.dispatchEvent(new CustomEvent('auth-reset'));
+                
+                log('✅ Emergency logout completed successfully!', 'success');
+                
+                // Step 5: Force redirect
+                setTimeout(() => {
+                    log('🔄 Redirecting to login page...', 'info');
+                    window.location.href = '/auth';
+                }, 1000);
+                
+            } catch (error) {
+                log(`❌ Emergency logout failed: ${error.message}`, 'error');
+                log('🔧 Try manual steps or refresh the page', 'warning');
+            }
+        }
+
+        function clearEverything() {
+            log('🧹 Clearing absolutely everything...', 'warning');
+            
+            try {
+                // Clear all storage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear all cookies for this domain
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                // Clear IndexedDB if available
+                if ('indexedDB' in window) {
+                    indexedDB.databases().then(databases => {
+                        databases.forEach(db => {
+                            indexedDB.deleteDatabase(db.name);
+                        });
+                    }).catch(e => console.log('IndexedDB clear failed:', e));
+                }
+                
+                // Clear cache if available
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        names.forEach(name => {
+                            caches.delete(name);
+                        });
+                    }).catch(e => console.log('Cache clear failed:', e));
+                }
+                
+                log('✅ Everything cleared! Page will reload...', 'success');
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+                
+            } catch (error) {
+                log(`❌ Clear everything failed: ${error.message}`, 'error');
+            }
+        }
+
+        function goToAuth() {
+            log('🔐 Navigating to auth page...', 'info');
+            window.location.href = '/auth';
+        }
+
+        // Auto-diagnose on load
+        window.addEventListener('load', () => {
+            setTimeout(diagnoseIssue, 500);
+        });
+
+        // Listen for emergency events
+        window.addEventListener('emergency-logout', () => {
+            log('📡 Emergency logout event received', 'info');
+        });
+    </script>
+</body>
+</html>

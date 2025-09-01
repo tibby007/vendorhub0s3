@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Force Logout</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #b91c1c;
+        }
+        .info {
+            color: #666;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Force Logout Utility</h2>
+        <p class="info">This will clear all session data and redirect you to the login page.</p>
+        <button onclick="forceLogout()">Force Logout</button>
+        <button onclick="clearAndRedirect()">Clear All Data & Redirect</button>
+        
+        <script>
+            function forceLogout() {
+                console.log('🚪 Force logout initiated');
+                
+                // Clear all storage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear any cookies
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                // Redirect to auth page
+                window.location.href = 'http://localhost:8080/auth';
+            }
+            
+            function clearAndRedirect() {
+                console.log('🧹 Clearing all data and redirecting');
+                
+                // Clear all storage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear IndexedDB if it exists
+                if ('indexedDB' in window) {
+                    indexedDB.databases().then(databases => {
+                        databases.forEach(db => {
+                            if (db.name) {
+                                indexedDB.deleteDatabase(db.name);
+                            }
+                        });
+                    }).catch(console.error);
+                }
+                
+                // Clear cookies
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                // Force redirect
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:8080/auth';
+                }, 500);
+            }
+            
+            // Auto-execute after 3 seconds if user doesn't click
+            setTimeout(() => {
+                console.log('⏰ Auto-executing force logout after timeout');
+                forceLogout();
+            }, 10000);
+        </script>
+    </div>
+</body>
+</html>

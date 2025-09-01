@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Force Logout Fix - VendorHub</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        .status.info { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .status.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .status.warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .status.error { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn.danger { background: #dc2626; }
+        .btn.danger:hover { background: #b91c1c; }
+        .btn.success { background: #059669; }
+        .btn.success:hover { background: #047857; }
+        .btn.warning { background: #d97706; }
+        .btn.warning:hover { background: #b45309; }
+        .section {
+            margin: 25px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .code {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Force Logout Fix Utility</h1>
+            <p>Comprehensive solution for "AuthProvider not initialized" errors and logout issues</p>
+        </div>
+
+        <div class="section">
+            <h3>🚨 Current Issues Detected</h3>
+            <div id="issues-display">Scanning...</div>
+        </div>
+
+        <div class="grid">
+            <div class="section">
+                <h3>🧹 Quick Fixes</h3>
+                <button class="btn danger" onclick="forceLogout()">Force Logout Now</button>
+                <button class="btn warning" onclick="clearAllAuth()">Clear All Auth Data</button>
+                <button class="btn" onclick="resetSession()">Reset Session</button>
+                <button class="btn" onclick="checkStatus()">Refresh Status</button>
+            </div>
+
+            <div class="section">
+                <h3>🔄 Navigation</h3>
+                <button class="btn success" onclick="goToAuth()">Go to Login</button>
+                <button class="btn success" onclick="goToDemo()">Go to Demo</button>
+                <button class="btn" onclick="goToApp()">Go to App</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📊 Storage Analysis</h3>
+            <div id="storage-analysis">Loading...</div>
+        </div>
+
+        <div class="section">
+            <h3>🔍 Debug Information</h3>
+            <div id="debug-info">Gathering...</div>
+        </div>
+
+        <div class="section">
+            <h3>📝 Action Log</h3>
+            <div id="action-log" class="code">Ready to perform actions...
+</div>
+        </div>
+    </div>
+
+    <script>
+        let logEntries = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logEntries.push(entry);
+            
+            const logDiv = document.getElementById('action-log');
+            logDiv.textContent = logEntries.slice(-10).join('\n');
+            
+            console.log(entry);
+        }
+        
+        function checkStatus() {
+            log('Checking authentication status...');
+            
+            const issues = [];
+            const warnings = [];
+            const info = [];
+            
+            // Check for demo mode flags
+            const demoCredentials = sessionStorage.getItem('demoCredentials');
+            const legacyDemo = sessionStorage.getItem('demo_mode');
+            const isDemoMode = sessionStorage.getItem('isDemoMode');
+            
+            if (demoCredentials) {
+                issues.push('🚨 Demo credentials preventing normal logout');
+            }
+            
+            if (legacyDemo === 'true') {
+                warnings.push('⚠️ Legacy demo mode active');
+            }
+            
+            if (isDemoMode) {
+                warnings.push('⚠️ Demo mode flag detected');
+            }
+            
+            // Check for auth tokens
+            const authTokens = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('supabase') || key.includes('auth') || key.includes('token'))) {
+                    authTokens.push(key);
+                }
+            }
+            
+            if (authTokens.length > 0) {
+                info.push(`ℹ️ Found ${authTokens.length} auth-related localStorage items`);
+            }
+            
+            // Check sessionStorage
+            const sessionTokens = [];
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key && (key.includes('supabase') || key.includes('auth') || key.includes('token'))) {
+                    sessionTokens.push(key);
+                }
+            }
+            
+            if (sessionTokens.length > 0) {
+                info.push(`ℹ️ Found ${sessionTokens.length} auth-related sessionStorage items`);
+            }
+            
+            // Display results
+            const issuesDiv = document.getElementById('issues-display');
+            let statusClass = 'success';
+            let statusText = '✅ No critical issues detected';
+            
+            if (issues.length > 0) {
+                statusClass = 'error';
+                statusText = issues.join('<br>');
+            } else if (warnings.length > 0) {
+                statusClass = 'warning';
+                statusText = warnings.join('<br>');
+            } else if (info.length > 0) {
+                statusClass = 'info';
+                statusText = info.join('<br>');
+            }
+            
+            issuesDiv.innerHTML = `<div class="status ${statusClass}">${statusText}</div>`;
+            
+            updateStorageAnalysis();
+            updateDebugInfo();
+            
+            log(`Status check complete: ${issues.length} issues, ${warnings.length} warnings`);
+        }
+        
+        function updateStorageAnalysis() {
+            const analysis = {
+                localStorage: {},
+                sessionStorage: {}
+            };
+            
+            // Analyze localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key) {
+                    const value = localStorage.getItem(key);
+                    if (key.includes('supabase') || key.includes('auth') || key.includes('demo') || key.includes('token')) {
+                        analysis.localStorage[key] = value ? (value.length > 50 ? `${value.substring(0, 50)}...` : value) : 'null';
+                    }
+                }
+            }
+            
+            // Analyze sessionStorage
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key) {
+                    const value = sessionStorage.getItem(key);
+                    if (key.includes('supabase') || key.includes('auth') || key.includes('demo') || key.includes('token')) {
+                        analysis.sessionStorage[key] = value ? (value.length > 50 ? `${value.substring(0, 50)}...` : value) : 'null';
+                    }
+                }
+            }
+            
+            const storageDiv = document.getElementById('storage-analysis');
+            storageDiv.innerHTML = `
+                <div class="code">
+                    <strong>LocalStorage (${Object.keys(analysis.localStorage).length} auth-related items):</strong>\n${Object.entries(analysis.localStorage).map(([k, v]) => `${k}: ${v}`).join('\n') || 'None found'}
+                    
+                    <strong>SessionStorage (${Object.keys(analysis.sessionStorage).length} auth-related items):</strong>\n${Object.entries(analysis.sessionStorage).map(([k, v]) => `${k}: ${v}`).join('\n') || 'None found'}
+                </div>
+            `;
+        }
+        
+        function updateDebugInfo() {
+            const debugDiv = document.getElementById('debug-info');
+            const info = {
+                userAgent: navigator.userAgent,
+                currentURL: window.location.href,
+                referrer: document.referrer || 'None',
+                cookiesEnabled: navigator.cookieEnabled,
+                localStorageAvailable: typeof(Storage) !== 'undefined',
+                timestamp: new Date().toISOString()
+            };
+            
+            debugDiv.innerHTML = `
+                <div class="code">
+                    URL: ${info.currentURL}
+                    Referrer: ${info.referrer}
+                    Cookies: ${info.cookiesEnabled ? 'Enabled' : 'Disabled'}
+                    LocalStorage: ${info.localStorageAvailable ? 'Available' : 'Not Available'}
+                    Timestamp: ${info.timestamp}
+                </div>
+            `;
+        }
+        
+        function forceLogout() {
+            log('Initiating force logout...', 'warning');
+            
+            try {
+                // Clear all possible auth data
+                clearAllAuth();
+                
+                // Force redirect to auth page
+                log('Redirecting to login page...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:8080/auth';
+                }, 500);
+                
+            } catch (error) {
+                log(`Force logout error: ${error.message}`, 'error');
+                // Fallback: just redirect
+                window.location.href = 'http://localhost:8080/auth';
+            }
+        }
+        
+        function clearAllAuth() {
+            log('Clearing all authentication data...', 'warning');
+            
+            // Clear demo mode flags
+            sessionStorage.removeItem('demoCredentials');
+            sessionStorage.removeItem('demo_mode');
+            sessionStorage.removeItem('demo_role');
+            sessionStorage.removeItem('isDemoMode');
+            sessionStorage.removeItem('demoSessionActive');
+            localStorage.removeItem('last_demo_time');
+            
+            // Clear Supabase auth data
+            const authKeys = [];
+            
+            // Clear localStorage auth items
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('supabase') || key.includes('auth') || key.includes('token'))) {
+                    localStorage.removeItem(key);
+                    authKeys.push(key);
+                }
+            }
+            
+            // Clear sessionStorage auth items
+            for (let i = sessionStorage.length - 1; i >= 0; i--) {
+                const key = sessionStorage.key(i);
+                if (key && (key.includes('supabase') || key.includes('auth') || key.includes('token'))) {
+                    sessionStorage.removeItem(key);
+                    authKeys.push(key);
+                }
+            }
+            
+            // Clear secure storage items
+            try {
+                const secureKeys = ['demoSession', 'demo_session_token', 'secure_demo_data', 'auth_session'];
+                secureKeys.forEach(key => {
+                    sessionStorage.removeItem(`secure_${key}`);
+                    localStorage.removeItem(`secure_${key}`);
+                });
+            } catch (e) {
+                log(`Secure storage clearing: ${e.message}`, 'info');
+            }
+            
+            // Trigger events
+            try {
+                window.dispatchEvent(new Event('demo-mode-changed'));
+                window.dispatchEvent(new Event('auth-state-changed'));
+            } catch (e) {
+                log(`Event dispatch: ${e.message}`, 'info');
+            }
+            
+            log(`Cleared ${authKeys.length} authentication items`, 'success');
+            
+            // Refresh status
+            setTimeout(checkStatus, 100);
+        }
+        
+        function resetSession() {
+            log('Resetting session...', 'info');
+            
+            // Clear session-specific data only
+            sessionStorage.clear();
+            
+            log('Session reset complete', 'success');
+            setTimeout(checkStatus, 100);
+        }
+        
+        function goToAuth() {
+            log('Navigating to login page...', 'info');
+            window.location.href = 'http://localhost:8080/auth';
+        }
+        
+        function goToDemo() {
+            log('Navigating to demo page...', 'info');
+            window.location.href = 'http://localhost:8080/demo';
+        }
+        
+        function goToApp() {
+            log('Navigating to main app...', 'info');
+            window.location.href = 'http://localhost:8080/';
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Force Logout Fix Utility loaded', 'success');
+            checkStatus();
+        });
+    </script>
+</body>
+</html>

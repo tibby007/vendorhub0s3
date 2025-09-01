@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Demo Mode - VendorHub</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        .status.info { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .status.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .status.warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .status.error { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn.danger { background: #dc2626; }
+        .btn.danger:hover { background: #b91c1c; }
+        .btn.success { background: #059669; }
+        .btn.success:hover { background: #047857; }
+        .section {
+            margin: 25px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .code {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Clear Demo Mode Utility</h1>
+            <p>This utility will detect and clear all demo mode flags that might be preventing settings from saving.</p>
+        </div>
+
+        <div class="section">
+            <h3>📊 Current Status</h3>
+            <div id="status-display">Checking...</div>
+        </div>
+
+        <div class="section">
+            <h3>🧹 Actions</h3>
+            <button class="btn danger" onclick="clearAllDemoFlags()">Clear All Demo Flags</button>
+            <button class="btn" onclick="checkStatus()">Refresh Status</button>
+            <button class="btn success" onclick="goToApp()">Go to VendorHub</button>
+        </div>
+
+        <div class="section">
+            <h3>📋 Storage Contents</h3>
+            <div id="storage-display">Loading...</div>
+        </div>
+
+        <div class="section">
+            <h3>🔍 What This Tool Does</h3>
+            <ul>
+                <li>Checks for <code>demoCredentials</code> in sessionStorage (main culprit)</li>
+                <li>Looks for legacy demo flags like <code>demo_mode</code>, <code>isDemoMode</code></li>
+                <li>Clears secure storage items that might contain demo sessions</li>
+                <li>Forces a clean state for normal app operation</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            const statusDiv = document.getElementById('status-display');
+            const storageDiv = document.getElementById('storage-display');
+            
+            // Check for demo mode indicators
+            const demoCredentials = sessionStorage.getItem('demoCredentials');
+            const legacyDemoMode = sessionStorage.getItem('demo_mode');
+            const isDemoMode = sessionStorage.getItem('isDemoMode');
+            const demoSessionActive = sessionStorage.getItem('demoSessionActive');
+            const lastDemoTime = localStorage.getItem('last_demo_time');
+            
+            let issues = [];
+            let statusClass = 'success';
+            
+            if (demoCredentials) {
+                issues.push('🚨 demoCredentials found in sessionStorage');
+                statusClass = 'error';
+            }
+            
+            if (legacyDemoMode === 'true') {
+                issues.push('⚠️ Legacy demo_mode flag is active');
+                statusClass = 'warning';
+            }
+            
+            if (isDemoMode) {
+                issues.push('⚠️ isDemoMode flag found');
+                statusClass = 'warning';
+            }
+            
+            if (demoSessionActive) {
+                issues.push('⚠️ demoSessionActive flag found');
+                statusClass = 'warning';
+            }
+            
+            if (lastDemoTime) {
+                issues.push('ℹ️ last_demo_time found in localStorage');
+                if (statusClass === 'success') statusClass = 'info';
+            }
+            
+            if (issues.length === 0) {
+                statusDiv.innerHTML = '<div class="status success">✅ No demo mode flags detected! Settings should save normally.</div>';
+            } else {
+                statusDiv.innerHTML = `<div class="status ${statusClass}">Found ${issues.length} demo mode flag(s):<br>• ${issues.join('<br>• ')}</div>`;
+            }
+            
+            // Display storage contents
+            const storageContents = {
+                sessionStorage: {
+                    demoCredentials: demoCredentials ? 'PRESENT' : 'not found',
+                    demo_mode: legacyDemoMode || 'not found',
+                    isDemoMode: isDemoMode || 'not found',
+                    demoSessionActive: demoSessionActive || 'not found'
+                },
+                localStorage: {
+                    last_demo_time: lastDemoTime || 'not found'
+                }
+            };
+            
+            storageDiv.innerHTML = `
+                <div class="code">
+                    <strong>SessionStorage:</strong><br>
+                    ${Object.entries(storageContents.sessionStorage).map(([key, value]) => 
+                        `${key}: ${value === 'PRESENT' ? '<span style="color: red; font-weight: bold;">PRESENT</span>' : value}`
+                    ).join('<br>')}
+                    <br><br>
+                    <strong>LocalStorage:</strong><br>
+                    ${Object.entries(storageContents.localStorage).map(([key, value]) => 
+                        `${key}: ${value}`
+                    ).join('<br>')}
+                </div>
+            `;
+        }
+        
+        function clearAllDemoFlags() {
+            console.log('🧹 Clearing all demo mode flags...');
+            
+            // Clear sessionStorage demo flags
+            sessionStorage.removeItem('demoCredentials');
+            sessionStorage.removeItem('demo_mode');
+            sessionStorage.removeItem('demo_role');
+            sessionStorage.removeItem('isDemoMode');
+            sessionStorage.removeItem('demoSessionActive');
+            
+            // Clear localStorage demo flags
+            localStorage.removeItem('last_demo_time');
+            
+            // Clear any secure storage (if available)
+            try {
+                if (window.crypto && window.crypto.subtle) {
+                    // Clear potential secure storage keys
+                    const secureKeys = ['demoSession', 'demo_session_token', 'secure_demo_data'];
+                    secureKeys.forEach(key => {
+                        sessionStorage.removeItem(`secure_${key}`);
+                        localStorage.removeItem(`secure_${key}`);
+                    });
+                }
+            } catch (e) {
+                console.log('Secure storage clearing skipped:', e.message);
+            }
+            
+            // Trigger demo mode change event
+            try {
+                window.dispatchEvent(new Event('demo-mode-changed'));
+            } catch (e) {
+                console.log('Event dispatch skipped:', e.message);
+            }
+            
+            alert('✅ All demo mode flags have been cleared!\n\nYou can now:\n1. Go to VendorHub\n2. Try saving partner settings\n3. Test logout functionality');
+            
+            // Refresh status
+            setTimeout(checkStatus, 100);
+        }
+        
+        function goToApp() {
+            window.location.href = 'http://localhost:8080/';
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', checkStatus);
+    </script>
+</body>
+</html>

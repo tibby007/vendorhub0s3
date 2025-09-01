@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Session & Settings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #10B981;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #059669;
+        }
+        .error {
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #059669;
+            background: #f0fdf4;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .info {
+            color: #1d4ed8;
+            background: #eff6ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug Session & Settings</h1>
+    
+    <div class="debug-section">
+        <h2>Session Information</h2>
+        <button class="button" onclick="checkSession()">Check Current Session</button>
+        <button class="button" onclick="clearAllStorage()">Clear All Storage</button>
+        <div id="session-info"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Authentication Test</h2>
+        <button class="button" onclick="testLogout()">Test Logout Function</button>
+        <button class="button" onclick="forceLogout()">Force Logout</button>
+        <div id="auth-info"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Partner Settings Test</h2>
+        <button class="button" onclick="testPartnerSettings()">Test Partner Settings Save</button>
+        <div id="settings-info"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Console Logs</h2>
+        <button class="button" onclick="clearLogs()">Clear Logs</button>
+        <div id="console-logs"></div>
+    </div>
+
+    <script>
+        // Capture console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const logs = [];
+        
+        function addLog(type, message) {
+            logs.push({ type, message, timestamp: new Date().toISOString() });
+            updateLogDisplay();
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog('log', args.join(' '));
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog('error', args.join(' '));
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addLog('warn', args.join(' '));
+        };
+        
+        function updateLogDisplay() {
+            const logsDiv = document.getElementById('console-logs');
+            logsDiv.innerHTML = logs.slice(-10).map(log => 
+                `<div class="${log.type === 'error' ? 'error' : log.type === 'warn' ? 'info' : 'success'}">
+                    <strong>[${log.timestamp.split('T')[1].split('.')[0]}]</strong> ${log.message}
+                </div>`
+            ).join('');
+        }
+        
+        function clearLogs() {
+            logs.length = 0;
+            updateLogDisplay();
+        }
+        
+        async function checkSession() {
+            const sessionDiv = document.getElementById('session-info');
+            try {
+                // Check localStorage
+                const localStorageData = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    localStorageData[key] = localStorage.getItem(key);
+                }
+                
+                // Check sessionStorage
+                const sessionStorageData = {};
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const key = sessionStorage.key(i);
+                    sessionStorageData[key] = sessionStorage.getItem(key);
+                }
+                
+                sessionDiv.innerHTML = `
+                    <div class="info">
+                        <h3>LocalStorage:</h3>
+                        <pre>${JSON.stringify(localStorageData, null, 2)}</pre>
+                        <h3>SessionStorage:</h3>
+                        <pre>${JSON.stringify(sessionStorageData, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                sessionDiv.innerHTML = `<div class="error">Error checking session: ${error.message}</div>`;
+            }
+        }
+        
+        function clearAllStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.getElementById('session-info').innerHTML = '<div class="success">All storage cleared!</div>';
+        }
+        
+        async function testLogout() {
+            const authDiv = document.getElementById('auth-info');
+            try {
+                authDiv.innerHTML = '<div class="info">Testing logout...</div>';
+                
+                // Try to access the app's logout function
+                if (window.parent && window.parent !== window) {
+                    // We're in an iframe, try to communicate with parent
+                    window.parent.postMessage({ type: 'LOGOUT_TEST' }, '*');
+                    authDiv.innerHTML = '<div class="info">Logout test message sent to parent window</div>';
+                } else {
+                    // Direct logout attempt
+                    window.location.href = '/auth';
+                }
+            } catch (error) {
+                authDiv.innerHTML = `<div class="error">Logout test failed: ${error.message}</div>`;
+            }
+        }
+        
+        function forceLogout() {
+            clearAllStorage();
+            window.location.href = '/auth';
+        }
+        
+        async function testPartnerSettings() {
+            const settingsDiv = document.getElementById('settings-info');
+            try {
+                settingsDiv.innerHTML = '<div class="info">Testing partner settings...</div>';
+                
+                // Test data
+                const testData = {
+                    name: 'Test Partner ' + Date.now(),
+                    brand_color: '#FF5733',
+                    contact_email: 'test@example.com',
+                    contact_phone: '555-0123'
+                };
+                
+                settingsDiv.innerHTML = `
+                    <div class="info">
+                        <h3>Test Data:</h3>
+                        <pre>${JSON.stringify(testData, null, 2)}</pre>
+                        <p>Check console for actual save attempt results.</p>
+                    </div>
+                `;
+                
+                console.log('Partner settings test data:', testData);
+            } catch (error) {
+                settingsDiv.innerHTML = `<div class="error">Settings test failed: ${error.message}</div>`;
+            }
+        }
+        
+        // Auto-check session on load
+        window.addEventListener('load', checkSession);
+    </script>
+</body>
+</html>
