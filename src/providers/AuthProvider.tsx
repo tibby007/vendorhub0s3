@@ -31,9 +31,22 @@ const defaultAuthContext: AuthCtx = {
   session: null,
   user: null,
   loading: true,
-  login: async () => { throw new Error('AuthProvider not initialized'); },
-  logout: async () => { throw new Error('AuthProvider not initialized'); },
-  signOut: async () => { throw new Error('AuthProvider not initialized'); },
+  login: async () => {
+    console.warn('AuthProvider not initialized - login unavailable');
+    window.location.href = '/auth';
+  },
+  logout: async () => {
+    console.log('🚪 Default logout - clearing session and redirecting');
+    sessionStorage.clear();
+    localStorage.removeItem('sb-kfdlxorqopnibuzexoko-auth-token');
+    window.location.href = '/auth';
+  },
+  signOut: async () => {
+    console.log('🚪 Default signOut - clearing session and redirecting');
+    sessionStorage.clear();
+    localStorage.removeItem('sb-kfdlxorqopnibuzexoko-auth-token');
+    window.location.href = '/auth';
+  },
 };
 
 const AuthContext = createContext<AuthCtx>(defaultAuthContext);

@@ -50,10 +50,25 @@ const defaultAuthContext: AuthContextType = {
   subscriptionData: null,
   loading: true,
   isLoading: true,
-  login: async () => { throw new Error('AuthProvider not initialized'); },
-  logout: async () => { throw new Error('AuthProvider not initialized'); },
-  signOut: async () => { throw new Error('AuthProvider not initialized'); },
-  refreshSubscription: async () => { throw new Error('AuthProvider not initialized'); },
+  login: async () => {
+    console.warn('AuthProvider not initialized - login unavailable');
+    window.location.href = '/auth';
+  },
+  logout: async () => {
+    console.log('🚪 Default logout - clearing session and redirecting');
+    sessionStorage.clear();
+    localStorage.removeItem('sb-kfdlxorqopnibuzexoko-auth-token');
+    window.location.href = '/auth';
+  },
+  signOut: async () => {
+    console.log('🚪 Default signOut - clearing session and redirecting');
+    sessionStorage.clear();
+    localStorage.removeItem('sb-kfdlxorqopnibuzexoko-auth-token');
+    window.location.href = '/auth';
+  },
+  refreshSubscription: async () => {
+    console.warn('AuthProvider not initialized - refreshSubscription unavailable');
+  },
   checkSubscriptionAccess: () => false,
 };
 
@@ -130,9 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           setUser(authUser);
           setSession(session);
-          setTimeout(() => {
-            if (!isCleanedUp && !isCleanedUpRef.current) setGlobalSession(session);
-          }, 100);
+          // Session set successfully
           console.log('✅ Initial user set:', authUser);
         } else if (!isCleanedUp && !isCleanedUpRef.current) {
           console.log('🚫 No initial session found');
@@ -196,13 +209,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        // Set global session after user is set successfully
-        setTimeout(() => {
-          if (!isCleanedUp && !isCleanedUpRef.current) setGlobalSession(session);
-        }, 100);
+        // Session set successfully
       } else if (event === 'SIGNED_OUT' && !isCleanedUp && !isCleanedUpRef.current) {
         setUser(null);
-        setGlobalSession(null);
         console.log('🚫 User signed out');
       }
       
@@ -315,8 +324,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user_metadata: data.user.user_metadata
     });
     setSession(data.session);
-    // Debounce session sync for login
-    setTimeout(() => setGlobalSession(data.session), 100);
+    // Session set successfully
   }, []);
 
   const logout = useCallback(async () => {
@@ -395,10 +403,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setSubscriptionData({
           subscriptionStatus: isActive ? 'active' : isTrialing ? 'trialing' : 'inactive',
-          planType: subscriber.subscription_tier?.toLowerCase() || 'basic',
+          planType: (subscriber.subscription_tier?.toLowerCase() as 'basic' | 'pro' | 'premium') || 'basic',
           trialDaysRemaining: isTrialing && subscriptionEnd ? Math.ceil((subscriptionEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,
           subscribed: subscriber.subscribed || false,
-          subscription_tier: subscriber.subscription_tier || 'Basic',
+          subscription_tier: (subscriber.subscription_tier as 'Basic' | 'Pro' | 'Premium') || 'Basic',
           subscription_end: subscriber.subscription_end,
           status: subscriber.subscribed ? 'active' : 'trialing'
         });

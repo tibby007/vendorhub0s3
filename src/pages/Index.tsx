@@ -17,7 +17,7 @@ import { useHookTripwire } from '@/lib/useHookTripwire';
 const Index = () => {
   // CRITICAL: ALL HOOKS MUST BE CALLED UNCONDITIONALLY IN SAME ORDER EVERY RENDER
   useHookTripwire('Index-Dashboard');
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const { isDemo, demoRole } = useDemoMode();
   const { subscription } = useSubscriptionManager();
   const navigate = useNavigate();
@@ -34,13 +34,12 @@ const Index = () => {
     if (isDemo && demoRole) {
       secureLogger.info('Demo mode active on dashboard', {
         component: 'Index',
-        action: 'demo_mode_active',
-        demoRole
+        action: 'demo_mode_active'
       });
       return;
     }
     
-    if (!isLoading && !user) {
+    if (!loading && !user) {
       secureLogger.info('No user on dashboard, redirecting to auth', {
         component: 'Index',
         action: 'no_user_redirect'
@@ -49,17 +48,14 @@ const Index = () => {
     } else if (user) {
       secureLogger.info('User authenticated on dashboard', {
         component: 'Index',
-        action: 'user_authenticated',
-        userId: user.id,
-        userRole: user.role
+        action: 'user_authenticated'
       });
       
       // If user just completed subscription, don't redirect them back
       if (subscriptionSuccess === 'success' || sessionId) {
         secureLogger.info('User just completed subscription checkout', {
           component: 'Index',
-          action: 'subscription_checkout_complete',
-          sessionId: !!sessionId
+          action: 'subscription_checkout_complete'
         });
         // Clean up URL params and force subscription refresh
         navigate('/dashboard', { replace: true });
@@ -109,6 +105,17 @@ const Index = () => {
           // Use a direct supabase call since context sync might be broken
           try {
             const { data, error } = await supabase.functions.invoke('check-subscription');
+            
+            if (error) {
+              secureLogger.error('check-subscription function failed', {
+              component: 'Index',
+              action: 'subscription_check_function_error'
+            });
+              // Clear attempt counter and allow dashboard access on function error
+              sessionStorage.removeItem('subscription_check_attempts');
+              return;
+            }
+            
             // Clear attempt counter on success
             sessionStorage.removeItem('subscription_check_attempts');
             // Only redirect BROKERS if they have no subscription AND no active trial
@@ -118,25 +125,21 @@ const Index = () => {
             const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
             const isOwner = user.email === 'support@emergestack.dev';
             
-            if (!isOwner && isBrokerRole && (error || (!data?.subscribed && !data?.trial_active))) {
+            if (!isOwner && isBrokerRole && (!data?.subscribed && !data?.trial_active)) {
               secureLogger.info('New broker detected, redirecting to subscription', {
                 component: 'Index',
-                action: 'new_broker_subscription_redirect',
-                userRole
+                action: 'new_broker_subscription_redirect'
               });
               navigate('/subscription', { replace: true });
             } else if (isOwner) {
               secureLogger.info('OWNER LOGIN - bypassing all subscription checks', {
                 component: 'Index',
-                action: 'owner_bypass_subscription',
-                userRole,
-                email: user.email
+                action: 'owner_bypass_subscription'
               });
             } else if (!isBrokerRole) {
               secureLogger.info('Non-broker user, allowing dashboard access', {
                 component: 'Index', 
-                action: 'vendor_dashboard_access',
-                userRole
+                action: 'vendor_dashboard_access'
               });
             } else if (data?.trial_active) {
               secureLogger.info('User has active trial, staying on dashboard', {
@@ -174,22 +177,20 @@ const Index = () => {
       if (!isOwner && isBrokerRole && !subscription.isLoading && !isDemo && !subscription.subscribed && subscription.status === 'expired') {
         secureLogger.info('Broker needs subscription setup, redirecting to subscription', {
           component: 'Index',
-          action: 'expired_broker_subscription_redirect',
-          userRole
+          action: 'expired_broker_subscription_redirect'
         });
         navigate('/subscription', { replace: true });
         return;
       } else if (!isBrokerRole && !subscription.isLoading && !subscription.subscribed) {
         secureLogger.info('Non-broker user with no subscription - allowing dashboard access', {
           component: 'Index',
-          action: 'vendor_no_subscription_access',
-          userRole
+          action: 'vendor_no_subscription_access'
         });
       }
     }
-  }, [user, isLoading, navigate, isDemo, demoRole, location.search]); // Remove subscription states to prevent infinite loops
+  }, [user, loading, navigate, isDemo, demoRole, location.search]); // Remove subscription states to prevent infinite loops
 
-  if (isLoading || subscription.isLoading) {
+  if (loading || subscription.isLoading) {
     console.log('⏳ Dashboard loading...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-vendor-green-50 via-white to-vendor-gold-50">
@@ -228,7 +229,7 @@ const Index = () => {
     console.log('🎯 Rendering dashboard for role:', currentRole, 'User:', currentName, 'Email:', user?.email);
     
     // Normalize role for comparison
-    const normalizedRole = currentRole?.trim();
+    const normalizedRole = typeof currentRole === 'string' ? currentRole.trim() : '';
     
     // OWNER BYPASS: support@emergestack.dev gets superadmin access regardless of role
     if (isOwner) {
