@@ -88,10 +88,12 @@ const PartnerSettings = () => {
         name: partner.name || '',
         contact_email: partner.contact_email,
         contact_phone: partner.contact_phone || '',
-        notification_email: true, // Default values for fields not in helper
-        notification_sms: false,
-        auto_approval: false,
-        approval_threshold: 1000
+        company_logo: partner.company_logo || '',
+        brand_color: partner.brand_color || '#10B981',
+        notification_email: partner.notification_email ?? true,
+        notification_sms: partner.notification_sms ?? false,
+        auto_approval: partner.auto_approval ?? false,
+        approval_threshold: partner.approval_threshold ?? 1000
       });
     } catch (error: any) {
       console.error('Error fetching partner profile:', error);
@@ -141,7 +143,13 @@ const PartnerSettings = () => {
       await savePartnerSettings({
         name: profile.name || undefined,
         contact_email: profile.contact_email || undefined,
-        contact_phone: profile.contact_phone || undefined
+        contact_phone: profile.contact_phone || undefined,
+        company_logo: profile.company_logo || undefined,
+        brand_color: profile.brand_color || undefined,
+        notification_email: profile.notification_email,
+        notification_sms: profile.notification_sms,
+        auto_approval: profile.auto_approval,
+        approval_threshold: profile.approval_threshold
       });
 
       // Refetch the partner profile to reflect the saved changes

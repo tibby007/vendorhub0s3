@@ -41,7 +41,7 @@ const VendorManagement = () => {
   
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { subscription } = useSubscriptionManager();
+  const { subscription, isTrialUser } = useSubscriptionManager();
   const { isDemo } = useDemoMode();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -198,7 +198,7 @@ const VendorManagement = () => {
       if (!user?.id) return;
 
       // Check subscription status first
-      if (!subscription.subscribed && subscription.status !== 'trial') {
+      if (!subscription.subscribed && !isTrialUser) {
         toast({
           title: "Subscription Required",
           description: "You need an active subscription to add vendors.",

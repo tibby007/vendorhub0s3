@@ -52,12 +52,6 @@ const SubmissionsManager = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchSubmissions();
-    }
-  }, [user, isDemo]);
-
   const fetchSubmissions = async () => {
     if (!user?.id) return;
 
@@ -78,13 +72,9 @@ const SubmissionsManager = () => {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error }: { data: any[] | null, error: any } = await supabase
         .from('submissions')
-        .select(`
-          *,
-          customers (customer_name, email),
-          vendors (vendor_name)
-        `)
+        .select('*')
         .eq('partner_id', user.id)
         .order('submission_date', { ascending: false });
 
@@ -101,6 +91,12 @@ const SubmissionsManager = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchSubmissions();
+    }
+  }, [user?.id, isDemo]);
 
   const updateSubmissionStatus = async (submissionId: string, status: string, approvalTerms?: string) => {
     // Check for demo mode using multiple methods
