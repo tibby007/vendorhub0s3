@@ -12,13 +12,13 @@ export interface ResourceFile {
   mime_type?: string | null;
   is_published: boolean | null;
   publication_date: string;
-  partner_admin_id: string;
+  partner_id: string;
   created_at: string;
   updated_at: string;
 }
 
 export const resourcesService = {
-  async getResources(partnerAdminId: string): Promise<ResourceFile[]> {
+  async getResources(partnerId: string): Promise<ResourceFile[]> {
     // Check for demo mode - return mock data
     const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
     if (isDemoMode) {
@@ -35,7 +35,7 @@ export const resourcesService = {
           mime_type: null,
           is_published: true,
           publication_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          partner_admin_id: 'demo-admin-id',
+          partner_id: 'demo-partner-id',
           created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
         },
@@ -50,7 +50,7 @@ export const resourcesService = {
           mime_type: 'application/pdf',
           is_published: true,
           publication_date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          partner_admin_id: 'demo-admin-id',
+          partner_id: 'demo-partner-id',
           created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
         },
@@ -65,7 +65,7 @@ export const resourcesService = {
           mime_type: 'application/pdf',
           is_published: true,
           publication_date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-          partner_admin_id: 'demo-admin-id',
+          partner_id: 'demo-partner-id',
           created_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString()
         }
@@ -74,8 +74,8 @@ export const resourcesService = {
     
     const { data, error } = await supabase
       .from('resources')
-      .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, publication_date, partner_admin_id, created_at, updated_at')
-      .eq('partner_admin_id', partnerAdminId)
+      .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, publication_date, partner_id, created_at, updated_at')
+      .eq('partner_id', partnerId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -92,7 +92,7 @@ export const resourcesService = {
       mime_type: item.mime_type,
       is_published: item.is_published !== null ? item.is_published : true,
       publication_date: item.publication_date || new Date().toISOString(),
-      partner_admin_id: item.partner_admin_id,
+      partner_id: item.partner_id,
       created_at: item.created_at,
       updated_at: item.updated_at
     }));
@@ -115,7 +115,7 @@ export const resourcesService = {
         mime_type: resource.mime_type,
         is_published: resource.is_published,
         publication_date: resource.publication_date,
-        partner_admin_id: resource.partner_admin_id,
+        partner_id: resource.partner_id,
         created_at: now,
         updated_at: now
       };
@@ -126,7 +126,7 @@ export const resourcesService = {
     const { data, error } = await supabase
       .from('resources')
       .insert(resourceData)
-      .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, publication_date, partner_admin_id, created_at, updated_at')
+      .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, publication_date, partner_id, created_at, updated_at')
       .single();
 
     if (error) throw error;
@@ -142,7 +142,7 @@ export const resourcesService = {
       mime_type: data.mime_type,
       is_published: data.is_published !== null ? data.is_published : true,
       publication_date: data.publication_date || new Date().toISOString(),
-      partner_admin_id: data.partner_admin_id || '',
+      partner_id: data.partner_id || '',
       created_at: data.created_at,
       updated_at: data.updated_at
     };
@@ -164,7 +164,7 @@ export const resourcesService = {
         mime_type: updates.mime_type,
         is_published: updates.is_published !== undefined ? updates.is_published : true,
         publication_date: updates.publication_date || new Date().toISOString(),
-        partner_admin_id: updates.partner_admin_id || 'demo-admin-id',
+        partner_id: updates.partner_id || 'demo-partner-id',
         created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -174,7 +174,7 @@ export const resourcesService = {
       .from('resources')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, publication_date, partner_admin_id, created_at, updated_at')
+      .select('id, title, content, type, category, file_url, file_size, mime_type, is_published, publication_date, partner_id, created_at, updated_at')
       .single();
 
     if (error) throw error;
@@ -190,7 +190,7 @@ export const resourcesService = {
       mime_type: data.mime_type,
       is_published: data.is_published !== null ? data.is_published : true,
       publication_date: data.publication_date || new Date().toISOString(),
-      partner_admin_id: data.partner_admin_id || '',
+      partner_id: data.partner_id || '',
       created_at: data.created_at,
       updated_at: data.updated_at
     };
@@ -212,7 +212,7 @@ export const resourcesService = {
     if (error) throw error;
   },
 
-  async uploadFile(file: File, userId: string, secureFileName?: string): Promise<string> {
+  async uploadFile(file: File, partnerId: string, secureFileName?: string): Promise<string> {
     // Check for demo mode - return mock URL
     const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
     if (isDemoMode) {
@@ -220,10 +220,10 @@ export const resourcesService = {
       return `/demo/uploaded-${file.name}`;
     }
     
-    // Generate secure path structure
+    // Generate secure path structure based on partner
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
     const fileName = secureFileName || `${crypto.randomUUID()}.${fileExtension}`;
-    const fullPath = `${userId}/${fileName}`;
+    const fullPath = `${partnerId}/${fileName}`;
     
     console.log('Uploading to path:', fullPath);
     console.log('Bucket: partner-documents');
@@ -248,7 +248,7 @@ export const resourcesService = {
     return publicUrl;
   },
 
-  async deleteFile(fileUrl: string, userId: string): Promise<void> {
+  async deleteFile(fileUrl: string, partnerId: string): Promise<void> {
     // Check for demo mode - simulate deletion
     const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
     if (isDemoMode) {
@@ -259,7 +259,7 @@ export const resourcesService = {
     // Extract the file path from the URL
     const urlParts = fileUrl.split('/');
     const fileName = urlParts[urlParts.length - 1];
-    const filePath = `${userId}/${fileName}`;
+    const filePath = `${partnerId}/${fileName}`;
     
     const { error } = await supabase.storage
       .from('partner-documents')

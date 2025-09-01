@@ -208,9 +208,9 @@ export interface PaginatedResponse<T> {
 }
 
 // Event Handler Types
-export interface FormEvent extends React.FormEvent<HTMLFormElement> {}
-export interface ChangeEvent extends React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> {}
-export interface ClickEvent extends React.MouseEvent<HTMLButtonElement | HTMLAnchorElement> {}
+export type FormEvent = React.FormEvent<HTMLFormElement>;
+export type ChangeEvent = React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
+export type ClickEvent = React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>;
 
 // Import the CustomerApplicationFormData from forms.ts
 import type { CustomerApplicationFormData } from './forms';

@@ -6,8 +6,8 @@ export async function listResourcesForPartner() {
   const partner = await getCurrentPartner();
   const { data, error, status } = await supabase
     .from("resources")
-    .select("id,title,content,type,category,file_url,file_size,mime_type,is_published,publication_date,partner_admin_id,created_at,updated_at")
-    .eq("partner_admin_id", partner.id)
+    .select("id,title,content,type,category,file_url,file_size,mime_type,is_published,publication_date,partner_id,created_at,updated_at")
+    .eq("partner_id", partner.id)
     .order("created_at", { ascending: false });
   if (error) throw new Error(`[${status}] ${error.message}`);
   return data ?? [];
@@ -28,7 +28,7 @@ export async function createResourceForPartner(input: {
   const payload = {
     ...input,
     is_published: input.is_published ?? true,
-    partner_admin_id: partner.id,
+    partner_id: partner.id,
     uploaded_by: user?.id ?? null
   };
 
@@ -55,7 +55,7 @@ export async function createNewsForPartner(input: {
   const payload = {
     ...input,
     is_published: input.is_published ?? true,
-    partner_admin_id: partner.id,
+    partner_id: partner.id,
     uploaded_by: user?.id ?? null
   };
 

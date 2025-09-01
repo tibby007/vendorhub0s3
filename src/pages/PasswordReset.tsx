@@ -67,12 +67,13 @@ const PasswordReset = () => {
         window.location.replace('/dashboard');
       }, 2000);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Password reset error:', error);
-      setMessage('Failed to update password: ' + error.message);
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      setMessage('Failed to update password: ' + msg);
     } finally {
-      setIsLoading(false);
-    }
+       setIsLoading(false);
+     }
   };
 
   return (

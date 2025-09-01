@@ -19,8 +19,7 @@ export const useAuthState = () => {
   const { 
     subscription, 
     refresh: refreshSubscription, 
-    checkAccess: checkSubscriptionAccess,
-    invalidateCache: clearCache
+    checkAccess: checkSubscriptionAccess
   } = useSubscriptionManager();
 
   useEffect(() => {
@@ -83,11 +82,10 @@ export const useAuthState = () => {
     isLoading,
     setUser,
     setSession,
-    refreshSubscription: (session: Session | null, forceRefresh?: boolean) => {
+    refreshSubscription: (forceRefresh?: boolean) => {
       refreshSubscription(forceRefresh || false);
     },
     checkSubscriptionAccess,
-    clearCache,
     clearProfileCache
   };
 };

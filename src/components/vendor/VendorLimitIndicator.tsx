@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
 import { Users, Crown, Zap } from 'lucide-react';
+import { getCurrentPartner } from '@/lib/partners';
 
 interface VendorLimitIndicatorProps {
   vendorCount?: number;
@@ -34,22 +35,29 @@ const VendorLimitIndicator: React.FC<VendorLimitIndicatorProps> = ({
   const isAtLimit = vendorCount >= limit;
 
   useEffect(() => {
-    if (!externalVendorCount && user?.id) {
-      const fetchVendorCount = async () => {
-        const { count } = await supabase
+    const fetchVendorCount = async () => {
+      try {
+        const partner = await getCurrentPartner();
+        if (!partner?.id) return;
+        const { count, error } = await supabase
           .from('vendors')
-          .select('*', { count: 'exact' })
-          .eq('partner_admin_id', user.id);
-        
+          .select('id', { count: 'exact', head: true })
+          .eq('partner_id', partner.id);
+        if (error) throw error;
         const newCount = count || 0;
         setVendorCount(newCount);
         onVendorCountChange?.(newCount);
-      };
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    if (!externalVendorCount) {
       fetchVendorCount();
-    } else if (externalVendorCount !== undefined) {
+    } else {
       setVendorCount(externalVendorCount);
     }
-  }, [externalVendorCount, user?.id, onVendorCountChange]);
+  }, [externalVendorCount, onVendorCountChange]);
 
   const getPlanIcon = () => {
     switch (subscription.tier?.toLowerCase()) {

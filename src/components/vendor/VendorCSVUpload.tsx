@@ -7,8 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, Download, AlertCircle, CheckCircle, FileText, Users } from 'lucide-react';
-import { useAuth } from '@/providers/AuthProvider';
 import { useSubscriptionManager } from '@/providers/SubscriptionProvider';
+import { getCurrentPartner } from '@/lib/partners';
 
 interface CSVVendor {
   vendor_name: string;
@@ -28,7 +28,6 @@ interface VendorCSVUploadProps {
 }
 
 const VendorCSVUpload: React.FC<VendorCSVUploadProps> = ({ onUploadComplete }) => {
-  const { user } = useAuth();
   const { subscription } = useSubscriptionManager();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -155,10 +154,21 @@ const VendorCSVUpload: React.FC<VendorCSVUploadProps> = ({ onUploadComplete }) =
   };
 
   const processCSVUpload = async () => {
-    if (!csvFile || !user?.id) return;
+    if (!csvFile) return;
 
     setIsUploading(true);
     setUploadProgress(0);
+
+    const partner = await getCurrentPartner();
+    if (!partner?.id) {
+      toast({
+        title: "Error",
+        description: "No partner context found",
+        variant: "destructive",
+      });
+      setIsUploading(false);
+      return;
+    }
 
     try {
       // Read file content
@@ -173,7 +183,7 @@ const VendorCSVUpload: React.FC<VendorCSVUploadProps> = ({ onUploadComplete }) =
       const { data: currentVendors } = await supabase
         .from('vendors')
         .select('id')
-        .eq('partner_admin_id', user.id);
+        .eq('partner_id', partner.id);
 
       const currentCount = currentVendors?.length || 0;
       const maxVendors = subscription.tier === 'Premium' ? 999999 : 
@@ -203,7 +213,7 @@ const VendorCSVUpload: React.FC<VendorCSVUploadProps> = ({ onUploadComplete }) =
             .from('vendors')
             .select('id')
             .eq('contact_email', vendor.contact_email)
-            .eq('partner_admin_id', user.id)
+            .eq('partner_id', partner.id)
             .maybeSingle();
 
           if (existingVendor) {
@@ -223,11 +233,10 @@ const VendorCSVUpload: React.FC<VendorCSVUploadProps> = ({ onUploadComplete }) =
               contact_email: vendor.contact_email,
               contact_phone: vendor.contact_phone || null,
               contact_address: vendor.contact_address || null,
-              business_type: vendor.business_type || null,
-              partner_admin_id: user.id,
-              status: 'active',
+              partner_id: partner.id,
               storage_used: 0,
               storage_limit: 2147483648, // 2GB default
+              user_id: null
             });
 
           if (insertError) {
@@ -242,10 +251,10 @@ const VendorCSVUpload: React.FC<VendorCSVUploadProps> = ({ onUploadComplete }) =
 
         } catch (error: any) {
           result.failed.push({ 
-            row: i + 2, 
-            data: vendor, 
-            errors: [error.message || 'Unknown error'] 
-          });
+           row: i + 2, 
+           data: vendor, 
+           errors: [error.message || 'Unknown error'] 
+         });
         }
 
         // Small delay to prevent overwhelming the database

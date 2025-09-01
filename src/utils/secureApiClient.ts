@@ -5,13 +5,13 @@ import { csrfProtection } from './csrfProtection';
 interface ApiRequestConfig {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   requireAuth?: boolean;
   requireCSRF?: boolean;
   timeout?: number;
 }
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   data: T | null;
   error: string | null;
   status: number;
@@ -84,7 +84,7 @@ class SecureApiClient {
     return controller;
   }
 
-  async request<T = any>(
+  async request<T = unknown>(
     endpoint: string, 
     config: ApiRequestConfig = {}
   ): Promise<ApiResponse<T>> {
@@ -149,10 +149,6 @@ class SecureApiClient {
 
       // Log request (sanitized)
       secureLogger.info('API Request', {
-        method,
-        endpoint,
-        requireAuth,
-        requireCSRF,
         action: 'api_request'
       });
 
@@ -166,27 +162,29 @@ class SecureApiClient {
       try {
         const textResponse = await response.text();
         if (textResponse) {
-          responseData = JSON.parse(textResponse);
+          responseData = JSON.parse(textResponse) as T;
         }
       } catch (parseError) {
         secureLogger.warn('Failed to parse response as JSON', { 
-          status: response.status,
           action: 'parse_response'
         });
       }
 
       // Handle errors
       if (!response.ok) {
-        errorMessage = responseData?.message || 
-                      responseData?.error || 
-                      `Request failed with status ${response.status}`;
-        
-        secureLogger.error('API request failed', {
-          method,
-          endpoint,
-          status: response.status,
-          action: 'api_request_failed'
-        });
+        const message = (responseData && typeof responseData === 'object' && responseData !== null && 'message' in responseData)
+          ? (responseData as { message?: unknown }).message
+          : undefined;
+        const err = (responseData && typeof responseData === 'object' && responseData !== null && 'error' in responseData)
+          ? (responseData as { error?: unknown }).error
+          : undefined;
+        errorMessage = (typeof message === 'string' ? message : undefined) ||
+                       (typeof err === 'string' ? err : undefined) ||
+                       `Request failed with status ${response.status}`;
+         
+         secureLogger.error('API request failed', {
+           action: 'api_request_failed'
+         });
       }
 
       return {
@@ -209,9 +207,6 @@ class SecureApiClient {
       }
 
       secureLogger.error('API client error', {
-        method,
-        endpoint,
-        error: errorMessage,
         action: 'api_client_error'
       });
 
@@ -228,11 +223,11 @@ class SecureApiClient {
     return this.request<T>(endpoint, { ...config, method: 'GET' });
   }
 
-  async post<T>(endpoint: string, data?: any, config?: Omit<ApiRequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: unknown, config?: Omit<ApiRequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...config, method: 'POST', body: data });
   }
 
-  async put<T>(endpoint: string, data?: any, config?: Omit<ApiRequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, data?: unknown, config?: Omit<ApiRequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...config, method: 'PUT', body: data });
   }
 
@@ -240,7 +235,7 @@ class SecureApiClient {
     return this.request<T>(endpoint, { ...config, method: 'DELETE' });
   }
 
-  async patch<T>(endpoint: string, data?: any, config?: Omit<ApiRequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
+  async patch<T>(endpoint: string, data?: unknown, config?: Omit<ApiRequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...config, method: 'PATCH', body: data });
   }
 }

@@ -42,9 +42,10 @@ const PasswordResetForm = () => {
 
       toast.success('Password updated successfully!');
       navigate('/dashboard');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       console.error('Password reset error:', error);
-      toast.error('Failed to update password: ' + error.message);
+      toast.error('Failed to update password: ' + message);
     } finally {
       setIsLoading(false);
     }

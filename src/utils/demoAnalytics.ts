@@ -22,13 +22,13 @@ interface DemoSessionData {
   startTime: number;
   lastActivity: number;
   events: DemoEvent[];
-  userData: any;
+  userData: Record<string, unknown>;
   isActive: boolean;
 }
 
 interface DemoEvent {
   type: string;
-  data: any;
+  data: Record<string, unknown>;
   timestamp: number;
 }
 
@@ -37,7 +37,7 @@ export class DemoAnalytics {
   private static SESSION_DURATION = 10 * 60 * 1000; // 10 minutes
   private static WARNING_THRESHOLD = 2 * 60 * 1000; // 2 minutes before expiry
 
-  static startSession(userData: any, userRole: string): string {
+  static startSession(userData: Record<string, unknown>, userRole: string): string {
     const sessionId = this.generateSessionId();
     const now = Date.now();
     
@@ -91,7 +91,7 @@ export class DemoAnalytics {
     SecureStorage.setSecureItem(this.SESSION_KEY, session);
   }
 
-  static trackEvent(eventType: string, data: any = {}): void {
+  static trackEvent(eventType: string, data: Record<string, unknown> = {}): void {
     const session = this.getCurrentSession();
     if (!session) return;
     
@@ -145,7 +145,7 @@ export class DemoAnalytics {
     console.log('Demo session ended');
   }
 
-  static getSessionStats(): any {
+  static getSessionStats(): Record<string, unknown> | null {
     const session = this.getCurrentSession();
     if (!session) return null;
     
@@ -170,38 +170,39 @@ export class DemoAnalytics {
     return 'demo_' + Date.now() + '_' + Math.random().toString(36).substring(7);
   }
 
-  private static sanitizeUserData(userData: any): any {
+  private static sanitizeUserData(userData: Record<string, unknown>): Record<string, unknown> {
     if (!userData) return {};
     
     // Remove sensitive fields and sanitize others
-    const sanitized = { ...userData };
-    delete sanitized.password;
-    delete sanitized.csrfToken;
+    const sanitized: Record<string, unknown> = { ...userData };
+    delete (sanitized as Record<string, unknown> & { password?: unknown }).password;
+    delete (sanitized as Record<string, unknown> & { csrfToken?: unknown }).csrfToken;
     
     // Sanitize string fields
     Object.keys(sanitized).forEach(key => {
-      if (typeof sanitized[key] === 'string') {
-        sanitized[key] = sanitized[key].substring(0, 100); // Limit string length
+      const val = sanitized[key];
+      if (typeof val === 'string') {
+        sanitized[key] = val.substring(0, 100); // Limit string length
       }
     });
     
     return sanitized;
   }
 
-  private static sanitizeEventData(data: any): any {
+  private static sanitizeEventData(data: Record<string, unknown>): Record<string, unknown> {
     if (!data) return {};
     
-    const sanitized = { ...data };
+    const sanitized: Record<string, unknown> = { ...data };
     
     // Remove potentially sensitive fields
-    delete sanitized.password;
-    delete sanitized.token;
-    delete sanitized.credentials;
+    delete (sanitized as Record<string, unknown> & { password?: unknown }).password;
+    delete (sanitized as Record<string, unknown> & { token?: unknown }).token;
+    delete (sanitized as Record<string, unknown> & { credentials?: unknown }).credentials;
     
     // Limit data size
     const jsonString = JSON.stringify(sanitized);
     if (jsonString.length > 1000) {
-      return { truncated: true, originalSize: jsonString.length };
+      return { truncated: true, originalSize: jsonString.length } as Record<string, unknown>;
     }
     
     return sanitized;

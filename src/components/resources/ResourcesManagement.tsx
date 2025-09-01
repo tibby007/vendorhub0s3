@@ -11,6 +11,7 @@ import ResourceCard from './ResourceCard';
 import FileUploadDialog from './FileUploadDialog';
 import NewsDialog from './NewsDialog';
 import ResourceEditDialog from './ResourceEditDialog';
+import { getCurrentPartner } from '@/lib/partners';
 
 const ResourcesManagement = () => {
   const { toast } = useToast();
@@ -36,7 +37,7 @@ const ResourcesManagement = () => {
     
     setIsLoading(true);
     try {
-      logDebug("RESOURCES_FETCH", { user_id: user.id });
+      logDebug("RESOURCES_FETCH", {});
       const data = await listResourcesForPartner();
       setResources(data);
     } catch (error: any) {
@@ -52,7 +53,7 @@ const ResourcesManagement = () => {
   };
 
   const handleFileUpload = async (formData: { title: string; description: string; category: string }, selectedFile: File | null) => {
-    if (!selectedFile || !user?.id) {
+    if (!selectedFile) {
       toast({
         title: "Error",
         description: "Please select a file",
@@ -63,24 +64,25 @@ const ResourcesManagement = () => {
 
     setIsLoading(true);
     try {
+      const partner = await getCurrentPartner();
       console.log('Starting file upload:', {
           fileName: selectedFile.name,
           fileSize: selectedFile.size,
           fileType: selectedFile.type,
-          userId: user.id,
+          partnerId: partner.id,
           title: formData.title,
           category: formData.category,
           timestamp: new Date().toISOString()
         });
       
       // Check storage limit before upload
-      const canUpload = await checkStorageLimit(user.id, selectedFile.size);
+      const canUpload = await checkStorageLimit(partner.id, selectedFile.size);
       
       if (!canUpload) {
         console.warn('Storage limit exceeded:', {
           fileName: selectedFile.name,
           fileSize: selectedFile.size,
-          userId: user.id,
+          partnerId: partner.id,
           timestamp: new Date().toISOString()
         });
         toast({
@@ -93,7 +95,7 @@ const ResourcesManagement = () => {
       }
 
       console.log('Storage check passed, proceeding with upload');
-      const fileUrl = await resourcesService.uploadFile(selectedFile, user.id);
+      const fileUrl = await resourcesService.uploadFile(selectedFile, partner.id);
       console.log('File uploaded successfully:', { fileUrl, fileName: selectedFile.name });
       
       await createResourceForPartner({
@@ -108,7 +110,7 @@ const ResourcesManagement = () => {
       console.log('Resource entry created successfully');
 
       // Update storage usage after successful upload
-      await updateStorageUsage(user.id, selectedFile.size);
+      await updateStorageUsage(partner.id, selectedFile.size);
 
       toast({
         title: "Success",
@@ -122,10 +124,9 @@ const ResourcesManagement = () => {
           error: error,
           message: error?.message,
           stack: error?.stack,
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size,
-          fileType: selectedFile.type,
-          userId: user.id,
+          fileName: selectedFile?.name,
+          fileSize: selectedFile?.size,
+          fileType: selectedFile?.type,
           title: formData.title,
           category: formData.category,
           timestamp: new Date().toISOString()
@@ -237,8 +238,9 @@ const ResourcesManagement = () => {
       await resourcesService.deleteResource(id);
       
       // Update storage usage if file had a size
-      if (resourceToDelete?.file_size && user?.id) {
-        await updateStorageUsage(user.id, resourceToDelete.file_size, true);
+      if (resourceToDelete?.file_size) {
+        const partner = await getCurrentPartner();
+        await updateStorageUsage(partner.id, resourceToDelete.file_size, true);
       }
       
       toast({

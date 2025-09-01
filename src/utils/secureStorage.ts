@@ -34,7 +34,7 @@ export class SecureStorage {
     }
   }
   
-  static setSecureItem(key: string, value: any): void {
+  static setSecureItem(key: string, value: unknown): void {
     try {
       const serialized = JSON.stringify(value);
       const encrypted = this.encrypt(serialized);
@@ -44,7 +44,7 @@ export class SecureStorage {
     }
   }
   
-  static getSecureItem(key: string): any | null {
+  static getSecureItem<T = unknown>(key: string): T | null {
     try {
       const encrypted = sessionStorage.getItem(`secure_${key}`);
       if (!encrypted) return null;
@@ -56,7 +56,7 @@ export class SecureStorage {
         return null;
       }
       
-      return JSON.parse(decrypted);
+      return JSON.parse(decrypted) as T;
     } catch (error) {
       console.error('Failed to retrieve secure item:', error);
       this.removeSecureItem(key);

@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, AlertCircle } from 'lucide-react';
-import type { VendorData } from '@/types/api';
 
 interface VendorFormData {
   vendor_name: string;
@@ -18,7 +17,7 @@ interface VendorFormData {
 interface VendorFormProps {
   formData: VendorFormData;
   errors: Record<string, string>;
-  editingVendor: VendorData | null;
+  editingVendor: { id: string } | null;
   isLoading: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onInputChange: (field: string, value: string) => void;
@@ -37,6 +36,7 @@ const VendorForm: React.FC<VendorFormProps> = React.memo(({
   title
 }) => {
   console.log('🔄 VendorForm rendering with formData:', formData);
+console.log('VendorForm mounted successfully');
   
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -125,10 +125,11 @@ const VendorForm: React.FC<VendorFormProps> = React.memo(({
           type="button" 
           variant="outline" 
           onClick={onCancel}
+          aria-label="Cancel"
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} aria-label="Submit vendor form">
           {isLoading ? 'Saving...' : title}
         </Button>
       </div>

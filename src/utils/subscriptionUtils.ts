@@ -1,5 +1,8 @@
+import type { User } from '@supabase/supabase-js';
+import type { SubscriptionData } from '@/types/auth';
+
 // Check if user needs to set up subscription
-export const needsSubscriptionSetup = (user: any, subscriptionData: any): boolean => {
+export const needsSubscriptionSetup = (user: User | null, subscriptionData: SubscriptionData | null): boolean => {
   if (!user) return false;
   
   // OWNER BYPASS: support@emergestack.dev NEVER needs subscription setup
@@ -13,13 +16,13 @@ export const needsSubscriptionSetup = (user: any, subscriptionData: any): boolea
   }
   
   // CRITICAL: Only Brokers (Partner Admin) need subscriptions - Vendors are invited by brokers
-  const userRole = user.user_metadata?.role || user.role;
+  const userRole = (user.user_metadata as Record<string, unknown>)?.role as string | undefined || (user as unknown as { role?: string }).role;
   if (userRole !== 'Partner Admin' && userRole !== 'Broker Admin') {
     return false; // Vendors, Loan Officers, etc. never need subscription setup
   }
   
   // If user has active subscription or trial, they don't need setup
-  if (subscriptionData?.subscribed || subscriptionData?.trial_active) {
+  if (subscriptionData?.subscribed || (subscriptionData as unknown as { trial_active?: boolean })?.trial_active) {
     return false;
   }
   
@@ -41,7 +44,7 @@ export const needsSubscriptionSetup = (user: any, subscriptionData: any): boolea
 };
 
 // Check if user should be redirected to subscription page
-export const shouldRedirectToSubscription = (user: any, subscriptionData: any, currentPath: string): boolean => {
+export const shouldRedirectToSubscription = (user: User | null, subscriptionData: SubscriptionData | null, currentPath: string): boolean => {
   // Don't redirect if already on subscription page
   if (currentPath === '/subscription' || currentPath === '/checkout') {
     return false;

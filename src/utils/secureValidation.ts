@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import DOMPurify from 'isomorphic-dompurify';
 
-interface ValidationResult {
+interface ValidationResult<T = unknown> {
   success: boolean;
-  data?: any;
+  data?: T;
   errors?: string[];
 }
 
@@ -38,8 +38,8 @@ class SecureValidator {
     });
   }
 
-  sanitizeObject(obj: Record<string, any>): Record<string, any> {
-    const sanitized: Record<string, any> = {};
+  sanitizeObject(obj: Record<string, unknown>): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = {};
     
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'string') {
@@ -49,7 +49,7 @@ class SecureValidator {
           typeof item === 'string' ? this.sanitizeString(item) : item
         );
       } else if (typeof value === 'object' && value !== null) {
-        sanitized[key] = this.sanitizeObject(value);
+        sanitized[key] = this.sanitizeObject(value as Record<string, unknown>);
       } else {
         sanitized[key] = value;
       }
@@ -167,8 +167,8 @@ class SecureValidator {
     const sanitizedPhone = this.sanitizeString(phone);
     
     const phoneSchema = z.string()
-      .regex(/^\+?[\d\s\-\(\)]{10,15}$/, 'Invalid phone format')
-      .transform(phone => phone.replace(/[\s\-\(\)]/g, ''));
+      .regex(/^[+]?[\d\s\-()]{10,15}$/, 'Invalid phone format')
+      .transform(phone => phone.replace(/[\s\-()]/g, ''));
     
     try {
       const validatedPhone = phoneSchema.parse(sanitizedPhone);
@@ -308,9 +308,9 @@ class SecureValidator {
 export const secureValidator = SecureValidator.getInstance();
 
 export const createSecureFormValidator = <T>(schema: z.ZodSchema<T>) => {
-  return (data: any): ValidationResult => {
+  return (data: unknown): ValidationResult<T> => {
     try {
-      const sanitizedData = secureValidator.sanitizeObject(data);
+      const sanitizedData = secureValidator.sanitizeObject(data as Record<string, unknown>);
       const validatedData = schema.parse(sanitizedData);
       
       return { success: true, data: validatedData };

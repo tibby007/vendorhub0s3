@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import VendorLimitIndicator from './VendorLimitIndicator';
 import VendorCSVUpload from './VendorCSVUpload';
 import VendorForm from './VendorForm';
+import { getCurrentPartner } from '@/lib/partners';
 
 interface Vendor {
   id: string;
@@ -58,12 +59,12 @@ const VendorManagement = () => {
     password: ''
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   useEffect(() => {
-    const canManage = canManageVendors();
-    console.log('🔄 VendorManagement effect triggered', { 
-      user: !!user, 
-      userId: user?.id, 
-      role: user?.role,
+    const canManage = currentRole === 'Super Admin' || currentRole === 'Partner Admin';
+    console.log('🔐 VendorManagement access:', {
+      userId: user?.id,
+      role: currentRole,
       canManage,
       isDemo 
     });
@@ -74,13 +75,12 @@ const VendorManagement = () => {
     } else {
       console.log('❌ Cannot manage vendors or no user');
     }
-  }, [user?.id, currentRole, isDemo, canManageVendors, fetchVendors]);
+  }, [user?.id, currentRole, isDemo]);
 
-  const fetchVendors = useCallback(async () => {
+  async function fetchVendors() {
     setIsLoading(true);
     
     try {
-      // Check for demo mode using multiple methods
       const isDemoMode = isDemo || 
                         sessionStorage.getItem('demoCredentials') !== null ||
                         user?.email === 'partner@demo.com' ||
@@ -88,7 +88,6 @@ const VendorManagement = () => {
       
       if (isDemoMode) {
         console.log('🎭 Demo mode: Using mock vendor data');
-        // Convert mock data to match our interface
         const demoVendors = mockVendors.map(vendor => ({
           id: vendor.id,
           vendor_name: vendor.name,
@@ -111,10 +110,16 @@ const VendorManagement = () => {
       
       console.log('🔄 Starting to fetch vendors for user:', user.id);
       
+      const partner = await getCurrentPartner();
+      if (!partner?.id) {
+        console.error('❌ No partner context found for user');
+        setIsLoading(false);
+        return;
+      }
       const { data, error } = await supabase
         .from('vendors')
         .select('*')
-        .eq('partner_id', user.id)
+        .eq('partner_id', partner.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -135,7 +140,7 @@ const VendorManagement = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, user?.email, isDemo]);
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -149,8 +154,6 @@ const VendorManagement = () => {
     } else if (!/\S+@\S+\.\S+/.test(formData.contact_email)) {
       newErrors.contact_email = 'Email is invalid';
     }
-
-    // Password validation removed - vendors will register themselves
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -173,14 +176,12 @@ const VendorManagement = () => {
     try {
       const isDemoMode = sessionStorage.getItem('demoCredentials') !== null || isDemo;
       if (isDemoMode) {
-        // Demo mode - simulate success
         toast({
           title: "Demo Mode",
           description: "Vendor creation simulated successfully! In live mode, they would receive login credentials.",
         });
         resetForm();
         setIsCreateDialogOpen(false);
-        // Add to demo vendors list
         const newDemoVendor = {
           id: `demo-vendor-${Date.now()}`,
           vendor_name: formData.vendor_name,
@@ -197,7 +198,6 @@ const VendorManagement = () => {
 
       if (!user?.id) return;
 
-      // Check subscription status first
       if (!subscription.subscribed && !isTrialUser) {
         toast({
           title: "Subscription Required",
@@ -217,17 +217,23 @@ const VendorManagement = () => {
         return;
       }
 
-      // Check vendor limits based on plan
+      const partner = await getCurrentPartner();
+      if (!partner?.id) {
+        console.error('❌ No partner context found for user');
+        setIsLoading(false);
+        return;
+      }
+
       const { count: currentVendorCount } = await supabase
         .from('vendors')
         .select('*', { count: 'exact' })
-        .eq('partner_id', user.id);
+        .eq('partner_id', partner.id);
 
       const vendorLimits = {
         basic: 3,
         pro: 7,
         premium: 999999
-      };
+      } as const;
 
       const currentLimit = vendorLimits[subscription.tier?.toLowerCase() as keyof typeof vendorLimits] || 3;
 
@@ -250,7 +256,6 @@ const VendorManagement = () => {
         return;
       }
 
-      // Create vendor record
       const { error: vendorError } = await supabase
         .from('vendors')
         .insert({
@@ -258,26 +263,26 @@ const VendorManagement = () => {
           contact_email: formData.contact_email,
           contact_phone: formData.contact_phone,
           contact_address: formData.contact_address,
-          partner_id: user.id,
-          user_id: null // Will be set when vendor registers
+          partner_id: partner.id,
+          user_id: null
         });
 
       if (vendorError) throw vendorError;
 
       toast({
         title: "Success",
-        description: "Vendor created successfully. They can now register at the login page using their email.",
+        description: "Vendor record created successfully. They will receive an invitation to register.",
       });
 
       resetForm();
       setIsCreateDialogOpen(false);
-      fetchVendors();
+      await fetchVendors();
     } catch (error: unknown) {
-      console.error('Error creating vendor:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create vendor';
+      console.error('❌ Error creating vendor:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: "Error",
-        description: errorMessage,
+        description: `Failed to create vendor: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -556,6 +561,7 @@ const VendorManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(vendor)}
+                          aria-label="Edit vendor"
                         >
                           <Edit2 className="w-4 h-4" />
                         </Button>
@@ -564,6 +570,7 @@ const VendorManagement = () => {
                           size="sm"
                           onClick={() => deleteVendor(vendor.id)}
                           className="text-red-600 hover:text-red-700"
+                          aria-label="Delete vendor"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

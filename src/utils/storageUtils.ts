@@ -138,7 +138,7 @@ export const getStorageStatus = async (vendorId: string) => {
     .select(`
       storage_used,
       storage_limit,
-      partner_admin_id
+      partner_id
     `)
     .eq('id', vendorId)
     .single();
@@ -149,7 +149,7 @@ export const getStorageStatus = async (vendorId: string) => {
   const { data: partnerData } = await supabase
     .from('partners')
     .select('storage_used, storage_limit')
-    .eq('id', data.partner_admin_id)
+    .eq('id', data.partner_id)
     .single();
   if (!partnerData) return null;
   

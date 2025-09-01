@@ -1,5 +1,5 @@
 interface SessionData {
-  data: any;
+  data: unknown;
   timestamp: number;
   sessionId: string;
   integrity: string;
@@ -102,7 +102,7 @@ class SecureSessionManager {
     return expectedIntegrity === integrity;
   }
 
-  async setSecureItem(key: string, value: any, ttl: number = 7200000): Promise<void> {
+  async setSecureItem(key: string, value: unknown, ttl: number = 7200000): Promise<void> {
     try {
       const timestamp = Date.now();
       const serializedData = JSON.stringify(value);
@@ -122,7 +122,7 @@ class SecureSessionManager {
     }
   }
 
-  async getSecureItem(key: string): Promise<any | null> {
+  async getSecureItem(key: string): Promise<unknown | null> {
     try {
       const encrypted = sessionStorage.getItem(`secure_v2_${key}`);
       if (!encrypted) return null;

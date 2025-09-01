@@ -3,6 +3,8 @@ interface LogContext {
   action?: string;
   component?: string;
   timestamp?: number;
+  errorBoundary?: boolean;
+  componentStack?: string;
 }
 
 interface SanitizedError {
@@ -21,13 +23,13 @@ class SecureLogger {
     this.isDevelopment = import.meta.env.DEV || import.meta.env.NODE_ENV === 'development';
     
     this.sensitivePatterns = [
-      /password[s]?[=:]\s*['\"]?[^'\"\s]{6,}/gi,
-      /token[s]?[=:]\s*['\"]?[a-zA-Z0-9-_]{20,}/gi,
-      /api[_-]?key[s]?[=:]\s*['\"]?[a-zA-Z0-9-_]{20,}/gi,
-      /secret[s]?[=:]\s*['\"]?[a-zA-Z0-9-_]{20,}/gi,
-      /bearer\s+[a-zA-Z0-9-_\.]{20,}/gi,
-      /authorization[=:]\s*['\"]?bearer\s+[a-zA-Z0-9-_\.]{20,}/gi,
-      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/gi,
+      /password[s]?[=:]\s*['"]?[^'"\s]{6,}/gi,
+      /token[s]?[=:]\s*['"]?[a-zA-Z0-9-_.]{20,}/gi,
+      /api[_-]?key[s]?[=:]\s*['"]?[a-zA-Z0-9-_.]{20,}/gi,
+      /secret[s]?[=:]\s*['"]?[a-zA-Z0-9-_.]{20,}/gi,
+      /bearer\s+[a-zA-Z0-9-_.]{20,}/gi,
+      /authorization[=:]\s*['"]?bearer\s+[a-zA-Z0-9-_.]{20,}/gi,
+      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/gi,
       /\b\d{3}-\d{2}-\d{4}\b/g,
       /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,
     ];
@@ -93,13 +95,13 @@ class SecureLogger {
     context: LogContext = {}
   ): SanitizedError {
     const message = typeof error === 'string' ? error : error.message;
-    const code = typeof error === 'object' && 'code' in error ? error.code : undefined;
+    const code = typeof error === 'object' && 'code' in error ? (error as { code?: string }).code : undefined;
     
     return {
       message: this.sanitizeMessage(message),
       code,
       timestamp: Date.now(),
-      context: this.sanitizeObject(context)
+      context: this.sanitizeObject(context) as LogContext
     };
   }
 
@@ -152,9 +154,9 @@ class SecureLogger {
         return;
       }
       
-      // Skip remote logging to prevent 404 errors since endpoint doesn't exist in current deployment
-      // This prevents noisy 404 errors during logout that could mask real issues
-      if (false) { // Disabled until proper logging endpoint is configured
+      // Toggle remote logging via flag to avoid constant condition
+      const enableRemoteLogging = false;
+      if (enableRemoteLogging) {
         await fetch('/api/log-security-event', {
           method: 'POST',
           headers: {
@@ -189,7 +191,7 @@ class SecureLogger {
     this.logToService({
       message: `Audit: ${action}`,
       timestamp: Date.now(),
-      context: sanitizedContext
+      context: sanitizedContext as LogContext
     });
   }
 }
@@ -202,7 +204,7 @@ export const createErrorBoundaryHandler = (component: string) => {
       component,
       action: 'component_error',
       errorBoundary: true,
-      componentStack: errorInfo?.componentStack ? '[COMPONENT_STACK]' : undefined
+      componentStack: (errorInfo?.componentStack ? '[COMPONENT_STACK]' : undefined) as string | undefined
     });
   };
 };

@@ -44,8 +44,8 @@ export const checkVendorLimit = async (partnerId: string): Promise<VendorLimitCh
     
     const { count: vendorCount } = await supabase
       .from('vendors')
-      .select('*', { count: 'exact' })
-      .eq('partner_admin_id', partnerId);
+      .select('id', { count: 'exact' })
+      .eq('partner_id', partnerId);
 
     const current = vendorCount || 0;
     const limit = limits.vendorLimit;

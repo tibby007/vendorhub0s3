@@ -18,7 +18,7 @@ export async function savePartnerSettings(update: PartnerUpdate) {
   const partner = await getCurrentPartner();
 
   // Send only defined keys
-  const payload: Record<string, any> = {};
+  const payload: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(update)) if (v !== undefined) payload[k] = v;
 
   console.log('Saving partner settings:', { partnerId: partner.id, payload });

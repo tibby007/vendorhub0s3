@@ -11,7 +11,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { secureLogger } from '@/utils/secureLogger';
 
 // Function to create 3-day trial for new users
-const createTrialForNewUser = async (user: any) => {
+// Define a minimal user type compatible with AuthProvider's user shape
+type BasicUser = {
+  id: string;
+  email?: string | null;
+  name?: string | null;
+  role?: string | null;
+  user_metadata?: Record<string, unknown>;
+};
+const createTrialForNewUser = async (user: BasicUser) => {
   const trialEndDate = new Date();
   trialEndDate.setDate(trialEndDate.getDate() + 3); // 3 days from now
   
@@ -21,7 +29,7 @@ const createTrialForNewUser = async (user: any) => {
       .from('partners')
       .insert({
         name: user.name || user.email?.split('@')[0] || 'New Partner',
-        contact_email: user.email,
+        contact_email: user.email || undefined,
         plan_type: 'basic',
         billing_status: 'trialing',
         trial_end: trialEndDate.toISOString(),
@@ -37,7 +45,7 @@ const createTrialForNewUser = async (user: any) => {
       await supabase
         .from('partners')
         .upsert({
-          contact_email: user.email,
+          contact_email: user.email || undefined,
           name: user.name || user.email?.split('@')[0] || 'New Partner',
           plan_type: 'basic',
           billing_status: 'trialing',
@@ -53,7 +61,7 @@ const createTrialForNewUser = async (user: any) => {
     const { error: subscriberError } = await supabase
       .from('subscribers')
       .insert({
-        email: user.email,
+        email: user.email || undefined,
         user_id: user.id,
         subscribed: false,
         subscription_tier: 'Basic',
@@ -67,7 +75,7 @@ const createTrialForNewUser = async (user: any) => {
       await supabase
         .from('subscribers')
         .upsert({
-          email: user.email,
+          email: user.email || undefined,
           user_id: user.id,
           subscribed: false,
           subscription_tier: 'Basic', 
@@ -77,51 +85,58 @@ const createTrialForNewUser = async (user: any) => {
     }
     
     // Create users table record to link auth.user to partner
-    const { error: usersError } = await supabase
-      .from('users')
-      .insert({
-        id: user.id,
-        email: user.email,
-        name: user.name || user.email?.split('@')[0] || 'New Partner',
-        role: 'Partner Admin'
-      });
-    
-    if (usersError) {
-      console.log('Users creation failed, trying upsert:', usersError);
-      // Try upsert in case record exists
-      await supabase
-        .from('users')
-        .upsert({
-          id: user.id,
-          email: user.email,
-          name: user.name || user.email?.split('@')[0] || 'New Partner',
-          role: 'Partner Admin'
-        }, { onConflict: 'id' });
-    }
-    
-    secureLogger.info('3-day trial created for new user', {
-      component: 'Auth',
-      action: 'trial_created',
-      email: user.email,
-      trial_end: trialEndDate.toISOString()
+     const { error: usersError } = await supabase
+       .from('users')
+       .insert({
+         id: user.id,
+         email: user.email,
+         name: user.name || user.email?.split('@')[0] || 'New Partner',
+         role: 'Partner Admin'
+       });
+     
+     if (usersError) {
+       console.log('Users creation failed, trying upsert:', usersError);
+       // Try upsert in case record exists
+       await supabase
+         .from('users')
+         .upsert({
+           id: user.id,
+           email: user.email,
+           name: user.name || user.email?.split('@')[0] || 'New Partner',
+           role: 'Partner Admin'
+         }, { onConflict: 'id' });
+     }
+     
+    secureLogger.info(`3-day trial created for new user (email: ${user.email ?? 'unknown'}, trial_end: ${trialEndDate.toISOString()})`, {
+    component: 'Auth',
+    action: 'trial_created',
+    userId: user.id
     });
-    
-  } catch (error) {
-    secureLogger.error('Failed to create trial records', {
-      component: 'Auth',
-      action: 'trial_creation_error',
-      error: error.message
-    });
-    throw error;
-  }
-};
+     
+   } catch (error) {
+     const message = error instanceof Error ? error.message : 'Unknown error creating trial records';
+     secureLogger.error(message, {
+       component: 'Auth',
+       action: 'trial_creation_error'
+     });
+     throw error;
+   }
+ };
 
 const Auth = () => {
-  const { user, isLoading } = useAuth();
+  const { user, loading: isLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [checkingPlan, setCheckingPlan] = React.useState(true);
+  
+  // Mirror refs to avoid adding state values to effect deps
+  const showPasswordResetRef = useRef(showPasswordReset);
+  const isPasswordRecoveryRef = useRef(isPasswordRecovery);
+
+  useEffect(() => { showPasswordResetRef.current = showPasswordReset; }, [showPasswordReset]);
+  useEffect(() => { isPasswordRecoveryRef.current = isPasswordRecovery; }, [isPasswordRecovery]);
   
   // Ref guards to prevent infinite loops
   const isProcessingRecovery = useRef(false);
@@ -142,14 +157,10 @@ const Auth = () => {
     
     console.log('🔑 URL check - recovery type:', type, 'isRecovery:', isRecovery);
     
-    // Only update state if values actually changed
-    if (isRecovery !== isPasswordRecovery) {
-      setIsPasswordRecovery(isRecovery);
-    }
-    if (isRecovery !== showPasswordReset) {
-      setShowPasswordReset(isRecovery);
-    }
-  }, [searchParams]); // Remove state dependencies to prevent infinite loops
+    // Update state using functional form to avoid adding them to deps
+    setIsPasswordRecovery(prev => (prev !== isRecovery ? isRecovery : prev));
+    setShowPasswordReset(prev => (prev !== isRecovery ? isRecovery : prev));
+  }, [searchParams]); // Only depends on searchParams
 
   // Handle PASSWORD_RECOVERY events from AuthContext
   useEffect(() => {
@@ -162,10 +173,10 @@ const Auth = () => {
         isProcessingRecovery.current = true;
         
         // Set password recovery state without causing loops
-        if (!showPasswordReset) {
+        if (!showPasswordResetRef.current) {
           setShowPasswordReset(true);
         }
-        if (!isPasswordRecovery) {
+        if (!isPasswordRecoveryRef.current) {
           setIsPasswordRecovery(true);
         }
         
@@ -187,10 +198,9 @@ const Auth = () => {
     const error_description = searchParams.get('error_description');
 
     if (error) {
-      secureLogger.error(`Auth error from URL: ${error}`, {
+      secureLogger.error(`Auth error from URL: ${error}${error_description ? ` (${error_description})` : ''}`, {
         component: 'Auth',
-        action: 'url_error_handling',
-        errorDescription: error_description
+        action: 'url_error_handling'
       });
       
       let errorMessage = error_description || error;
@@ -199,7 +209,7 @@ const Auth = () => {
       } else if (error.includes('invalid_request')) {
         errorMessage = 'Invalid authentication request. Please try again.';
       }
-      
+     
       toast({
         title: "Authentication Error",
         description: errorMessage,
@@ -214,12 +224,11 @@ const Auth = () => {
     // Handle password reset and magic link authentication
     const type = searchParams.get('type');
     if (type && !error) {
-      secureLogger.info('Auth success callback detected', {
+      secureLogger.info(`Auth success callback detected (type: ${type})`, {
         component: 'Auth',
-        action: 'auth_success',
-        type
+        action: 'auth_success'
       });
-      
+
       if (type === 'recovery') {
         // Set processing flag to prevent loops during recovery
         isProcessingRecovery.current = true;
@@ -265,175 +274,195 @@ const Auth = () => {
       // Check if user came from landing page with plan selection
       const checkSelectedPlan = async () => {
         const selectedPlan = await secureSessionManager.getSecureItem('selectedPlan');
-        secureLogger.info('Checking for selected plan', { 
+        secureLogger.info(`Checking for selected plan (has: ${!!selectedPlan})`, { 
           component: 'Auth',
-          action: 'plan_check',
-          hasSelectedPlan: !!selectedPlan
+          action: 'plan_check'
         });
         
         if (selectedPlan) {
           secureLogger.info('User has selected plan, proceeding to Stripe checkout', {
             component: 'Auth',
-            action: 'stripe_checkout_redirect',
-            planId: selectedPlan.tierId
+            action: 'stripe_checkout_redirect'
           });
           
           try {
-            const planData = selectedPlan;
-          
-          // Clear the stored plan
-          await secureSessionManager.removeSecureItem('selectedPlan');
-          
-          // Get session and go directly to Stripe
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            // Map plan data to price IDs
-            const priceMap = {
-              'basic': {
-                monthly: 'price_1RpnAlB1YJBVEg8wCN2IXtYJ',
-                annual: 'price_1RpnBKB1YJBVEg8wbbe6nbYG'
-              },
-              'pro': {
-                monthly: 'price_1RpnBjB1YJBVEg8wXBbCplTi',
-                annual: 'price_1RpnC1B1YJBVEg8wGElD9KAG'
-              },
-              'premium': {
-                monthly: 'price_1RpnCLB1YJBVEg8wI01MZIi1',
-                annual: 'price_1RpnCYB1YJBVEg8wWiT9eQNc'
-              }
-            };
+            const planData: unknown = selectedPlan;
             
-            const planPrices = priceMap[planData.tierId as keyof typeof priceMap];
-            if (planPrices) {
-              const priceId = planData.isAnnual ? planPrices.annual : planPrices.monthly;
+            // Clear the stored plan
+            await secureSessionManager.removeSecureItem('selectedPlan');
+            
+            // Get session and go directly to Stripe
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              // Map plan data to price IDs
+              const priceMap = {
+                'basic': {
+                  monthly: 'price_1RpnAlB1YJBVEg8wCN2IXtYJ',
+                  annual: 'price_1RpnBKB1YJBVEg8wbbe6nbYG'
+                },
+                'pro': {
+                  monthly: 'price_1RpnBjB1YJBVEg8wXBbCplTi',
+                  annual: 'price_1RpnC1B1YJBVEg8wGElD9KAG'
+                },
+                'premium': {
+                  monthly: 'price_1RpnCLB1YJBVEg8wI01MZIi1',
+                  annual: 'price_1RpnCYB1YJBVEg8wWiT9eQNc'
+                }
+              } as const;
               
-              try {
-                const { data, error } = await invokeFunction('create-checkout', {
-                  body: {
-                    priceId,
-                    tier: planData.tierId,
-                    isAnnual: planData.isAnnual,
-                  },
-                  headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                  },
+              const isObj = planData && typeof planData === 'object';
+              const tierId = isObj && 'tierId' in (planData as Record<string, unknown>) ? (planData as Record<string, unknown>).tierId as string : undefined;
+              const isAnnual = isObj && 'isAnnual' in (planData as Record<string, unknown>) ? Boolean((planData as Record<string, unknown>).isAnnual) : undefined;
+              
+              if (!tierId || typeof isAnnual !== 'boolean') {
+                secureLogger.error('Invalid selected plan data', {
+                  component: 'Auth',
+                  action: 'invalid_selected_plan_data'
                 });
+                navigate('/subscription', { replace: true });
+                return;
+              }
+              
+              const planPrices = priceMap[tierId as keyof typeof priceMap];
+              if (planPrices) {
+                const priceId = isAnnual ? planPrices.annual : planPrices.monthly;
                 
-                if (error) {
+                try {
+                  const { data, error } = await invokeFunction('create-checkout', {
+                    body: {
+                      priceId,
+                      tier: tierId,
+                      isAnnual,
+                    },
+                    headers: {
+                      Authorization: `Bearer ${session.access_token}`,
+                    },
+                  });
+                  
+                  if (error) {
+                    secureLogger.error('Checkout error', {
+                      component: 'Auth',
+                      action: 'checkout_error'
+                    });
+                    navigate('/subscription', { replace: true });
+                  } else {
+                    secureLogger.info('Redirecting to Stripe checkout', {
+                      component: 'Auth',
+                      action: 'stripe_redirect_success'
+                    });
+                    window.location.href = data.url;
+                  }
+                } catch (error) {
                   secureLogger.error('Checkout error', {
                     component: 'Auth',
-                    action: 'checkout_error'
+                    action: 'checkout_exception'
                   });
                   navigate('/subscription', { replace: true });
-                } else {
-                  secureLogger.info('Redirecting to Stripe checkout', {
-                    component: 'Auth',
-                    action: 'stripe_redirect_success'
-                  });
-                  window.location.href = data.url;
                 }
-              } catch (error) {
-                secureLogger.error('Checkout error', {
+              } else {
+                secureLogger.error('Invalid plan ID', {
                   component: 'Auth',
-                  action: 'checkout_exception'
+                  action: 'invalid_plan_id'
                 });
                 navigate('/subscription', { replace: true });
               }
             } else {
-              secureLogger.error('Invalid plan ID', {
+              secureLogger.error('No session available for checkout', {
                 component: 'Auth',
-                action: 'invalid_plan_id'
+                action: 'no_session'
               });
               navigate('/subscription', { replace: true });
             }
-          } else {
-            secureLogger.error('No session available for checkout', {
+          } catch (error) {
+            secureLogger.error('Error processing selected plan', {
               component: 'Auth',
-              action: 'no_session'
+              action: 'plan_processing_error'
             });
             navigate('/subscription', { replace: true });
           }
-        } catch (error) {
-          secureLogger.error('Error processing selected plan', {
-            component: 'Auth',
-            action: 'plan_processing_error'
-          });
-          navigate('/subscription', { replace: true });
-        }
-        
+          
           return; // Exit early
         }
-        
-        // Check if this is a new user (just confirmed email) without plan selection
-        const type = searchParams.get('type');
-        const isNewUser = type === 'signup' || type === 'magiclink' || type === 'email';
-        const intent = searchParams.get('intent');
-        
-        // OWNER BYPASS: support@emergestack.dev NEVER goes to subscription
-        const isOwner = user.email === 'support@emergestack.dev';
-        
-        // CRITICAL: Only BROKERS need subscription setup - vendors are invited by brokers
-        const userRole = user.user_metadata?.role || user.role;
-        const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
-        
-        if (!isOwner && isBrokerRole && isNewUser) {
-          secureLogger.info('New user signup - creating 3-day trial and redirecting to dashboard', {
+         
+         // Check if this is a new user (just confirmed email) without plan selection
+         const type = searchParams.get('type');
+         const isNewUser = type === 'signup' || type === 'magiclink' || type === 'email';
+         const intent = searchParams.get('intent');
+         
+         // OWNER BYPASS: support@emergestack.dev NEVER goes to subscription
+         const isOwner = user.email === 'support@emergestack.dev';
+         
+         // CRITICAL: Only BROKERS need subscription setup - vendors are invited by brokers
+         const userRole = user.user_metadata?.role || user.role;
+         const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
+         
+         if (!isOwner && isBrokerRole && isNewUser) {
+          secureLogger.info(`New user signup - creating 3-day trial and redirecting to dashboard (role: ${userRole}, email: ${user.email ?? 'unknown'})`, {
             component: 'Auth',
             action: 'new_user_trial_setup',
-            userRole,
-            email: user.email
+            userId: user.id
           });
-          
-          // Create 3-day trial for new user
-          try {
-            await createTrialForNewUser(user);
-            navigate('/dashboard', { replace: true });
-            return; // CRITICAL: Exit here so they don't fall through to subscription
-          } catch (error) {
-            secureLogger.error('Failed to create trial for new user', {
-              component: 'Auth',
-              action: 'trial_creation_failed',
-              error: error.message
-            });
-            // Fallback: still go to dashboard, trial will be handled later
-            navigate('/dashboard', { replace: true });
-            return; // CRITICAL: Exit here so they don't fall through to subscription
-          }
-        } else if (!isOwner && isBrokerRole && intent === 'subscription') {
-          secureLogger.info('Existing broker needs subscription setup', {
+           
+           // Create 3-day trial for new user
+           try {
+             await createTrialForNewUser(user);
+             navigate('/dashboard', { replace: true });
+             return; // CRITICAL: Exit here so they don't fall through to subscription
+           } catch (error) {
+             const msg = error instanceof Error ? error.message : 'Unknown error creating trial for new user';
+             secureLogger.error(`Failed to create trial for new user: ${msg}`, {
+               component: 'Auth',
+               action: 'trial_creation_failed'
+             });
+             // Fallback: still go to dashboard, trial will be handled later
+             navigate('/dashboard', { replace: true });
+             return; // CRITICAL: Exit here so they don't fall through to subscription
+           }
+         } else if (!isOwner && isBrokerRole && intent === 'subscription') {
+          secureLogger.info(`Existing broker needs subscription setup (intent: ${intent}, role: ${userRole})`, {
             component: 'Auth',
             action: 'existing_broker_subscription',
-            intent,
-            userRole
+            userId: user.id
           });
-          navigate('/subscription', { replace: true });
-        } else if (isOwner) {
+           navigate('/subscription', { replace: true });
+         } else if (isOwner) {
           secureLogger.info('OWNER LOGIN - bypassing subscription, going to dashboard', {
             component: 'Auth',
             action: 'owner_bypass_redirect',
-            userRole
+            userId: user.id
           });
-          navigate('/dashboard', { replace: true });
-        } else if (!isBrokerRole) {
-          secureLogger.info('Non-broker user (Vendor/LO), going directly to dashboard', {
+           navigate('/dashboard', { replace: true });
+         } else if (!isBrokerRole) {
+          secureLogger.info(`Non-broker user (role: ${userRole}) going directly to dashboard`, {
             component: 'Auth',
             action: 'vendor_direct_redirect',
-            userRole
+            userId: user.id
           });
-          navigate('/dashboard', { replace: true });
-        } else {
-          secureLogger.info('Existing user, redirecting to dashboard', {
-            component: 'Auth',
-            action: 'existing_user_redirect'
-          });
-          navigate('/dashboard', { replace: true });
-        }
-      };
+           navigate('/dashboard', { replace: true });
+         } else {
+           secureLogger.info('Existing user, redirecting to dashboard', {
+             component: 'Auth',
+             action: 'existing_user_redirect'
+           });
+           navigate('/dashboard', { replace: true });
+         }
+       };
       
       checkSelectedPlan();
     }
   }, [user, isLoading, navigate, searchParams, isPasswordRecovery]);
 
+  // Initialize checkingPlan based on selectedPlan presence
+  React.useEffect(() => {
+    if (user && !isLoading) {
+      secureSessionManager.getSecureItem('selectedPlan').then(() => {
+        setCheckingPlan(false);
+      });
+    } else {
+      setCheckingPlan(false);
+    }
+  }, [user, isLoading]);
+  
   // Show loading while checking auth status
   if (isLoading) {
     return (
@@ -447,17 +476,8 @@ const Auth = () => {
   }
 
   // Show loading when processing Stripe checkout
-  const [checkingPlan, setCheckingPlan] = React.useState(true);
   
-  React.useEffect(() => {
-    if (user && !isLoading) {
-      secureSessionManager.getSecureItem('selectedPlan').then(plan => {
-        setCheckingPlan(false);
-      });
-    } else {
-      setCheckingPlan(false);
-    }
-  }, [user, isLoading]);
+  // (moved useEffect above to comply with hooks rules)
   
   if (checkingPlan && user && !isLoading) {
     return (

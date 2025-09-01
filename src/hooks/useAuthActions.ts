@@ -2,17 +2,16 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AuthUser } from '@/types/auth';
-import { Session } from '@supabase/supabase-js';
 import { useRef, useEffect } from 'react';
 
 interface UseAuthActionsProps {
   setIsLoading: (loading: boolean) => void;
   setUser: (user: AuthUser | null) => void;
-  setSession: (session: Session | null) => void;
+  setSession: (session: unknown | null) => void; // avoid explicit any
   clearCache: () => void;
   clearProfileCache: () => void;
-  refreshSubscription: (session: Session, forceRefresh?: boolean) => Promise<void>;
-  session: Session | null;
+  refreshSubscription: (forceRefresh?: boolean) => Promise<void>;
+  session: unknown | null;
 }
 
 export const useAuthActions = ({
@@ -135,9 +134,7 @@ export const useAuthActions = ({
   };
 
   const handleRefreshSubscription = async (forceRefresh = false): Promise<void> => {
-    if (session) {
-      await refreshSubscription(session, forceRefresh);
-    }
+    await refreshSubscription(forceRefresh);
   };
 
   return {

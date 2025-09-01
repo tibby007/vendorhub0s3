@@ -67,7 +67,7 @@ export const createSampleData = async () => {
     }
 
     // Create a sample partner organization if it doesn't exist
-    let partnerId = partnerUser.partner_id;
+    let partnerId = partnerUser.partner_id as string | null;
     
     if (!partnerId) {
       const { data: newPartner, error: partnerError } = await supabase
@@ -123,7 +123,7 @@ export const createSampleData = async () => {
             contact_email: 'demo-vendor@vendorhub.com',
             contact_phone: '+1 (555) 987-6543',
             contact_address: '123 Demo Street, Demo City, DC 12345',
-            partner_admin_id: partnerUser.id,
+            partner_id: partnerId!,
             user_id: vendorUser.id
           });
       }
@@ -158,13 +158,13 @@ export const createSampleData = async () => {
           title: 'Q4 2024 Market Update',
           content: 'Latest market trends and financing opportunities for the fourth quarter.',
           type: 'Market Update',
-          partner_admin_id: partnerUser.id
+          partner_id: partnerId!,
         },
         {
           title: 'New Application Guidelines',
           content: 'Updated guidelines for customer application submissions and requirements.',
           type: 'Guidelines',
-          partner_admin_id: partnerUser.id
+          partner_id: partnerId!,
         }
       ]);
 

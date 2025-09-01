@@ -174,7 +174,7 @@ export const validateFileUpload = async (file: File): Promise<File> => {
 
   // Sanitize filename for additional security - allow alphanumeric and common symbols
   // Allow: letters, numbers, spaces, dots, hyphens, underscores, parentheses, brackets, and common symbols
-  if (!/^[a-zA-Z0-9._\-\s()\[\]@#$%&+=!~]+$/.test(fileName)) {
+  if (!/^[a-zA-Z0-9._\-\s()[\]@#$%&+=!~]+$/.test(fileName)) {
     throw new Error('File name contains invalid characters. Only letters, numbers, spaces, and common symbols are allowed.');
   }
 

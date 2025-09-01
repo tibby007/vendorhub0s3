@@ -69,7 +69,7 @@ const Subscription = () => {
         }
       }
     }
-  }, [user, loading, subscription]);
+  }, [user, loading, subscription, navigate]);
 
   if (loading) {
     return (

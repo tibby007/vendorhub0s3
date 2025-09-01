@@ -7,6 +7,7 @@ import { Download, Search, Calendar, FileText, Bell } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { getCurrentPartner } from '@/lib/partners';
 
 interface Resource {
   id: string;
@@ -39,23 +40,18 @@ const VendorResources = () => {
 
     setIsLoading(true);
     try {
-      // Get partner admin ID from vendor relationship
-      const { data: vendorData, error: vendorError } = await supabase
-        .from('vendors')
-        .select('partner_admin_id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (vendorError) {
-        console.error('Error fetching vendor data:', vendorError);
+      // Get partner context for this user
+      const partner = await getCurrentPartner();
+      if (!partner?.id) {
+        console.error('No partner context found');
         return;
       }
 
-      // Fetch resources from partner admin
+      // Fetch resources for the partner
       const { data, error } = await supabase
         .from('resources')
         .select('id, title, content, type, category, file_url, file_size, mime_type, created_at, is_published')
-        .eq('partner_admin_id', vendorData.partner_admin_id)
+        .eq('partner_id', partner.id)
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 

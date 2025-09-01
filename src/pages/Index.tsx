@@ -19,7 +19,7 @@ const Index = () => {
   useHookTripwire('Index-Dashboard');
   const { user, loading } = useAuth();
   const { isDemo, demoRole } = useDemoMode();
-  const { subscription } = useSubscriptionManager();
+  const { subscription, refresh } = useSubscriptionManager();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,99 +71,33 @@ const Index = () => {
         return;
       }
       
-      // If subscription hasn't been checked yet (initial load), trigger a refresh
+      // If subscription hasn't been checked yet (initial load), trigger a context refresh once
       if (subscription.status === 'loading' && subscription.lastUpdated === 0) {
-        // Prevent infinite loops - max 3 attempts
-        const attemptCount = sessionStorage.getItem('subscription_check_attempts') || '0';
-        if (parseInt(attemptCount) >= 3) {
-          secureLogger.warn('Max subscription check attempts reached, allowing dashboard access', {
-            component: 'Index',
-            action: 'max_attempts_reached'
-          });
-          sessionStorage.removeItem('subscription_check_attempts');
-          return;
-        }
-        sessionStorage.setItem('subscription_check_attempts', (parseInt(attemptCount) + 1).toString());
-        
-        // Small delay to ensure session is available
-        setTimeout(async () => {
-          // Skip subscription check in demo mode
-          const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
-          if (isDemoMode) {
-            secureLogger.info('Demo mode detected - skipping subscription check', {
-              component: 'Index',
-              action: 'demo_mode_bypass'
-            });
-            sessionStorage.removeItem('subscription_check_attempts');
-            return;
-          }
-          
-          secureLogger.info('Triggering subscription refresh', {
-            component: 'Index',
-            action: 'subscription_refresh'
-          });
-          // Use a direct supabase call since context sync might be broken
+        setTimeout(() => {
           try {
-            const { data, error } = await supabase.functions.invoke('check-subscription');
-            
-            if (error) {
-              secureLogger.error('check-subscription function failed', {
-              component: 'Index',
-              action: 'subscription_check_function_error'
-            });
-              // Clear attempt counter and allow dashboard access on function error
-              sessionStorage.removeItem('subscription_check_attempts');
+            // Skip subscription check in demo mode
+            const isDemoMode = sessionStorage.getItem('demoCredentials') !== null;
+            if (isDemoMode) {
+              secureLogger.info('Demo mode detected - skipping subscription refresh', {
+                component: 'Index',
+                action: 'demo_mode_bypass'
+              });
               return;
             }
-            
-            // Clear attempt counter on success
-            sessionStorage.removeItem('subscription_check_attempts');
-            // Only redirect BROKERS if they have no subscription AND no active trial
-            // CRITICAL: Vendors should NEVER be redirected to subscription page
-            // OWNER BYPASS: support@emergestack.dev NEVER gets redirected to subscription
-            const userRole = user.user_metadata?.role || user.role;
-            const isBrokerRole = userRole === 'Partner Admin' || userRole === 'Broker Admin';
-            const isOwner = user.email === 'support@emergestack.dev';
-            
-            if (!isOwner && isBrokerRole && (!data?.subscribed && !data?.trial_active)) {
-              secureLogger.info('New broker detected, redirecting to subscription', {
-                component: 'Index',
-                action: 'new_broker_subscription_redirect'
-              });
-              navigate('/subscription', { replace: true });
-            } else if (isOwner) {
-              secureLogger.info('OWNER LOGIN - bypassing all subscription checks', {
-                component: 'Index',
-                action: 'owner_bypass_subscription'
-              });
-            } else if (!isBrokerRole) {
-              secureLogger.info('Non-broker user, allowing dashboard access', {
-                component: 'Index', 
-                action: 'vendor_dashboard_access'
-              });
-            } else if (data?.trial_active) {
-              secureLogger.info('User has active trial, staying on dashboard', {
-                component: 'Index',
-                action: 'trial_user_dashboard_access'
-              });
-            } else if (data?.subscribed) {
-              secureLogger.info('User has active subscription, staying on dashboard', {
-                component: 'Index',
-                action: 'subscribed_user_dashboard_access'
-              });
-            }
-          } catch (err) {
-            secureLogger.error('Subscription check failed', {
+
+            secureLogger.info('Triggering subscription refresh via context', {
               component: 'Index',
-              action: 'subscription_check_error'
+              action: 'subscription_refresh_context'
             });
-            // Allow access on persistent errors to prevent blocking
-            secureLogger.warn('Allowing dashboard access due to persistent errors', {
+            // Use provider refresh to avoid duplication/loops
+            refresh(true);
+          } catch (err) {
+            secureLogger.error('Subscription refresh failed', {
               component: 'Index',
-              action: 'error_fallback_access'
+              action: 'subscription_refresh_error'
             });
           }
-        }, 1000);
+        }, 800);
         return;
       }
       

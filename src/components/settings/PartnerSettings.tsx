@@ -51,6 +51,10 @@ const PartnerSettings = () => {
     approval_threshold: 1000
   });
 
+  useEffect(() => {
+    console.log('🔍 PartnerSettings component mounted');
+  }, []);
+
   const fetchPartnerProfile = useCallback(async () => {
     if (!user?.email) return;
 

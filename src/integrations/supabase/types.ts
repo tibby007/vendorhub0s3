@@ -195,7 +195,7 @@ export type Database = {
           id: string
           is_published: boolean | null
           mime_type: string | null
-          partner_admin_id: string
+          partner_id: string
           publication_date: string
           title: string
           type: string
@@ -210,7 +210,7 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           mime_type?: string | null
-          partner_admin_id: string
+          partner_id: string
           publication_date?: string
           title: string
           type: string
@@ -225,7 +225,7 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           mime_type?: string | null
-          partner_admin_id?: string
+          partner_id?: string
           publication_date?: string
           title?: string
           type?: string
@@ -233,10 +233,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "resources_partner_admin_id_fkey"
-            columns: ["partner_admin_id"]
+            foreignKeyName: "resources_partner_id_fkey"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
         ]
@@ -357,7 +357,7 @@ export type Database = {
           drivers_license_url: string | null
           id: string
           misc_documents_url: string[] | null
-          partner_admin_id: string
+          partner_id: string
           sales_invoice_url: string | null
           status: string
           submission_date: string
@@ -371,7 +371,7 @@ export type Database = {
           drivers_license_url?: string | null
           id?: string
           misc_documents_url?: string[] | null
-          partner_admin_id: string
+          partner_id: string
           sales_invoice_url?: string | null
           status?: string
           submission_date?: string
@@ -385,7 +385,7 @@ export type Database = {
           drivers_license_url?: string | null
           id?: string
           misc_documents_url?: string[] | null
-          partner_admin_id?: string
+          partner_id?: string
           sales_invoice_url?: string | null
           status?: string
           submission_date?: string
@@ -401,10 +401,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "submissions_partner_admin_id_fkey"
-            columns: ["partner_admin_id"]
+            foreignKeyName: "submissions_partner_id_fkey"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
           {
@@ -495,7 +495,7 @@ export type Database = {
           contact_phone: string | null
           created_at: string
           id: string
-          partner_admin_id: string
+          partner_id: string
           storage_limit: number | null
           storage_used: number | null
           updated_at: string
@@ -508,7 +508,7 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           id?: string
-          partner_admin_id: string
+          partner_id: string
           storage_limit?: number | null
           storage_used?: number | null
           updated_at?: string
@@ -521,7 +521,7 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           id?: string
-          partner_admin_id?: string
+          partner_id?: string
           storage_limit?: number | null
           storage_used?: number | null
           updated_at?: string
@@ -530,10 +530,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "vendors_partner_admin_id_fkey"
-            columns: ["partner_admin_id"]
+            foreignKeyName: "vendors_partner_id_fkey"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
           {

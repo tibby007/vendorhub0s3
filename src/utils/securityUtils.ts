@@ -16,13 +16,13 @@ export const SecurityUtils = {
 
   // Validate phone number (basic format)
   validatePhone: (phone: string): boolean => {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+    const phoneRegex = /^[+]?\d{1,16}$/; // Simplified: optional + followed by up to 16 digits
+    return phoneRegex.test(phone.replace(/[\s\-()]/g, ''));
   },
 
   // Sanitize text input
   sanitizeText: (input: string): string => {
-    return input.replace(/[<>\"'&]/g, (match) => {
+    return input.replace(/[<>"'&]/g, (match) => {
       const entities: { [key: string]: string } = {
         '<': '&lt;',
         '>': '&gt;',

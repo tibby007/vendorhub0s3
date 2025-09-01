@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCorsHeaders, handleCorsPrelight } from "../_shared/cors-config.ts";
 import { createRateLimiter } from "../_shared/rate-limiter.ts";
+import { Resend } from 'https://esm.sh/resend@latest';
 
 interface VendorInviteRequest {
   vendor_name: string;
@@ -146,6 +147,9 @@ async function handleInviteVendor(
     throw new Error(`Vendor limit reached (${partnerData.vendor_limit}). Upgrade your plan to add more vendors.`);
   }
 
+  // Generate invitation token
+  const invitationToken = crypto.randomUUID();
+
   // Create vendor invitation
   const { data: vendor, error: vendorError } = await supabase
     .from('vendors')
@@ -156,7 +160,8 @@ async function handleInviteVendor(
       contact_phone: requestBody.contact_phone,
       business_type: requestBody.business_type,
       invited_by: user.id,
-      invitation_status: 'pending'
+      invitation_status: 'pending',
+      invitation_token: invitationToken
     })
     .select()
     .single();
@@ -165,7 +170,21 @@ async function handleInviteVendor(
     throw new Error(`Failed to create vendor invitation: ${vendorError.message}`);
   }
 
-  // TODO: Send invitation email here
+  // Send invitation email
+  const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+  const registrationLink = `https://yourapp.com/register?token=${invitationToken}`; // Update with actual domain
+  const { error: emailError } = await resend.emails.send({
+    from: 'VendorHub <invites@yourdomain.com>',
+    to: [requestBody.contact_email],
+    subject: 'Invitation to Join VendorHub as a Vendor',
+    html: `<p>Dear ${requestBody.vendor_name},</p><p>You have been invited to join VendorHub. Please register using this link: <a href="${registrationLink}">${registrationLink}</a></p><p>Best regards,<br>VendorHub Team</p>`
+  });
+
+  if (emailError) {
+    console.error('Failed to send invitation email:', emailError);
+    // Continue even if email fails, but log it
+  }
+
   logStep("Vendor invitation created", { vendor_id: vendor.id });
 
   return new Response(JSON.stringify({
