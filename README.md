@@ -72,3 +72,14 @@ To connect a domain, navigate to Project > Settings > Domains and click Connect 
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
 # Deploy trigger Sun Jul 27 14:20:44 EDT 2025
+
+## New Vendor Functionality
+
+This project now includes enhanced vendor management features:
+
+- **Document Uploads**: Vendors can securely upload documents to the `partner-documents` bucket in Supabase Storage.
+- **Private Bucket Configuration**: The bucket is set to private, ensuring restricted access.
+- **Row Level Security (RLS) Policies**: Policies are in place to allow users to only access and manage files in their own folders, based on their authentication UID.
+- **Storage Limits**: Per-partner storage limits are enforced to manage usage effectively.
+
+For local development, ensure your `.env` file points to the local Supabase instance for testing these features.
