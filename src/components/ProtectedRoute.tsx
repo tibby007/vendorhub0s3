@@ -1,19 +1,15 @@
-
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/providers/AuthProvider';
-import { useDemoMode } from '@/hooks/useDemoMode';
-import { useHookTripwire } from '@/lib/useHookTripwire';
+import { useDemoMode } from '@/hooks/useDemoMode';// import { useHookTripwire } from '@/lib/useHookTripwire'; // Comment out or remove this line
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles = [] }) => {
-  useHookTripwire('ProtectedRoute');
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles = [] }) => {  // useHookTripwire('ProtectedRoute'); // And this one
   
-  // STABLE HOOKS: Always call all hooks in same order, regardless of state
   const location = useLocation();
   const { user, loading } = useAuth();
   const { isDemo } = useDemoMode();
@@ -26,12 +22,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     );
   }
 
-  // Allow access in demo mode or if user is authenticated
   if (!isDemo && !user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Check role-based access (skip in demo mode)
   if (!isDemo && allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }

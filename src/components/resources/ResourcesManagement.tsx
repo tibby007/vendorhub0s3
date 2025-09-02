@@ -30,7 +30,7 @@ const ResourcesManagement = () => {
     if (user?.id) {
       fetchResources();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const fetchResources = async () => {
     if (!user?.id) return;

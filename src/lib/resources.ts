@@ -4,9 +4,10 @@ import { getCurrentPartner } from "./partners";
 export async function listResourcesForPartner() {
   const supabase = createBrowserClient();
   const partner = await getCurrentPartner();
+  await supabase.auth.refreshSession();
   const { data, error, status } = await supabase
     .from("resources")
-    .select("id,title,content,type,category,file_url,file_size,mime_type,is_published,publication_date,partner_id,created_at,updated_at")
+    .select("id,title,content,file_url,is_published,partner_id,created_at,updated_at")
     .eq("partner_id", partner.id)
     .order("created_at", { ascending: false });
   if (error) throw new Error(`[${status}] ${error.message}`);
@@ -15,7 +16,6 @@ export async function listResourcesForPartner() {
 
 export async function createResourceForPartner(input: {
   title: string;
-  category?: string | null;
   file_url: string;
   file_size?: number | null;
   mime_type?: string | null;
@@ -27,6 +27,7 @@ export async function createResourceForPartner(input: {
 
   const payload = {
     ...input,
+    resource_type: 'file',
     is_published: input.is_published ?? true,
     partner_id: partner.id,
     uploaded_by: user?.id ?? null
@@ -45,7 +46,6 @@ export async function createResourceForPartner(input: {
 export async function createNewsForPartner(input: {
   title: string;
   content?: string;
-  category?: string | null;
   is_published?: boolean;
 }) {
   const supabase = createBrowserClient();
@@ -54,6 +54,7 @@ export async function createNewsForPartner(input: {
 
   const payload = {
     ...input,
+    resource_type: 'news',
     is_published: input.is_published ?? true,
     partner_id: partner.id,
     uploaded_by: user?.id ?? null

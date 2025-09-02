@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/providers/AuthProvider';
+import { useAuth, AuthUser } from '@/providers/AuthProvider';
 import { toast } from '@/hooks/use-toast';
 import LoginForm from '@/components/auth/LoginForm';
 import PasswordResetForm from '@/components/auth/PasswordResetForm';
@@ -11,117 +11,43 @@ import { supabase } from '@/integrations/supabase/client';
 import { secureLogger } from '@/utils/secureLogger';
 
 // Function to create 3-day trial for new users
-// Define a minimal user type compatible with AuthProvider's user shape
-type BasicUser = {
-  id: string;
-  email?: string | null;
-  name?: string | null;
-  role?: string | null;
-  user_metadata?: Record<string, unknown>;
-};
-const createTrialForNewUser = async (user: BasicUser) => {
-  const trialEndDate = new Date();
-  trialEndDate.setDate(trialEndDate.getDate() + 3); // 3 days from now
-  
+async function createTrialForNewUser(user: AuthUser) {
   try {
-    // Create partner record with trial
-    const { error: partnerError } = await supabase
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 3);
+    const trialEndStr = trialEnd.toISOString();
+    const email = user.email;
+    const name = user.name || user.email.split('@')[0] || 'New User';
+
+    // Create partner
+    const { data: partner, error: partnerError } = await supabase
       .from('partners')
-      .insert({
-        name: user.name || user.email?.split('@')[0] || 'New Partner',
-        contact_email: user.email || undefined,
-        plan_type: 'basic',
-        billing_status: 'trialing',
-        trial_end: trialEndDate.toISOString(),
-        current_period_end: trialEndDate.toISOString(),
-        vendor_limit: 1, // Basic plan limit
-        storage_limit: 5368709120, // 5GB in bytes
-        storage_used: 0
-      });
-    
-    if (partnerError) {
-      console.log('Partner creation failed, trying upsert:', partnerError);
-      // Try upsert in case record exists
-      await supabase
-        .from('partners')
-        .upsert({
-          contact_email: user.email || undefined,
-          name: user.name || user.email?.split('@')[0] || 'New Partner',
-          plan_type: 'basic',
-          billing_status: 'trialing',
-          trial_end: trialEndDate.toISOString(),
-          current_period_end: trialEndDate.toISOString(),
-          vendor_limit: 1,
-          storage_limit: 5368709120,
-          storage_used: 0
-        }, { onConflict: 'contact_email' });
-    }
-    
-    // Create subscriber record with trial
+      .insert([{ name, contact_email: email, billing_status: 'trialing', trial_end: trialEndStr }])
+      .select();
+
+    if (partnerError) throw partnerError;
+    const partnerId = partner[0].id;
+
+    // Create subscriber
     const { error: subscriberError } = await supabase
       .from('subscribers')
-      .insert({
-        email: user.email || undefined,
-        user_id: user.id,
-        subscribed: false,
-        subscription_tier: 'Basic',
-        subscription_end: trialEndDate.toISOString(),
-        trial_active: true
-      });
-    
-    if (subscriberError) {
-      console.log('Subscriber creation failed, trying upsert:', subscriberError);
-      // Try upsert in case record exists
-      await supabase
-        .from('subscribers')
-        .upsert({
-          email: user.email || undefined,
-          user_id: user.id,
-          subscribed: false,
-          subscription_tier: 'Basic', 
-          subscription_end: trialEndDate.toISOString(),
-          trial_active: true
-        }, { onConflict: 'email' });
-    }
-    
-    // Create users table record to link auth.user to partner
-     const { error: usersError } = await supabase
-       .from('users')
-       .insert({
-         id: user.id,
-         email: user.email,
-         name: user.name || user.email?.split('@')[0] || 'New Partner',
-         role: 'Partner Admin'
-       });
-     
-     if (usersError) {
-       console.log('Users creation failed, trying upsert:', usersError);
-       // Try upsert in case record exists
-       await supabase
-         .from('users')
-         .upsert({
-           id: user.id,
-           email: user.email,
-           name: user.name || user.email?.split('@')[0] || 'New Partner',
-           role: 'Partner Admin'
-         }, { onConflict: 'id' });
-     }
-     
-    secureLogger.info(`3-day trial created for new user (email: ${user.email ?? 'unknown'}, trial_end: ${trialEndDate.toISOString()})`, {
-    component: 'Auth',
-    action: 'trial_created',
-    userId: user.id
-    });
-     
-   } catch (error) {
-     const message = error instanceof Error ? error.message : 'Unknown error creating trial records';
-     secureLogger.error(message, {
-       component: 'Auth',
-       action: 'trial_creation_error'
-     });
-     throw error;
-   }
- };
+      .insert([{ email, user_id: user.id, subscribed: false, subscription_tier: 'Basic', subscription_end: trialEndStr }]);
+
+    if (subscriberError) throw subscriberError;
+
+    // Update user with partner_id
+    const { error: userError } = await supabase
+      .from('users')
+      .upsert({ id: user.id, email, name, partner_id: partnerId, role: user.role });
+
+    if (userError) throw userError;
+
+    console.log('Trial created successfully for user:', user.id);
+  } catch (error) {
+    console.error('Error creating trial:', error);
+  }
+}
+
 
 const Auth = () => {
   const { user, loading: isLoading } = useAuth();

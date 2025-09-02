@@ -1,6 +1,7 @@
 -- Create partners table for subscription and trial management
 CREATE TABLE IF NOT EXISTS public.partners (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL UNIQUE,
   name VARCHAR(255) NOT NULL,
   contact_email VARCHAR(255) NOT NULL UNIQUE,
   contact_phone VARCHAR(50),
@@ -26,9 +27,7 @@ ALTER TABLE public.partners ENABLE ROW LEVEL SECURITY;
 -- Policy: Users can only access their own partner record
 CREATE POLICY "Users can access own partner record" ON public.partners
   FOR ALL USING (
-    contact_email IN (
-      SELECT email FROM auth.users WHERE auth.users.id = auth.uid()
-    )
+    user_id = auth.uid()
   );
 
 -- Policy: Super admins can access all partner records
