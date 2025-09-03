@@ -1,4 +1,8 @@
 
+-- Drop dependent policies first
+DROP POLICY IF EXISTS "Super Admins can view security audit logs" ON security_audit_log;
+DROP POLICY IF EXISTS "Super Admins can view all users" ON public.users;
+
 -- Drop the function if it already exists to ensure a clean update
 DROP FUNCTION IF EXISTS public.get_user_role(uuid);
 
@@ -39,3 +43,11 @@ ON public.users
 FOR INSERT 
 TO authenticated 
 WITH CHECK (id = auth.uid());
+
+-- Recreate the security audit log policy
+CREATE POLICY "Super Admins can view security audit logs"
+ON security_audit_log FOR ALL
+TO public
+USING (
+    public.get_user_role(auth.uid()) = 'Super Admin'
+);

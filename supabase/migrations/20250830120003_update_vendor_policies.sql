@@ -8,10 +8,10 @@ DROP POLICY IF EXISTS "Partner Admins can manage their vendors" ON public.vendor
 CREATE POLICY "Partner Admins can manage their vendors" ON public.vendors
 FOR ALL
 USING (
-  (partner_admin_id = auth.uid()) OR (public.get_user_role(auth.uid()) = 'Super Admin')
+  (partner_id = auth.uid()) OR (public.get_user_role(auth.uid()) = 'Super Admin')
 )
 WITH CHECK (
-  (partner_admin_id = auth.uid()) OR (public.get_user_role(auth.uid()) = 'Super Admin')
+  (partner_id = auth.uid()) OR (public.get_user_role(auth.uid()) = 'Super Admin')
 );
 
 -- Also update the "Vendors can view their own profile" policy to remove unnecessary type casts

@@ -1,4 +1,4 @@
-CREATE TABLE public.resources (
+CREATE TABLE IF NOT EXISTS public.resources (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     title text NOT NULL,
     content text,
@@ -20,4 +20,4 @@ ALTER TABLE public.resources ENABLE ROW LEVEL SECURITY;
 -- Create policies as needed
 CREATE POLICY "Partners can manage their resources" ON public.resources
     FOR ALL
-    USING (partner_id = (SELECT id FROM public.partners WHERE user_id = auth.uid()));
+    USING (partner_id = (SELECT partner_id FROM public.users WHERE id = auth.uid()));

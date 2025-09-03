@@ -8,9 +8,9 @@ AS $$
 DECLARE
     admin_id uuid;
 BEGIN
-    -- Get the partner_admin_id for the vendor associated with the given user_id
+    -- Get the partner_id for the vendor associated with the given user_id
     -- This bypasses RLS because the function is SECURITY DEFINER
-    SELECT partner_admin_id INTO admin_id 
+    SELECT partner_id INTO admin_id 
     FROM public.vendors 
     WHERE user_id = user_id;
     
@@ -31,11 +31,11 @@ DROP POLICY IF EXISTS "Vendors can view resources from their partner" ON public.
 CREATE POLICY "Partner Admins can manage their resources" ON public.resources
 FOR ALL
 USING (
-  (partner_admin_id = auth.uid()) OR 
+  (partner_id = auth.uid()) OR
   (public.get_user_role(auth.uid()) = 'Super Admin')
 )
 WITH CHECK (
-  (partner_admin_id = auth.uid()) OR 
+  (partner_id = auth.uid()) OR
   (public.get_user_role(auth.uid()) = 'Super Admin')
 );
 
@@ -43,5 +43,5 @@ WITH CHECK (
 CREATE POLICY "Vendors can view resources from their partner" ON public.resources
 FOR SELECT
 USING (
-  public.get_vendor_partner_admin_id(auth.uid()) = partner_admin_id
+  public.get_vendor_partner_admin_id(auth.uid()) = partner_id
 );

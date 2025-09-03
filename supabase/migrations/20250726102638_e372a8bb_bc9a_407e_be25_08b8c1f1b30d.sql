@@ -3,8 +3,7 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('partner-documents', 'partner-documents', false)
 ON CONFLICT (id) DO NOTHING;
 
--- Enable RLS on storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Note: storage.objects already has RLS enabled by Supabase
 
 -- Step 2: Core RLS Policies for File Storage
 CREATE POLICY "broker_full_access" ON storage.objects
@@ -30,7 +29,7 @@ USING (
   EXISTS (
     SELECT 1 FROM vendors v
     WHERE v.user_id = auth.uid()
-    AND (string_to_array(name, '/'))[1] = v.partner_admin_id::text
+    AND (string_to_array(name, '/'))[1] = v.partner_id::text
     AND (string_to_array(name, '/'))[2] = ('vendor-' || v.user_id::text)
   )
 );
@@ -44,7 +43,7 @@ WITH CHECK (
   EXISTS (
     SELECT 1 FROM vendors v
     WHERE v.user_id = auth.uid()
-    AND (string_to_array(name, '/'))[1] = v.partner_admin_id::text
+    AND (string_to_array(name, '/'))[1] = v.partner_id::text
     AND (string_to_array(name, '/'))[2] = ('vendor-' || v.user_id::text)
   )
 );
@@ -62,11 +61,11 @@ CREATE POLICY "vendors_broker_access" ON vendors
 FOR ALL
 TO authenticated
 USING (
-  partner_admin_id = auth.uid() OR  -- Broker sees all their vendors
+  partner_id = auth.uid() OR  -- Broker sees all their vendors
   user_id = auth.uid()              -- Vendor sees only themselves
 )
 WITH CHECK (
-  partner_admin_id = auth.uid() OR
+  partner_id = auth.uid() OR
   user_id = auth.uid()
 );
 
@@ -108,7 +107,7 @@ BEGIN
   -- Get broker storage info
   SELECT p.storage_used, p.storage_limit INTO broker_used, broker_limit
   FROM partners p
-  JOIN vendors v ON v.partner_admin_id = p.id
+  JOIN vendors v ON v.partner_id = p.id
   WHERE v.id = vendor_id;
   
   -- Check vendor individual limit first
@@ -164,7 +163,7 @@ BEGIN
   -- Update broker storage
   UPDATE partners 
   SET storage_used = storage_used + size_change
-  WHERE id = (SELECT partner_admin_id FROM vendors WHERE id = vendor_id);
+  WHERE id = (SELECT partner_id FROM vendors WHERE id = vendor_id);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -203,7 +202,7 @@ BEGIN
   -- Update all vendor limits for this partner
   UPDATE vendors 
   SET storage_limit = vendor_limit
-  WHERE partner_admin_id = partner_id;
+  WHERE partner_id = partner_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

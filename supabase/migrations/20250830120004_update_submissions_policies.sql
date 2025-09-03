@@ -30,7 +30,7 @@ DROP POLICY IF EXISTS "Partner Admins can update their submissions" ON public.su
 CREATE POLICY "Users can view submissions in their network" ON public.submissions
 FOR SELECT
 USING (
-  (partner_admin_id = auth.uid()) OR 
+  (partner_id = auth.uid()) OR
   (public.get_user_role(auth.uid()) = 'Super Admin') OR
   (public.is_current_user_vendor_for_submission(vendor_id))
 );
@@ -46,8 +46,8 @@ WITH CHECK (
 CREATE POLICY "Partner Admins can update their submissions" ON public.submissions
 FOR UPDATE
 USING (
-  (partner_admin_id = auth.uid()) OR (public.get_user_role(auth.uid()) = 'Super Admin')
+  (partner_id = auth.uid()) OR (public.get_user_role(auth.uid()) = 'Super Admin')
 )
 WITH CHECK (
-  (partner_admin_id = auth.uid()) OR (public.get_user_role(auth.uid()) = 'Super Admin')
+  (partner_id = auth.uid()) OR (public.get_user_role(auth.uid()) = 'Super Admin')
 );
