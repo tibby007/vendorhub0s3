@@ -135,6 +135,18 @@ const PartnerAdminDashboard = () => {
 
   const isTrial = (subscription.status === 'trial' || (!subscription.subscribed && subscription.trialEnd && new Date(subscription.trialEnd) > new Date()));
 
+  // Debug logging for trial banner
+  useEffect(() => {
+    console.log('[PartnerAdminDashboard] Subscription debug:', {
+      status: subscription.status,
+      subscribed: subscription.subscribed,
+      trialEnd: subscription.trialEnd,
+      endDate: subscription.endDate,
+      isTrial,
+      shouldShowBanner: isTrial || (subscription.endDate && !subscription.subscribed)
+    });
+  }, [subscription, isTrial]);
+
   return (
     <div className="space-y-6">
       {/* Trial Banner - Single instance for trial users */}

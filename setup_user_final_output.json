@@ -1,0 +1,4 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   535    0   439  100    96    899    196 --:--:-- --:--:-- --:--:--  1096100   535    0   439  100    96    898    196 --:--:-- --:--:-- --:--:--  1094
+{"success":false,"error":"Subscriber setup failed: new row for relation \"subscribers\" violates check constraint \"subscribers_subscription_tier_check\"","partial_results":[{"step":"auth_user","status":"exists","id":"51825cfc-3574-4a5a-92a0-4391d3000e3b"},{"step":"partner","status":"created/updated","id":"9d374028-9eb8-421e-9636-39bd71bca7ee"},{"step":"app_user","status":"created/updated","id":"51825cfc-3574-4a5a-92a0-4391d3000e3b"}]}

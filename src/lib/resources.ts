@@ -20,6 +20,7 @@ export async function createResourceForPartner(input: {
   file_size?: number | null;
   mime_type?: string | null;
   is_published?: boolean;
+  category?: string;
 }) {
   const supabase = createBrowserClient();
   const partner = await getCurrentPartner();
@@ -47,6 +48,7 @@ export async function createNewsForPartner(input: {
   title: string;
   content?: string;
   is_published?: boolean;
+  category?: string;
 }) {
   const supabase = createBrowserClient();
   const partner = await getCurrentPartner();

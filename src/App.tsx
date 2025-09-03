@@ -25,36 +25,9 @@ import SubmissionsManager from "./components/submissions/SubmissionsManager";
 import PartnerSettings from "./components/settings/PartnerSettings";
 import ResellerManagement from "./components/resellers/ResellerManagement";
 import RootRedirect from "./components/RootRedirect";
-import { useAuth } from "@/providers/AuthProvider";
-import { useEffect } from "react";
-
 const queryClient = new QueryClient();
 
 function App() {
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const fetchAndApplyBrandColor = async () => {
-      if (!user?.partner_id) return;
-
-      const { data, error } = await supabase
-        .from('partner_settings')
-        .select('brand_color')
-        .eq('partner_id', user.partner_id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching brand color:', error);
-        return;
-      }
-
-      if (data?.brand_color) {
-        document.documentElement.style.setProperty('--primary', data.brand_color);
-      }
-    };
-
-    fetchAndApplyBrandColor();
-  }, [user]);
 
   return (
     <ErrorBoundary>

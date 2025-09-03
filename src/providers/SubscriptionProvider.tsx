@@ -205,25 +205,32 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         console.log('🔧 Development mode - providing trial access for testing');
         const trialEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(); // 3 days from now
         
-        safeSetSubscription({
+        const devSubscription = {
           ...defaultSubscription,
           subscribed: false,
-          tier: 'Pro',
-          status: 'trial',
+          tier: 'Pro' as const,
+          status: 'trial' as const,
           trialEnd: trialEndDate,
           endDate: trialEndDate,
           lastUpdated: Date.now(),
           isLoading: false,
-        });
-        safeSetSubscriptionData({
-          subscriptionStatus: 'trialing',
-          planType: 'pro',
+        };
+        
+        const devSubscriptionData = {
+          subscriptionStatus: 'trialing' as const,
+          planType: 'pro' as const,
           trialDaysRemaining: 3,
           subscribed: false,
-          subscription_tier: 'Pro',
+          subscription_tier: 'Pro' as const,
           subscription_end: trialEndDate,
           status: 'trialing'
-        });
+        };
+        
+        console.log('[SubscriptionProvider] DEV - Setting subscription:', devSubscription);
+        console.log('[SubscriptionProvider] DEV - Setting subscription data:', devSubscriptionData);
+        
+        safeSetSubscription(devSubscription);
+        safeSetSubscriptionData(devSubscriptionData);
         safeSetInitialized(true);
         return;
       }
@@ -352,6 +359,22 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   // Computed properties - always calculated, no conditional logic
   const isTrialUser = subscription.status === 'trial' || subscription.status === 'trialing' || subscription.billingStatus === 'trialing';
   const isActiveSubscriber = subscription.subscribed && subscription.status === 'active';
+  
+  // Debug logging for computed properties
+  useEffect(() => {
+    if (initialized) {
+      console.log('[SubscriptionProvider] Computed properties:', {
+        isTrialUser,
+        isActiveSubscriber,
+        status: subscription.status,
+        billingStatus: subscription.billingStatus,
+        subscribed: subscription.subscribed,
+        tier: subscription.tier,
+        trialEnd: subscription.trialEnd,
+        endDate: subscription.endDate
+      });
+    }
+  }, [isTrialUser, isActiveSubscriber, subscription, initialized]);
   
   const daysRemaining = useMemo(() => {
     const endDateStr = subscription.endDate || subscriptionData?.subscription_end;

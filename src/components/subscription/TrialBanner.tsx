@@ -40,17 +40,7 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
   // Also check planType from subscription context
   const currentPlanType = subscription.tier || subscription.planType || planType || 'basic';
   
-  // Debug logging to see what values we're getting
-  useEffect(() => {
-    console.log('[TrialBanner] Subscription data:', {
-      tier: subscription.tier,
-      planType: subscription.planType,
-      propPlanType: planType,
-      finalPlanType: currentPlanType,
-      subscriptionStatus: subscription.status,
-      billingStatus: subscription.billingStatus
-    });
-  }, [subscription.tier, subscription.planType, planType, currentPlanType, subscription.status, subscription.billingStatus]);
+
 
   useEffect(() => {
     const calculateTimeRemaining = () => {
@@ -149,9 +139,55 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
     }
   };
 
+  // Debug logging for trial banner rendering
+  useEffect(() => {
+    console.log('[TrialBanner] Render check:', {
+      isTrialUser,
+      isValidDate,
+      subscribed: subscription.subscribed,
+      trialEnd,
+      isLoading: subscription.isLoading,
+      status: subscription.status,
+      shouldRender: isTrialUser && isValidDate && !subscription.subscribed && trialEnd && !subscription.isLoading
+    });
+  }, [isTrialUser, isValidDate, subscription.subscribed, trialEnd, subscription.isLoading, subscription.status]);
+
+  // TEMPORARY: Add visible debug info
+  if (import.meta.env.DEV) {
+    console.log('[TrialBanner] DEV DEBUG - Component rendered with:', {
+      isTrialUser,
+      isValidDate,
+      subscribed: subscription.subscribed,
+      trialEnd,
+      propTrialEnd,
+      subscriptionTrialEnd: subscription.trialEnd,
+      subscriptionEndDate: subscription.endDate
+    });
+  }
+
+  // TEMPORARY DEBUG: Show debug info in development
+  if (import.meta.env.DEV && (!isTrialUser || !isValidDate || subscription.subscribed)) {
+    return (
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <strong>DEBUG: TrialBanner not showing because:</strong>
+        <ul className="list-disc list-inside mt-2">
+          {!isTrialUser && <li>Not a trial user (isTrialUser: {String(isTrialUser)})</li>}
+          {!isValidDate && <li>Invalid date (isValidDate: {String(isValidDate)})</li>}
+          {subscription.subscribed && <li>Already subscribed (subscribed: {String(subscription.subscribed)})</li>}
+        </ul>
+        <div className="mt-2 text-sm">
+          <div>Status: {subscription.status}</div>
+          <div>Trial End: {trialEnd}</div>
+          <div>Loading: {String(subscription.isLoading)}</div>
+        </div>
+      </div>
+    );
+  }
+
   // Don't show banner if not a trial user, if date is invalid, or if already subscribed
   // Allow demo users to see trial banner if they have trial data
   if (!isTrialUser || !isValidDate || subscription.subscribed) {
+    console.log('[TrialBanner] Not rendering - conditions not met:', { isTrialUser, isValidDate, subscribed: subscription.subscribed });
     return null;
   }
   
@@ -163,6 +199,7 @@ const TrialBanner: React.FC<TrialBannerProps> = ({
   
   // Don't render until subscription context has loaded to avoid showing wrong tier
   if (subscription.isLoading) {
+    console.log('[TrialBanner] Not rendering - subscription still loading');
     return null;
   }
 

@@ -26,6 +26,20 @@ WITH CHECK (
   (string_to_array(name, '/'))[1] = auth.uid()::text
 );
 
+CREATE TABLE IF NOT EXISTS storage_audit_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id UUID NOT NULL,
+  action TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_size BIGINT,
+  ip_address INET,
+  user_agent TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT storage_audit_log_partner_id_fkey FOREIGN KEY (partner_id) REFERENCES auth.users(id)
+);
+
+ALTER TABLE storage_audit_log ENABLE ROW LEVEL SECURITY;
+
 -- 4. Update audit table structure to reference auth.users properly
 ALTER TABLE storage_audit_log DROP CONSTRAINT IF EXISTS storage_audit_log_partner_id_fkey;
 ALTER TABLE storage_audit_log ADD CONSTRAINT storage_audit_log_partner_id_fkey 

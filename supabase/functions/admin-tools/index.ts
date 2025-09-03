@@ -1,4 +1,6 @@
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCorsHeaders, handleCorsPrelight } from "../_shared/cors-config.ts";
 
@@ -13,7 +15,9 @@ serve(async (req) => {
   
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
 
-  const supabase = createClient(
+  // @ts-ignore
+// @ts-ignore
+const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     { auth: { persistSession: false } }
@@ -59,7 +63,9 @@ serve(async (req) => {
     else if (path.includes('/setup-user') && method === 'POST') {
       return await handleSetupUser(req, supabase, corsHeaders);
     }
-    else {
+    else if (path.includes('/fix-subscriber-constraint') && method === 'POST') {
+      return await handleFixConstraint(supabase, corsHeaders);
+    } else {
       return new Response(JSON.stringify({ 
         error: "Endpoint not found",
         available_endpoints: [
@@ -166,7 +172,7 @@ async function handleSetupUser(
 
   logStep("Setting up user", { email, name, role });
 
-  const results = [];
+  const results: { step: string; status: string; id: any; }[] = [];
 
   try {
     // 1. Check if auth user exists, create if not
@@ -202,8 +208,8 @@ async function handleSetupUser(
         plan_type: plan_type,
         billing_status: billing_status,
         trial_end: billing_status === 'trialing' ? trialEndDate.toISOString() : null,
-        vendor_limit: plan_type === 'pro' ? 7 : plan_type === 'premium' ? 15 : 1,
-        storage_limit: plan_type === 'pro' ? 26843545600 : 5368709120, // 25GB or 5GB
+        vendor_limit: plan_type === 'enterprise' ? 999 : plan_type === 'pro' ? 7 : plan_type === 'premium' ? 15 : 1,
+        storage_limit: plan_type === 'enterprise' ? 99999999999 : plan_type === 'pro' ? 26843545600 : plan_type === 'premium' ? 53687091200 : 5368709120,
         current_period_end: subscriptionEndDate.toISOString()
       }, { 
         onConflict: 'contact_email',
@@ -281,6 +287,23 @@ async function handleSetupUser(
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
+    });
+  }
+}
+
+async function handleFixConstraint(supabase: any, corsHeaders: any) {
+  try {
+    await supabase.rpc('execute_sql', {
+      sql: "ALTER TABLE public.subscribers DROP CONSTRAINT IF EXISTS subscribers_subscription_tier_check; ALTER TABLE public.subscribers ADD CONSTRAINT subscribers_subscription_tier_check CHECK (subscription_tier IN ('Basic', 'Pro', 'Premium', 'Enterprise'));"
+    });
+    return new Response(JSON.stringify({ success: true, message: 'Constraint updated successfully' }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
     });
   }
 }
