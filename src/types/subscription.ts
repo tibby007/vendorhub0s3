@@ -18,4 +18,6 @@ export interface SubscriptionPlan {
   features: PlanFeature[];
   popular?: boolean;
   icon: ReactNode;
+  trialText?: string;
+  upgradeText?: string;
 }

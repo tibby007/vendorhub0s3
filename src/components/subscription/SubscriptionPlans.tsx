@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
+import { useSubscription } from '@/providers/SubscriptionProvider';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { invokeFunction } from '@/utils/netlifyFunctions';
 import { Users, Zap, Star } from 'lucide-react';
@@ -12,20 +13,30 @@ import AdditionalFeatures from './AdditionalFeatures';
 
 const SubscriptionPlans = () => {
   const { session } = useAuth();
+  const { subscription, isTrialUser, daysRemaining } = useSubscription();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isAnnual, setIsAnnual] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  const plans: SubscriptionPlan[] = [
+  // Detect if user is currently on trial
+  const isCurrentlyOnTrial = isTrialUser && subscription.status === 'trial';
+  
+  console.log('Subscription page - trial status:', {
+    isTrialUser,
+    status: subscription.status,
+    isCurrentlyOnTrial,
+    daysRemaining
+  });
+
+  // Base plan configuration
+  const basePlans = [
     {
       id: 'basic',
       name: 'VendorHub Basic',
       description: 'Perfect for small teams getting started',
       monthlyPrice: 97,
       annualPrice: 97 * 12 * 0.83, // 17% savings
-      monthlyPriceId: 'price_1RpnAlB1YJBVEg8wCN2IXtYJ',
-      annualPriceId: 'price_1RpnBKB1YJBVEg8wbbe6nbYG',
       maxVendors: 3,
       icon: <Users className="w-6 h-6" />,
       features: [
@@ -46,8 +57,6 @@ const SubscriptionPlans = () => {
       description: 'Ideal for growing businesses',
       monthlyPrice: 197,
       annualPrice: 197 * 12 * 0.83, // 17% savings
-      monthlyPriceId: 'price_1RpnBjB1YJBVEg8wXBbCplTi',
-      annualPriceId: 'price_1RpnC1B1YJBVEg8wGElD9KAG',
       maxVendors: 7,
       popular: true,
       icon: <Zap className="w-6 h-6" />,
@@ -70,8 +79,6 @@ const SubscriptionPlans = () => {
       description: 'For enterprise-scale operations',
       monthlyPrice: 497,
       annualPrice: 497 * 12 * 0.83, // 17% savings
-      monthlyPriceId: 'price_1RpnCLB1YJBVEg8wI01MZIi1',
-      annualPriceId: 'price_1RpnCYB1YJBVEg8wWiT9eQNc',
       maxVendors: null,
       icon: <Star className="w-6 h-6" />,
       features: [
@@ -88,6 +95,50 @@ const SubscriptionPlans = () => {
       ]
     }
   ];
+
+  // Configure plans based on trial status
+  const plans: SubscriptionPlan[] = basePlans.map(plan => {
+    if (isCurrentlyOnTrial) {
+      // For trial users - direct upgrade without trial
+      return {
+        ...plan,
+        monthlyPriceId: getPriceId(plan.id, 'monthly', false), // No trial
+        annualPriceId: getPriceId(plan.id, 'annual', false),
+        trialText: 'Upgrade now',
+        upgradeText: plan.id === 'basic' ? 'Continue with Basic plan' : 
+                    plan.id === 'pro' ? 'Upgrade to Pro plan' : 'Upgrade to Premium plan'
+      };
+    } else {
+      // For new users - with trial
+      return {
+        ...plan,
+        monthlyPriceId: getPriceId(plan.id, 'monthly', true), // With trial
+        annualPriceId: getPriceId(plan.id, 'annual', true),
+        trialText: '3-day free trial'
+      };
+    }
+  });
+
+  // Helper function to get price IDs
+  function getPriceId(planId: string, billing: 'monthly' | 'annual', withTrial: boolean) {
+    // For now, using existing price IDs - in production you'd have separate trial/no-trial price IDs
+    const priceIds = {
+      basic: {
+        monthly: withTrial ? 'price_1RpnAlB1YJBVEg8wCN2IXtYJ' : 'price_1RpnAlB1YJBVEg8wCN2IXtYJ',
+        annual: withTrial ? 'price_1RpnBKB1YJBVEg8wbbe6nbYG' : 'price_1RpnBKB1YJBVEg8wbbe6nbYG'
+      },
+      pro: {
+        monthly: withTrial ? 'price_1RpnBjB1YJBVEg8wXBbCplTi' : 'price_1RpnBjB1YJBVEg8wXBbCplTi',
+        annual: withTrial ? 'price_1RpnC1B1YJBVEg8wGElD9KAG' : 'price_1RpnC1B1YJBVEg8wGElD9KAG'
+      },
+      premium: {
+        monthly: withTrial ? 'price_1RpnCLB1YJBVEg8wI01MZIi1' : 'price_1RpnCLB1YJBVEg8wI01MZIi1',
+        annual: withTrial ? 'price_1RpnCYB1YJBVEg8wWiT9eQNc' : 'price_1RpnCYB1YJBVEg8wWiT9eQNc'
+      }
+    };
+    
+    return priceIds[planId as keyof typeof priceIds]?.[billing] || '';
+  }
 
   const handleSubscribe = useCallback(async (plan: SubscriptionPlan) => {
     console.log('🎯 handleSubscribe called with plan:', { id: plan.id, name: plan.name });
@@ -221,6 +272,7 @@ const SubscriptionPlans = () => {
             isAnnual={isAnnual}
             isLoading={loadingPlan === plan.id}
             onSubscribe={handleSubscribe}
+            isCurrentlyOnTrial={isCurrentlyOnTrial}
           />
         ))}
       </div>

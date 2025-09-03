@@ -462,10 +462,13 @@ export const useSubscriptionManager = () => {
 
 // Backward compatibility hook
 export const useSubscription = () => {
-  const { subscriptionData, refreshSubscription, checkSubscriptionAccess } = useSubscriptionManager();
+  const { subscriptionData, refreshSubscription, checkSubscriptionAccess, isTrialUser, daysRemaining, subscription } = useSubscriptionManager();
   return {
     subscriptionData,
     refreshSubscription,
-    checkSubscriptionAccess
+    checkSubscriptionAccess,
+    isTrialUser,
+    daysRemaining,
+    subscription
   };
 };

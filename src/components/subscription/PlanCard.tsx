@@ -11,9 +11,10 @@ interface PlanCardProps {
   isAnnual: boolean;
   isLoading: boolean;
   onSubscribe: (plan: SubscriptionPlan) => void;
+  isCurrentlyOnTrial?: boolean;
 }
 
-const PlanCard = ({ plan, isAnnual, isLoading, onSubscribe }: PlanCardProps) => {
+const PlanCard = ({ plan, isAnnual, isLoading, onSubscribe, isCurrentlyOnTrial = false }: PlanCardProps) => {
   const getPrice = () => {
     return isAnnual ? Math.round(plan.annualPrice / 12) : plan.monthlyPrice;
   };
@@ -85,11 +86,18 @@ const PlanCard = ({ plan, isAnnual, isLoading, onSubscribe }: PlanCardProps) => 
           onClick={() => onSubscribe(plan)}
           disabled={isLoading}
         >
-          {isLoading ? 'Processing...' : 'Start Free Trial'}
+          {isLoading ? 'Processing...' : 
+            isCurrentlyOnTrial ? 
+              (plan.upgradeText || 'Upgrade Now') : 
+              `Start ${plan.trialText || '3-day free trial'}`
+          }
         </Button>
         
         <p className="text-xs text-gray-500 text-center mt-2">
-          3-day free trial • No credit card required
+          {isCurrentlyOnTrial 
+            ? 'Billing starts immediately' 
+            : `${plan.trialText || '3-day free trial'} • No credit card required`
+          }
         </p>
       </CardContent>
     </Card>
