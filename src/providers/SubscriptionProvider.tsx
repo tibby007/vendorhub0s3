@@ -264,8 +264,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             subscribed: subData.subscribed,
             tier: subData.subscription_tier,
             status: subData.subscriptionStatus === 'trialing' ? 'trial' : subData.subscriptionStatus === 'inactive' ? 'expired' : subData.subscriptionStatus,
-            trialEnd: checkResult.trialEnd,
-            endDate: checkResult.trial_active ? checkResult.trialEnd : checkResult.subscription_end,
+            trialEnd: checkResult.subscription_end,
+            endDate: checkResult.trial_active ? checkResult.subscription_end : checkResult.subscription_end,
             lastUpdated: Date.now(),
             isLoading: false,
           });
@@ -274,7 +274,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             trial_active: checkResult.trial_active,
             subscribed: checkResult.subscribed,
             status: subData.subscriptionStatus,
-            trialEnd: checkResult.trialEnd,
+            trialEnd: checkResult.subscription_end,
             trialDaysRemaining: subData.trialDaysRemaining
           });
         } else {
