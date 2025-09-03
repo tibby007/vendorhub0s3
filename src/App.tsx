@@ -25,6 +25,7 @@ import SubmissionsManager from "./components/submissions/SubmissionsManager";
 import PartnerSettings from "./components/settings/PartnerSettings";
 import ResellerManagement from "./components/resellers/ResellerManagement";
 import RootRedirect from "./components/RootRedirect";
+import VendorRegistration from "./components/VendorRegistration";
 const queryClient = new QueryClient();
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
               
               <Route path="/demo" element={<Demo />} />
               <Route path="/demo-login" element={<DemoLogin />} />
+              <Route path="/vendor-registration" element={<VendorRegistration />} />
               <Route path="/subscription" element={
                 <ProtectedRoute>
                   <Subscription />

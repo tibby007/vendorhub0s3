@@ -15,6 +15,15 @@ interface VendorCreateRequest extends VendorInviteRequest {
   user_id: string;
 }
 
+interface VendorRegistrationRequest {
+  token: string;
+  full_name: string;
+  business_name: string;
+  contact_email: string;
+  phone_number: string;
+  password: string;
+}
+
 const logStep = (step: string, details?: any) => {
   console.log(`[VENDOR-MANAGEMENT] ${step}${details ? ` - ${JSON.stringify(details)}` : ''}`);
 };
@@ -35,6 +44,19 @@ serve(async (req) => {
   try {
     logStep("Vendor management function called");
     
+    // Get the request method and path
+    const url = new URL(req.url);
+    const path = url.pathname;
+    const method = req.method;
+    
+    logStep(`Processing ${method} ${path}`);
+
+    // Public routes (no authentication required)
+    if (path.includes('/register-vendor') && method === 'POST') {
+      return await handleVendorRegistration(req, supabase, corsHeaders);
+    }
+    
+    // For authenticated routes, verify user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("No authorization header provided");
@@ -65,15 +87,10 @@ serve(async (req) => {
       count: rateLimitCheck.result.count,
       remaining: rateLimitCheck.result.remaining 
     });
-
-    // Get the request method and path
-    const url = new URL(req.url);
-    const path = url.pathname;
-    const method = req.method;
     
-    logStep(`Processing ${method} ${path}`, { userId: user.id, email: user.email });
+    logStep(`Processing authenticated ${method} ${path}`, { userId: user.id, email: user.email });
 
-    // Route handling
+    // Authenticated routes
     if (path.includes('/invite-vendor') && method === 'POST') {
       return await handleInviteVendor(req, supabase, user, corsHeaders);
     } 
@@ -170,14 +187,44 @@ async function handleInviteVendor(
     throw new Error(`Failed to create vendor invitation: ${vendorError.message}`);
   }
 
+  // Get broker/partner name for email
+  const { data: partnerInfo, error: partnerInfoError } = await supabase
+    .from('partners')
+    .select('company_name')
+    .eq('id', partnerData.id)
+    .single();
+
+  const brokerName = partnerInfo?.company_name || 'your broker';
+
   // Send invitation email
   const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
-  const registrationLink = `https://yourapp.com/register?token=${invitationToken}`; // Update with actual domain
+  const registrationLink = `${Deno.env.get('FRONTEND_URL') || 'http://localhost:8080'}/vendor-registration?token=${invitationToken}`;
   const { error: emailError } = await resend.emails.send({
-    from: 'VendorHub <invites@yourdomain.com>',
+    from: 'VendorHub OS <noreply@vendorhubos.com>',
     to: [requestBody.contact_email],
-    subject: 'Invitation to Join VendorHub as a Vendor',
-    html: `<p>Dear ${requestBody.vendor_name},</p><p>You have been invited to join VendorHub. Please register using this link: <a href="${registrationLink}">${registrationLink}</a></p><p>Best regards,<br>VendorHub Team</p>`
+    subject: 'Welcome to VendorHub OS - Complete Your Registration',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2563eb; margin-bottom: 20px;">Welcome to VendorHub OS!</h2>
+        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Please click the link to complete your registration with <strong>${brokerName}</strong> and begin submitting your deals today!
+        </p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${registrationLink}" 
+             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            Complete Registration
+          </a>
+        </div>
+        <p style="font-size: 14px; color: #666; margin-top: 30px;">
+          If the button doesn't work, copy and paste this link into your browser:<br>
+          <a href="${registrationLink}">${registrationLink}</a>
+        </p>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="font-size: 12px; color: #999; text-align: center;">
+          This invitation was sent by ${brokerName}. If you didn't expect this email, please ignore it.
+        </p>
+      </div>
+    `
   });
 
   if (emailError) {
@@ -395,4 +442,147 @@ async function handleUpdateVendor(
     headers: { ...corsHeaders, "Content-Type": "application/json" },
     status: 200,
   });
+}
+
+async function handleVendorRegistration(
+  req: Request,
+  supabase: any,
+  corsHeaders: any
+) {
+  const requestBody = await req.json() as VendorRegistrationRequest;
+  logStep("Processing vendor registration", { email: requestBody.contact_email });
+
+  // Validate required fields
+  if (!requestBody.token || !requestBody.full_name || !requestBody.business_name || 
+      !requestBody.contact_email || !requestBody.phone_number || !requestBody.password) {
+    throw new Error("All fields are required: token, full_name, business_name, contact_email, phone_number, password");
+  }
+
+  // Find vendor invitation by token
+  const { data: vendorInvitation, error: invitationError } = await supabase
+    .from('vendors')
+    .select('*')
+    .eq('invitation_token', requestBody.token)
+    .eq('invitation_status', 'pending')
+    .single();
+
+  if (invitationError || !vendorInvitation) {
+    throw new Error("Invalid or expired invitation token");
+  }
+
+  // Verify email matches invitation
+  if (vendorInvitation.contact_email !== requestBody.contact_email) {
+    throw new Error("Email address does not match the invitation");
+  }
+
+  try {
+    // Create Supabase auth user
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: requestBody.contact_email,
+      password: requestBody.password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: requestBody.full_name,
+        business_name: requestBody.business_name,
+        phone_number: requestBody.phone_number,
+        role: 'Vendor'
+      }
+    });
+
+    if (authError) {
+      throw new Error(`Failed to create user account: ${authError.message}`);
+    }
+
+    const userId = authData.user.id;
+
+    // Create user record in users table
+    const { error: userError } = await supabase
+      .from('users')
+      .insert({
+        id: userId,
+        email: requestBody.contact_email,
+        name: requestBody.full_name,
+        role: 'Vendor'
+      });
+
+    if (userError) {
+      throw new Error(`Failed to create user record: ${userError.message}`);
+    }
+
+    // Update vendor record
+    const { error: vendorUpdateError } = await supabase
+      .from('vendors')
+      .update({
+        user_id: userId,
+        vendor_name: requestBody.business_name,
+        contact_phone: requestBody.phone_number,
+        invitation_status: 'accepted',
+        invitation_accepted_at: new Date().toISOString()
+      })
+      .eq('id', vendorInvitation.id);
+
+    if (vendorUpdateError) {
+      throw new Error(`Failed to update vendor record: ${vendorUpdateError.message}`);
+    }
+
+    // Generate login link
+    const loginLink = `${Deno.env.get('FRONTEND_URL') || 'http://localhost:8080'}/auth?email=${encodeURIComponent(requestBody.contact_email)}`;
+
+    // Send welcome email with login link
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+    const { error: emailError } = await resend.emails.send({
+      from: 'VendorHub OS <noreply@vendorhubos.com>',
+      to: [requestBody.contact_email],
+      subject: 'Welcome to VendorHub OS - Your Account is Ready!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb; margin-bottom: 20px;">Welcome to VendorHub OS!</h2>
+          <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            Congratulations! Your vendor account has been successfully created. You now have immediate access to your portal and can begin submitting deals.
+          </p>
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1e40af; margin-top: 0;">Your Account Details:</h3>
+            <p><strong>Business Name:</strong> ${requestBody.business_name}</p>
+            <p><strong>Email:</strong> ${requestBody.contact_email}</p>
+            <p><strong>Phone:</strong> ${requestBody.phone_number}</p>
+          </div>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${loginLink}" 
+               style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+              Access Your Portal
+            </a>
+          </div>
+          <p style="font-size: 14px; color: #666; margin-top: 30px;">
+            If the button doesn't work, copy and paste this link into your browser:<br>
+            <a href="${loginLink}">${loginLink}</a>
+          </p>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="font-size: 12px; color: #999; text-align: center;">
+            You're all set to start submitting deals through VendorHub OS!
+          </p>
+        </div>
+      `
+    });
+
+    if (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Continue even if email fails
+    }
+
+    logStep("Vendor registration completed", { vendor_id: vendorInvitation.id, user_id: userId });
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: "Registration completed successfully! You now have access to your vendor portal.",
+      login_link: loginLink,
+      vendor_id: vendorInvitation.id
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+
+  } catch (error) {
+    logStep("Registration failed", { error: error.message });
+    throw error;
+  }
 }

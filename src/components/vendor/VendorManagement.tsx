@@ -256,22 +256,34 @@ const VendorManagement = () => {
         return;
       }
 
-      const { error: vendorError } = await supabase
-        .from('vendors')
-        .insert({
+      // Call the vendor invitation API
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
+
+      const response = await fetch('/api/vendor-management/invite-vendor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
           vendor_name: formData.vendor_name,
           contact_email: formData.contact_email,
           contact_phone: formData.contact_phone,
-          contact_address: formData.contact_address,
-          partner_id: partner.id,
-          user_id: null
-        });
+          contact_address: formData.contact_address
+        })
+      });
 
-      if (vendorError) throw vendorError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to invite vendor');
+      }
 
       toast({
         title: "Success",
-        description: "Vendor record created successfully. They will receive an invitation to register.",
+        description: "Vendor invitation sent successfully! They will receive an email to complete their registration.",
       });
 
       resetForm();
