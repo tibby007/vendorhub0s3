@@ -1,12 +1,12 @@
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
+  // Initialize Supabase client with environment variables
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
   // Handle CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -54,47 +54,75 @@ exports.handler = async (event, context) => {
     switch (action) {
       case 'invite-vendor':
         if (method === 'POST') {
-          return await handleInviteVendor(body, user);
+          return await handleInviteVendor(body, user, supabase);
         }
-        break;
+        return {
+          statusCode: 405,
+          headers,
+          body: JSON.stringify({ error: 'Method not allowed for invite-vendor' })
+        };
       
       case 'create-vendor':
         if (method === 'POST') {
-          return await handleCreateVendor(body, user);
+          return await handleCreateVendor(body, user, supabase);
         }
-        break;
+        return {
+          statusCode: 405,
+          headers,
+          body: JSON.stringify({ error: 'Method not allowed for create-vendor' })
+        };
       
       case 'list-vendors':
         if (method === 'GET') {
-          return await handleListVendors(user);
+          return await handleListVendors(user, supabase);
         }
-        break;
+        return {
+          statusCode: 405,
+          headers,
+          body: JSON.stringify({ error: 'Method not allowed for list-vendors' })
+        };
       
       case 'vendor-details':
         if (method === 'GET') {
           const { vendor_id } = event.queryStringParameters || {};
-          return await handleGetVendorDetails(vendor_id, user);
+          return await handleGetVendorDetails(vendor_id, user, supabase);
         }
-        break;
+        return {
+          statusCode: 405,
+          headers,
+          body: JSON.stringify({ error: 'Method not allowed for vendor-details' })
+        };
       
       case 'update-vendor':
         if (method === 'PUT') {
-          return await handleUpdateVendor(body, user);
+          return await handleUpdateVendor(body, user, supabase);
         }
-        break;
+        return {
+          statusCode: 405,
+          headers,
+          body: JSON.stringify({ error: 'Method not allowed for update-vendor' })
+        };
       
       case 'register-vendor':
         if (method === 'POST') {
-          return await handleVendorRegistration(body);
+          return await handleVendorRegistration(body, supabase);
         }
-        break;
+        return {
+          statusCode: 405,
+          headers,
+          body: JSON.stringify({ error: 'Method not allowed for register-vendor' })
+        };
       
       case 'validate-token':
         if (method === 'GET') {
           const { token } = event.queryStringParameters || {};
-          return await handleValidateToken(token);
+          return await handleValidateToken(token, supabase);
         }
-        break;
+        return {
+          statusCode: 405,
+          headers,
+          body: JSON.stringify({ error: 'Method not allowed for validate-token' })
+        };
       
       default:
         return {
@@ -115,7 +143,7 @@ exports.handler = async (event, context) => {
 };
 
 // Handler functions
-async function handleInviteVendor(body, user) {
+async function handleInviteVendor(body, user, supabase) {
   const { vendor_name, contact_email, contact_phone, business_type } = body;
   
   // Check if user has permission (Super Admin or Partner Admin)
@@ -174,7 +202,7 @@ async function handleInviteVendor(body, user) {
   };
 }
 
-async function handleCreateVendor(body, user) {
+async function handleCreateVendor(body, user, supabase) {
   const { vendor_name, contact_email, contact_phone, business_type, user_id } = body;
   
   // Check permissions
@@ -225,7 +253,7 @@ async function handleCreateVendor(body, user) {
   };
 }
 
-async function handleListVendors(user) {
+async function handleListVendors(user, supabase) {
   // Check permissions
   const { data: profile } = await supabase
     .from('user_profiles')
@@ -271,7 +299,7 @@ async function handleListVendors(user) {
   };
 }
 
-async function handleGetVendorDetails(vendorId, user) {
+async function handleGetVendorDetails(vendorId, user, supabase) {
   if (!vendorId) {
     return {
       statusCode: 400,
@@ -301,7 +329,7 @@ async function handleGetVendorDetails(vendorId, user) {
   };
 }
 
-async function handleUpdateVendor(body, user) {
+async function handleUpdateVendor(body, user, supabase) {
   const { vendor_id, ...updateData } = body;
   
   if (!vendor_id) {
@@ -337,7 +365,7 @@ async function handleUpdateVendor(body, user) {
   };
 }
 
-async function handleVendorRegistration(body) {
+async function handleVendorRegistration(body, supabase) {
   const { token, full_name, business_name, contact_email, phone_number, password } = body;
   
   if (!token) {
@@ -424,7 +452,7 @@ async function handleVendorRegistration(body) {
   };
 }
 
-async function handleValidateToken(token) {
+async function handleValidateToken(token, supabase) {
   if (!token) {
     return {
       statusCode: 400,
