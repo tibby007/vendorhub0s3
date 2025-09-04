@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
 
 export const handler = async (event, context) => {
   // Initialize Supabase client with environment variables
