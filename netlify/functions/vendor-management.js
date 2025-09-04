@@ -65,6 +65,21 @@ export const handler = async (event, context) => {
     }
 
     // Route to appropriate handler based on action and method
+    if (!action) {
+      console.error('❌ No action parameter found');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ 
+          error: 'No action specified',
+          debug: {
+            queryParams: event.queryStringParameters,
+            path: event.path
+          }
+        })
+      };
+    }
+    
     switch (action) {
       case 'invite-vendor':
         if (method === 'POST') {
