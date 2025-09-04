@@ -34,6 +34,14 @@ export const handler = async (event, context) => {
     const method = event.httpMethod;
     const body = event.body ? JSON.parse(event.body) : {};
     
+    console.log('🔍 Vendor management request:', {
+      action,
+      method,
+      queryParams: event.queryStringParameters,
+      path: event.path,
+      headers: event.headers
+    });
+    
     // Get user from Authorization header
     const authHeader = event.headers.authorization;
     if (!authHeader) {
