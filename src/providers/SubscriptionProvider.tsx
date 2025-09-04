@@ -158,9 +158,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      // OWNER BYPASS: support@emergestack.dev gets full access
+      // OWNER BYPASS: support@emergestack.dev and keenan@getmybusinesscredit.com get full access
       const userEmail = user.email;
-      if (userEmail === 'support@emergestack.dev') {
+      if (userEmail === 'support@emergestack.dev' || userEmail === 'keenan@getmybusinesscredit.com') {
         console.log('🔑 Owner bypass activated for:', userEmail);
         safeSetSubscription({
           ...defaultSubscription,
