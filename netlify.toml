@@ -43,6 +43,13 @@
     Cross-Origin-Opener-Policy = "same-origin"
     Cross-Origin-Resource-Policy = "same-site"
 
+# Redirect vendor management API calls to Netlify function
+[[redirects]]
+  from = "/api/vendor-management/*"
+  to = "/.netlify/functions/vendor-management?action=:splat"
+  status = 200
+  force = true
+
 # Redirect all Supabase Edge Function calls through Netlify function proxy
 [[redirects]]
   from = "/functions/v1/*"
