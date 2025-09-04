@@ -1,10 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
 export const handler = async (event, context) => {
-  // Initialize Supabase client with environment variables
+  // Initialize Supabase client with service role for admin operations
   const supabase = createClient(
     process.env.VITE_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+  
+  // Initialize Supabase client with anon key for token validation
+  const supabaseAuth = createClient(
+    process.env.VITE_SUPABASE_URL,
+    process.env.VITE_SUPABASE_ANON_KEY
   );
   // Handle CORS
   const headers = {
@@ -39,9 +45,10 @@ export const handler = async (event, context) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
     
     if (authError || !user) {
+      console.error('Token validation error:', authError);
       return {
         statusCode: 401,
         headers,
