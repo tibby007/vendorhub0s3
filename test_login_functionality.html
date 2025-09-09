@@ -21,14 +21,14 @@
     <div class="test-section">
         <h2>Test Login with Created Users</h2>
         <div>
-            <input type="email" id="email" placeholder="Email" value="support@emergestack.dev">
-            <input type="password" id="password" placeholder="Password (use: password)" value="password">
+            <input type="email" id="email" placeholder="Email" value="test@vendorhub.com">
+            <input type="password" id="password" placeholder="Password" value="Kx9#mP2$vL8@qR5!">
             <button onclick="testLogin()">Test Login</button>
             <button onclick="testSignOut()">Sign Out</button>
         </div>
         <div>
+            <button onclick="testUser('test@vendorhub.com')">Test VendorHub User</button>
             <button onclick="testUser('support@emergestack.dev')">Test Support User</button>
-            <button onclick="testUser('keenan@getmybusinesscredit.com')">Test Keenan User</button>
         </div>
     </div>
 
@@ -43,9 +43,9 @@
     <script type="module">
         import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2';
         
-        // Use the local Supabase credentials for testing
-        const supabaseUrl = 'http://127.0.0.1:54321';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvY2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.M9jrxyvPLkUxWgOYSf5dNdJ8v_eRrZqPU_XIAc6BNWA';
+        // Supabase configuration - Production
+        const supabaseUrl = 'https://kfdlxorqopnibuzexoko.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGx4b3Jxb3BuaWJ1emV4b2tvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NjI2OTYsImV4cCI6MjA3MDIzODY5Nn0.d3Q4d75ZOLIDSOVrx6TyQU3dj3ZLOddeMTbIg2VM01Y';
         
         const supabase = createClient(supabaseUrl, supabaseKey);
         
@@ -94,7 +94,11 @@
         
         window.testUser = function(email) {
             document.getElementById('email').value = email;
-            document.getElementById('password').value = 'password';
+            if (email === 'test@vendorhub.com') {
+                document.getElementById('password').value = 'Kx9#mP2$vL8@qR5!';
+            } else {
+                document.getElementById('password').value = 'password';
+            }
             testLogin();
         };
         
@@ -168,10 +172,15 @@
             }
         };
         
-        // Auto-test on load
+        // Auto-test on load with working credentials
         window.addEventListener('load', () => {
             log('Login functionality test page loaded');
             testDatabaseConnection();
+            // Test with working credentials
+            const testEmail = 'test@vendorhub.com';
+            const testPassword = 'Kx9#mP2$vL8@qR5!';
+            document.getElementById('email').value = testEmail;
+            document.getElementById('password').value = testPassword;
         });
     </script>
 </body>
