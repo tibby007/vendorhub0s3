@@ -23,7 +23,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        uses: microsoft/playwright-github-action@v1
+        run: npx playwright install --with-deps
 
       - name: Set dummy env for Vite
         run: |
