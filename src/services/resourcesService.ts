@@ -220,10 +220,15 @@ export const resourcesService = {
       return `/demo/uploaded-${file.name}`;
     }
     
-    // Generate secure path structure based on partner
+    // Generate secure path structure based on authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
     const fileName = secureFileName || `${crypto.randomUUID()}.${fileExtension}`;
-    const fullPath = `${partnerId}/${fileName}`;
+    const fullPath = `${user.id}/${fileName}`;
     
     console.log('Uploading to path:', fullPath);
     console.log('Bucket: partner-documents');
@@ -240,12 +245,17 @@ export const resourcesService = {
       throw new Error(`Upload failed: ${error.message}`);
     }
     
-    // Get the file URL (not public URL for security)
-    const { data: { publicUrl } } = supabase.storage
+    // Get a signed URL for private bucket access (expires in 1 hour)
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('partner-documents')
-      .getPublicUrl(fullPath);
+      .createSignedUrl(fullPath, 3600); // 1 hour expiry
 
-    return publicUrl;
+    if (signedUrlError) {
+      console.error('Signed URL error:', signedUrlError);
+      throw new Error(`Failed to create signed URL: ${signedUrlError.message}`);
+    }
+
+    return signedUrlData.signedUrl;
   },
 
   async deleteFile(fileUrl: string, partnerId: string): Promise<void> {
@@ -256,10 +266,16 @@ export const resourcesService = {
       return;
     }
     
+    // Get authenticated user for path structure
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
     // Extract the file path from the URL
     const urlParts = fileUrl.split('/');
     const fileName = urlParts[urlParts.length - 1];
-    const filePath = `${partnerId}/${fileName}`;
+    const filePath = `${user.id}/${fileName}`;
     
     const { error } = await supabase.storage
       .from('partner-documents')
