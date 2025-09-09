@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Functionality Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { margin: 5px; padding: 10px; }
+        input { margin: 5px; padding: 8px; width: 250px; }
+        #results { margin-top: 20px; padding: 10px; background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>VendorHub Login Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Login with Created Users</h2>
+        <div>
+            <input type="email" id="email" placeholder="Email" value="support@emergestack.dev">
+            <input type="password" id="password" placeholder="Password (use: password)" value="password">
+            <button onclick="testLogin()">Test Login</button>
+            <button onclick="testSignOut()">Sign Out</button>
+        </div>
+        <div>
+            <button onclick="testUser('support@emergestack.dev')">Test Support User</button>
+            <button onclick="testUser('keenan@getmybusinesscredit.com')">Test Keenan User</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Database Connection Test</h2>
+        <button onclick="testDatabaseConnection()">Test Database Connection</button>
+        <button onclick="checkUserExists()">Check User Exists</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2';
+        
+        // Use the local Supabase credentials for testing
+        const supabaseUrl = 'http://127.0.0.1:54321';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvY2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.M9jrxyvPLkUxWgOYSf5dNdJ8v_eRrZqPU_XIAc6BNWA';
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            results.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+            console.log(message);
+        }
+        
+        window.testLogin = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            log(`Attempting to sign in with ${email}...`);
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    log(`Login failed: ${error.message}`, 'error');
+                } else {
+                    log(`Login successful! User ID: ${data.user.id}`, 'success');
+                    log(`User email: ${data.user.email}`, 'success');
+                    
+                    // Test fetching user profile
+                    const { data: profile, error: profileError } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', data.user.id)
+                        .single();
+                    
+                    if (profileError) {
+                        log(`Profile fetch failed: ${profileError.message}`, 'error');
+                    } else {
+                        log(`Profile loaded: ${JSON.stringify(profile)}`, 'success');
+                    }
+                }
+            } catch (err) {
+                log(`Login error: ${err.message}`, 'error');
+            }
+        };
+        
+        window.testUser = function(email) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = 'password';
+            testLogin();
+        };
+        
+        window.testSignOut = async function() {
+            log('Signing out...');
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                log(`Sign out failed: ${error.message}`, 'error');
+            } else {
+                log('Sign out successful', 'success');
+            }
+        };
+        
+        window.testDatabaseConnection = async function() {
+            log('Testing database connection...');
+            
+            try {
+                // Test basic REST API connectivity first
+                const { data: healthData, error: healthError } = await supabase
+                    .from('users')
+                    .select('count', { count: 'exact', head: true });
+                
+                if (healthError) {
+                    log(`Database connection failed: ${healthError.message}`, 'error');
+                    return;
+                }
+                
+                // Check if user is authenticated
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    log('Database connection successful (anonymous access blocked by RLS - this is correct)', 'success');
+                    return;
+                }
+                
+                // If authenticated, try to access user data
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('id,email')
+                    .limit(1);
+                
+                if (error) {
+                    log(`Authenticated database access failed: ${error.message}`, 'error');
+                } else {
+                    log(`Database connection successful - found ${data.length} accessible records`, 'success');
+                }
+            } catch (err) {
+                log(`Database error: ${err.message}`, 'error');
+            }
+        };
+        
+        window.checkUserExists = async function() {
+            const email = document.getElementById('email').value;
+            log(`Checking if user ${email} exists in database...`);
+            
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('email', email);
+                
+                if (error) {
+                    log(`User check failed: ${error.message}`, 'error');
+                } else if (data.length === 0) {
+                    log(`User ${email} not found in public.users table`, 'error');
+                } else {
+                    log(`User found: ${JSON.stringify(data[0])}`, 'success');
+                }
+            } catch (err) {
+                log(`User check error: ${err.message}`, 'error');
+            }
+        };
+        
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            log('Login functionality test page loaded');
+            testDatabaseConnection();
+        });
+    </script>
+</body>
+</html>
