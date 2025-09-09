@@ -1,0 +1,1 @@
+{"code":422,"error_code":"weak_password","msg":"Password is known to be weak and easy to guess, please choose a different one.","weak_password":{"reasons":["pwned"]}}

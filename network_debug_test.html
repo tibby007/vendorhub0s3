@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Network Debug Test</h1>
+    <p>This will intercept and log all network requests during login attempts.</p>
+    
+    <div class="section">
+        <h3>Test Controls</h3>
+        <button onclick="testDirectLogin()">Test Direct Login</button>
+        <button onclick="testAuthSettings()">Test Auth Settings</button>
+        <button onclick="testSupabaseConnection()">Test Supabase Connection</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+    
+    <div class="section">
+        <h3>Network Logs</h3>
+        <div id="networkLog" class="log">Network monitoring started...
+</div>
+    </div>
+    
+    <div class="section">
+        <h3>Console Logs</h3>
+        <div id="consoleLog" class="log">Console monitoring started...
+</div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'http://127.0.0.1:54321';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function logToNetwork(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const networkLog = document.getElementById('networkLog');
+            const colorClass = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            networkLog.innerHTML += `<span class="${colorClass}">[${timestamp}] ${message}</span>\n`;
+            networkLog.scrollTop = networkLog.scrollHeight;
+        }
+        
+        function logToConsole(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const consoleLog = document.getElementById('consoleLog');
+            const colorClass = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            consoleLog.innerHTML += `<span class="${colorClass}">[${timestamp}] ${message}</span>\n`;
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('networkLog').innerHTML = 'Network monitoring started...\n';
+            document.getElementById('consoleLog').innerHTML = 'Console monitoring started...\n';
+        }
+        
+        // Intercept fetch requests
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            const [url, options = {}] = args;
+            const method = options.method || 'GET';
+            
+            logToNetwork(`🌐 ${method} ${url}`, 'info');
+            
+            if (options.body) {
+                try {
+                    const body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+                    if (body.password) body.password = '[REDACTED]';
+                    logToNetwork(`📤 Request Body: ${JSON.stringify(body, null, 2)}`, 'info');
+                } catch (e) {
+                    logToNetwork(`📤 Request Body: ${options.body}`, 'info');
+                }
+            }
+            
+            try {
+                const response = await originalFetch.apply(this, args);
+                const clonedResponse = response.clone();
+                
+                logToNetwork(`📥 Response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                try {
+                    const responseText = await clonedResponse.text();
+                    if (responseText) {
+                        try {
+                            const responseJson = JSON.parse(responseText);
+                            logToNetwork(`📥 Response Body: ${JSON.stringify(responseJson, null, 2)}`, response.ok ? 'success' : 'error');
+                        } catch (e) {
+                            logToNetwork(`📥 Response Body: ${responseText}`, response.ok ? 'success' : 'error');
+                        }
+                    }
+                } catch (e) {
+                    logToNetwork(`📥 Could not read response body: ${e.message}`, 'warning');
+                }
+                
+                return response;
+            } catch (error) {
+                logToNetwork(`❌ Network Error: ${error.message}`, 'error');
+                throw error;
+            }
+        };
+        
+        // Intercept console logs
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        console.log = function(...args) {
+            logToConsole(args.join(' '), 'info');
+            originalConsoleLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            logToConsole(args.join(' '), 'error');
+            originalConsoleError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            logToConsole(args.join(' '), 'warning');
+            originalConsoleWarn.apply(console, args);
+        };
+        
+        async function testDirectLogin() {
+            logToNetwork('🔑 Starting direct login test...', 'info');
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: 'keenan@getmybusinesscredit.com',
+                    password: 'temppass123',
+                });
+                
+                if (error) {
+                    logToNetwork(`❌ Login Error: ${error.message}`, 'error');
+                    logToNetwork(`❌ Error Details: ${JSON.stringify(error, null, 2)}`, 'error');
+                } else {
+                    logToNetwork(`✅ Login Success: ${data.user.email}`, 'success');
+                }
+            } catch (error) {
+                logToNetwork(`❌ Unexpected Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAuthSettings() {
+            logToNetwork('⚙️ Testing auth settings...', 'info');
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/settings`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const settings = await response.json();
+                    logToNetwork(`✅ Auth Settings Retrieved`, 'success');
+                } else {
+                    logToNetwork(`❌ Auth Settings Error: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                logToNetwork(`❌ Auth Settings Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testSupabaseConnection() {
+            logToNetwork('🔗 Testing Supabase connection...', 'info');
+            
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error && !error.message.includes('session_not_found')) {
+                    logToNetwork(`⚠️ Connection Warning: ${error.message}`, 'warning');
+                } else {
+                    logToNetwork(`✅ Supabase Connection OK`, 'success');
+                }
+                
+                if (user) {
+                    logToNetwork(`👤 Current User: ${user.email}`, 'info');
+                } else {
+                    logToNetwork(`👤 No current user session`, 'info');
+                }
+            } catch (error) {
+                logToNetwork(`❌ Connection Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test connection on page load
+        window.addEventListener('load', () => {
+            logToNetwork('🚀 Page loaded, testing initial connection...', 'info');
+            testSupabaseConnection();
+        });
+        
+        // Catch unhandled errors
+        window.addEventListener('error', (event) => {
+            logToConsole(`❌ Unhandled Error: ${event.error?.message || event.message}`, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            logToConsole(`❌ Unhandled Promise Rejection: ${event.reason?.message || event.reason}`, 'error');
+        });
+    </script>
+</body>
+</html>

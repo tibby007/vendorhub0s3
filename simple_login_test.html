@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Simple Login Test</h1>
+    <p>This will test the exact same login process used by the main application.</p>
+    
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="keenan@getmybusinesscredit.com" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" value="temppass123" required>
+        </div>
+        
+        <button type="submit" id="loginBtn">Login</button>
+    </form>
+    
+    <div id="result" class="result info">Ready to test login...</div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Use the same configuration as the main app
+        const SUPABASE_URL = 'http://127.0.0.1:54321';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${type}`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (!email || !password) {
+                showResult('Please enter both email and password', 'error');
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+            
+            try {
+                showResult('Attempting login...', 'info');
+                console.log('🔑 Starting login process for:', email);
+                
+                // This is the exact same call used in the main application
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+                
+                if (error) {
+                    console.error('❌ Login error:', error);
+                    
+                    let errorMessage = "Login failed. Please check your credentials.";
+                    
+                    if (error.message.includes('Invalid login credentials')) {
+                        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+                    } else if (error.message.includes('Email not confirmed')) {
+                        errorMessage = 'Please check your email and click the confirmation link before logging in.';
+                    } else if (error.message.includes('Too many requests')) {
+                        errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.';
+                    } else if (error.message.includes('signups not allowed')) {
+                        errorMessage = 'New signups are currently disabled. Please contact support.';
+                    } else {
+                        errorMessage = error.message;
+                    }
+                    
+                    showResult(`❌ Login Failed: ${errorMessage}\n\nFull error details:\n${JSON.stringify(error, null, 2)}`, 'error');
+                    return;
+                }
+                
+                console.log('✅ Login successful for:', data.user?.email);
+                
+                const successMessage = `✅ Login Successful!\n\nUser Details:\n- ID: ${data.user.id}\n- Email: ${data.user.email}\n- Created: ${data.user.created_at}\n- Last Sign In: ${data.user.last_sign_in_at}\n\nSession Details:\n- Expires: ${new Date(data.session.expires_at * 1000).toLocaleString()}`;
+                
+                showResult(successMessage, 'success');
+                
+            } catch (error) {
+                console.error('❌ Unexpected error:', error);
+                showResult(`❌ Unexpected Error: ${error.message}\n\nStack trace:\n${error.stack}`, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+        });
+        
+        // Test Supabase connection on page load
+        window.addEventListener('load', async () => {
+            try {
+                console.log('🔍 Testing Supabase connection...');
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error && !error.message.includes('session_not_found')) {
+                    console.warn('⚠️ Auth service warning:', error);
+                } else {
+                    console.log('✅ Supabase connection OK');
+                }
+                
+                if (user) {
+                    showResult(`Already logged in as: ${user.email}`, 'success');
+                } else {
+                    showResult('Ready to test login...', 'info');
+                }
+                
+            } catch (error) {
+                console.error('❌ Connection test failed:', error);
+                showResult(`Connection Error: ${error.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

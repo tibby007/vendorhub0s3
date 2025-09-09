@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Auth API Diagnostic Tool</h1>
+    <p>This tool will help diagnose the "authapi error" by testing various authentication components.</p>
+
+    <div class="test-section">
+        <h2>1. Environment Check</h2>
+        <button onclick="testEnvironment()">Test Environment Variables</button>
+        <div id="env-status" class="status info">Click to test environment variables</div>
+        <pre id="env-details"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Supabase Connection Test</h2>
+        <button onclick="testSupabaseConnection()">Test Supabase Connection</button>
+        <div id="connection-status" class="status info">Click to test Supabase connection</div>
+        <pre id="connection-details"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Auth Service Test</h2>
+        <button onclick="testAuthService()">Test Auth Service</button>
+        <div id="auth-service-status" class="status info">Click to test auth service</div>
+        <pre id="auth-service-details"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Login Test</h2>
+        <input type="email" id="test-email" placeholder="Email (e.g., keenan@getmybusinesscredit.com)" value="keenan@getmybusinesscredit.com">
+        <input type="password" id="test-password" placeholder="Password" value="temppass123">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-status" class="status info">Enter credentials and click to test login</div>
+        <pre id="login-details"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Network Diagnostics</h2>
+        <button onclick="testNetwork()">Test Network Connectivity</button>
+        <div id="network-status" class="status info">Click to test network connectivity</div>
+        <pre id="network-details"></pre>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase = null;
+        const testResults = {};
+
+        // Environment variables (these should match your .env file)
+        const SUPABASE_URL = 'http://127.0.0.1:54321';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+
+        function log(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function updateStatus(elementId, status, message, details = '') {
+            const element = document.getElementById(elementId);
+            const detailsElement = document.getElementById(elementId.replace('-status', '-details'));
+            
+            element.className = `status ${status}`;
+            element.textContent = message;
+            
+            if (detailsElement && details) {
+                detailsElement.textContent = details;
+            }
+        }
+
+        async function testEnvironment() {
+            log('Testing environment variables...', 'info');
+            
+            try {
+                const envInfo = {
+                    supabaseUrl: SUPABASE_URL,
+                    supabaseKeyLength: SUPABASE_ANON_KEY.length,
+                    supabaseKeyPrefix: SUPABASE_ANON_KEY.substring(0, 20) + '...',
+                    currentUrl: window.location.href,
+                    userAgent: navigator.userAgent.substring(0, 100) + '...'
+                };
+                
+                updateStatus('env-status', 'success', '✅ Environment variables loaded', JSON.stringify(envInfo, null, 2));
+                testResults.environment = true;
+                
+            } catch (error) {
+                updateStatus('env-status', 'error', '❌ Environment error: ' + error.message, error.stack);
+                testResults.environment = false;
+            }
+        }
+
+        async function testSupabaseConnection() {
+            log('Testing Supabase connection...', 'info');
+            
+            try {
+                // Initialize Supabase client
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // Test basic connection
+                const { data, error } = await supabase.from('users').select('count').limit(1);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                updateStatus('connection-status', 'success', '✅ Supabase connection successful', 
+                    `Connected to: ${SUPABASE_URL}\nResponse: ${JSON.stringify(data, null, 2)}`);
+                testResults.connection = true;
+                
+            } catch (error) {
+                updateStatus('connection-status', 'error', '❌ Supabase connection failed: ' + error.message, 
+                    `Error details: ${JSON.stringify(error, null, 2)}`);
+                testResults.connection = false;
+            }
+        }
+
+        async function testAuthService() {
+            log('Testing auth service...', 'info');
+            
+            if (!supabase) {
+                updateStatus('auth-service-status', 'error', '❌ Supabase not initialized');
+                return;
+            }
+            
+            try {
+                // Test auth service availability
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error && !error.message.includes('session_not_found')) {
+                    throw error;
+                }
+                
+                const authInfo = {
+                    authServiceAvailable: true,
+                    currentUser: user ? {
+                        id: user.id,
+                        email: user.email,
+                        created_at: user.created_at
+                    } : null,
+                    sessionExists: !!user
+                };
+                
+                updateStatus('auth-service-status', 'success', '✅ Auth service is available', 
+                    JSON.stringify(authInfo, null, 2));
+                testResults.authService = true;
+                
+            } catch (error) {
+                updateStatus('auth-service-status', 'error', '❌ Auth service error: ' + error.message, 
+                    `Error details: ${JSON.stringify(error, null, 2)}`);
+                testResults.authService = false;
+            }
+        }
+
+        async function testLogin() {
+            log('Testing login...', 'info');
+            
+            if (!supabase) {
+                updateStatus('login-status', 'error', '❌ Supabase not initialized');
+                return;
+            }
+            
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            
+            if (!email || !password) {
+                updateStatus('login-status', 'error', '❌ Please enter both email and password');
+                return;
+            }
+            
+            try {
+                updateStatus('login-status', 'info', '🔄 Attempting login...');
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                const loginInfo = {
+                    success: true,
+                    user: {
+                        id: data.user.id,
+                        email: data.user.email,
+                        created_at: data.user.created_at,
+                        last_sign_in_at: data.user.last_sign_in_at
+                    },
+                    session: {
+                        access_token: data.session.access_token.substring(0, 20) + '...',
+                        expires_at: data.session.expires_at
+                    }
+                };
+                
+                updateStatus('login-status', 'success', '✅ Login successful!', 
+                    JSON.stringify(loginInfo, null, 2));
+                testResults.login = true;
+                
+            } catch (error) {
+                updateStatus('login-status', 'error', '❌ Login failed: ' + error.message, 
+                    `Error details: ${JSON.stringify(error, null, 2)}`);
+                testResults.login = false;
+            }
+        }
+
+        async function testNetwork() {
+            log('Testing network connectivity...', 'info');
+            
+            try {
+                const tests = [];
+                
+                // Test 1: Ping Supabase URL
+                try {
+                    const response = await fetch(SUPABASE_URL + '/health', { method: 'GET' });
+                    tests.push({
+                        test: 'Supabase Health Check',
+                        status: response.ok ? 'success' : 'failed',
+                        details: `Status: ${response.status} ${response.statusText}`
+                    });
+                } catch (error) {
+                    tests.push({
+                        test: 'Supabase Health Check',
+                        status: 'failed',
+                        details: error.message
+                    });
+                }
+                
+                // Test 2: Test auth endpoint
+                try {
+                    const response = await fetch(SUPABASE_URL + '/auth/v1/settings', {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    tests.push({
+                        test: 'Auth Endpoint',
+                        status: response.ok ? 'success' : 'failed',
+                        details: `Status: ${response.status} ${response.statusText}`
+                    });
+                } catch (error) {
+                    tests.push({
+                        test: 'Auth Endpoint',
+                        status: 'failed',
+                        details: error.message
+                    });
+                }
+                
+                const allPassed = tests.every(test => test.status === 'success');
+                
+                updateStatus('network-status', allPassed ? 'success' : 'error', 
+                    allPassed ? '✅ Network connectivity OK' : '❌ Network issues detected', 
+                    JSON.stringify(tests, null, 2));
+                testResults.network = allPassed;
+                
+            } catch (error) {
+                updateStatus('network-status', 'error', '❌ Network test failed: ' + error.message, 
+                    error.stack);
+                testResults.network = false;
+            }
+        }
+
+        // Auto-run environment test on page load
+        window.addEventListener('load', () => {
+            testEnvironment();
+        });
+    </script>
+</body>
+</html>

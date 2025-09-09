@@ -16,17 +16,25 @@ export const useAuthEmail = () => {
     setIsLoading(true);
     
     try {
-      const finalRedirectUrl = redirectUrl || (
-        window.location.hostname === 'localhost' 
+      // Choose sensible defaults per flow if redirectUrl not provided
+      const defaultRedirect = (() => {
+        if (type === 'password_reset') {
+          return window.location.hostname === 'localhost'
+            ? `${window.location.origin}/password-reset`
+            : 'https://vendorhubos.com/password-reset';
+        }
+        return window.location.hostname === 'localhost'
           ? `${window.location.origin}/auth`
-          : 'https://vendorhubos.com/auth'
-      );
+          : 'https://vendorhubos.com/auth';
+      })();
+
+      const finalRedirectUrl = redirectUrl || defaultRedirect;
 
       console.log(`Initiating ${type} for ${email} with redirect:`, finalRedirectUrl);
 
       if (type === 'magic_link') {
-        // Generate magic link token through Supabase
-        const { data, error } = await supabase.auth.signInWithOtp({
+        // Generate magic link token through Supabase (Supabase sends the email)
+        const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
             emailRedirectTo: finalRedirectUrl,
@@ -34,29 +42,14 @@ export const useAuthEmail = () => {
           }
         });
 
-        if (error) {
-          throw error;
-        }
-
-        // Send custom branded email
-        const { error: emailError } = await supabase.functions.invoke('send-auth-email', {
-          body: {
-            email,
-            type: 'magic_link',
-            link: finalRedirectUrl
-          }
-        });
-
-        if (emailError) {
-          throw new Error(`Email delivery failed: ${emailError.message}`);
-        }
+        if (error) throw error;
 
         toast.success('Magic Link Sent!', {
           description: 'Check your email for a secure login link.'
         });
 
       } else if (type === 'password_reset') {
-        // Generate password reset token through Supabase
+        // Request password reset (Supabase sends the email with the secure token)
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: finalRedirectUrl
         });
@@ -66,19 +59,8 @@ export const useAuthEmail = () => {
           throw error;
         }
 
-        // Send custom branded email
-        const { error: emailError } = await supabase.functions.invoke('send-auth-email', {
-          body: {
-            email,
-            type: 'password_reset',
-            link: finalRedirectUrl
-          }
-        });
-
-        if (emailError) {
-          throw new Error(`Email delivery failed: ${emailError.message}`);
-        }
-
+        // NOTE: We intentionally do NOT send any custom email here to avoid
+        // users receiving a non-token link that would fail on arrival.
         toast.success('Password Reset Sent!', {
           description: 'Check your email for reset instructions.'
         });
@@ -89,11 +71,11 @@ export const useAuthEmail = () => {
     } catch (error: any) {
       console.error(`${type} error:`, error);
       
-      if (error.message.includes('rate limit') || error.message.includes('too many')) {
+      if (error.message?.toLowerCase?.().includes('rate limit') || error.message?.toLowerCase?.().includes('too many')) {
         toast.error('Too many requests', {
           description: 'Please wait before requesting another email.'
         });
-      } else if (error.message.includes('User not found') && type === 'magic_link') {
+      } else if (error.message?.includes('User not found') && type === 'magic_link') {
         toast.error('Account not found', {
           description: 'No account exists with that email address.'
         });

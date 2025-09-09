@@ -25,7 +25,14 @@ export async function getCurrentPartner() {
     };
   }
   const supabase = createBrowserClient();
-  const email = await getCurrentUserEmail();
+
+  // Get current user (email + id)
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user?.email || !user?.id) {
+    throw new Error(userErr?.message || "No session");
+  }
+  const email = user.email;
+  const userId = user.id;
 
   // Attempt full selection first (includes optional columns added by migration)
   const fullSelect = "id, contact_email, name, contact_phone, company_logo, brand_color, notification_email, notification_sms, auto_approval, approval_threshold";
@@ -33,7 +40,6 @@ export async function getCurrentPartner() {
     .from("partners")
     .select(fullSelect)
     .eq("contact_email", email)
-    .order('created_at', { ascending: false })
     .limit(1);
 
   // If the error indicates missing columns (e.g., migration not yet applied),
@@ -45,7 +51,6 @@ export async function getCurrentPartner() {
       .from("partners")
       .select("id, contact_email, name, contact_phone")
       .eq("contact_email", email)
-      .order('created_at', { ascending: false })
       .limit(1);
 
     if (fallback.error || !fallback.data || fallback.data.length === 0) {
@@ -61,25 +66,49 @@ export async function getCurrentPartner() {
       notification_sms: false,
       auto_approval: false,
       approval_threshold: 1000,
-    } as unknown as {
-      id: string;
-      contact_email: string;
-      name: string;
-      contact_phone: string | null;
-      company_logo: string | null;
-      brand_color: string | null;
-      notification_email: boolean;
-      notification_sms: boolean;
-      auto_approval: boolean;
-      approval_threshold: number;
-    };
+    } as any;
   }
 
-  if (primary.error) {
-    throw new Error(primary.error.message);
+  if (!primary.error && primary.data && Array.isArray(primary.data) && primary.data.length > 0) {
+    return primary.data[0];
   }
 
-  const row = primary.data && Array.isArray(primary.data) ? primary.data[0] : null;
+  // If not found by contact_email, try matching by created_by (owner link)
+  const byOwner = await supabase
+    .from("partners")
+    .select(fullSelect)
+    .eq("created_by", userId)
+    .limit(1);
+
+  if (byOwner.error && /column\s+partners\.[a-z_]+\s+does\s+not\s+exist/i.test(byOwner.error.message)) {
+    // Minimal fallback for owner lookup
+    const fallbackOwner = await supabase
+      .from("partners")
+      .select("id, contact_email, name, contact_phone")
+      .eq("created_by", userId)
+      .limit(1);
+
+    if (fallbackOwner.error || !fallbackOwner.data || fallbackOwner.data.length === 0) {
+      throw new Error(fallbackOwner.error?.message || "Partner not found for " + email);
+    }
+
+    const base = fallbackOwner.data[0];
+    return {
+      ...base,
+      company_logo: null,
+      brand_color: '#10B981',
+      notification_email: true,
+      notification_sms: false,
+      auto_approval: false,
+      approval_threshold: 1000,
+    } as any;
+  }
+
+  if (byOwner.error) {
+    throw new Error(byOwner.error.message);
+  }
+
+  const row = byOwner.data && Array.isArray(byOwner.data) ? byOwner.data[0] : null;
   if (!row) {
     throw new Error("Partner not found for " + email);
   }
