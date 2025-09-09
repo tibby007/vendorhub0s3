@@ -180,9 +180,14 @@ async function handleInviteVendor(body, user, supabase) {
   // Get user profile to check role and subscription
   const { data: profile } = await supabase
     .from('users')
-    .select('role, subscription_tier')
+    .select(`
+      role,
+      subscribers!inner(subscription_tier)
+    `)
     .eq('id', user.id)
     .single();
+
+  console.log('🔍 User profile lookup:', { userId: user.id, profile });
   
   if (!profile) {
     return {

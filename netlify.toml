@@ -67,3 +67,7 @@
 [template.environment]
   VITE_SUPABASE_URL = "Your Supabase project URL"
   VITE_SUPABASE_ANON_KEY = "Your Supabase anonymous key"
+
+[context.production.environment]
+  VITE_SUPABASE_URL = "https://kfdlxorqopnibuzexoko.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGx4b3Jxb3BuaWJ1emV4b2tvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NjI2OTYsImV4cCI6MjA3MDIzODY5Nn0.d3Q4d75ZOLIDSOVrx6TyQU3dj3ZLOddeMTbIg2VM01Y"
