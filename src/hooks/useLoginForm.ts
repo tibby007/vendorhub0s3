@@ -143,14 +143,26 @@ export const useLoginForm = (isDemoSession?: boolean) => {
     } catch (error: unknown) {
       console.error('Login failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
+
+      // Provide clear, user-friendly error messages
+      let friendly = errorMessage;
+      if (errorMessage.includes('Database error querying schema')) {
+        friendly = 'We are experiencing a temporary database issue. This is not your fault. Please try again in a few minutes while we fix it.';
+      } else if (errorMessage.includes('Invalid login credentials')) {
+        friendly = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (errorMessage.toLowerCase().includes('too many')) {
+        friendly = 'Too many login attempts. Please wait a few minutes before trying again.';
+      }
+
+      toast.error('Login failed', { description: friendly });
       
-        // Track failed demo login
-        if (isDemoSession || email.includes('demo-')) {
-          DemoAnalytics.trackEvent(DEMO_EVENTS.REGISTRATION_FAILED, {
-            error: errorMessage,
-            email
-          });
-        }
+      // Track failed demo login
+      if (isDemoSession || email.includes('demo-')) {
+        DemoAnalytics.trackEvent(DEMO_EVENTS.REGISTRATION_FAILED, {
+          error: errorMessage,
+          email
+        });
+      }
     } finally {
       setIsLoading(false);
     }
