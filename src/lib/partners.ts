@@ -26,11 +26,63 @@ export async function getCurrentPartner() {
   }
   const supabase = createBrowserClient();
   const email = await getCurrentUserEmail();
-  const { data, error } = await supabase
+
+  // Attempt full selection first (includes optional columns added by migration)
+  const fullSelect = "id, contact_email, name, contact_phone, company_logo, brand_color, notification_email, notification_sms, auto_approval, approval_threshold";
+  const primary = await supabase
     .from("partners")
-    .select("id, contact_email, name, contact_phone, company_logo, brand_color, notification_email, notification_sms, auto_approval, approval_threshold")
+    .select(fullSelect)
     .eq("contact_email", email)
-    .single();
-  if (error || !data) throw new Error(error?.message || "Partner not found for " + email);
-  return data;
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  // If the error indicates missing columns (e.g., migration not yet applied),
+  // fall back to a minimal selection that works against legacy schema and
+  // provide sensible defaults for the new fields.
+  if (primary.error && /column\s+partners\.[a-z_]+\s+does\s+not\s+exist/i.test(primary.error.message)) {
+    console.warn("partners: optional columns missing in DB, falling back to minimal select:", primary.error.message);
+    const fallback = await supabase
+      .from("partners")
+      .select("id, contact_email, name, contact_phone")
+      .eq("contact_email", email)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (fallback.error || !fallback.data || fallback.data.length === 0) {
+      throw new Error(fallback.error?.message || "Partner not found for " + email);
+    }
+
+    const base = fallback.data[0];
+    return {
+      ...base,
+      company_logo: null,
+      brand_color: '#10B981',
+      notification_email: true,
+      notification_sms: false,
+      auto_approval: false,
+      approval_threshold: 1000,
+    } as unknown as {
+      id: string;
+      contact_email: string;
+      name: string;
+      contact_phone: string | null;
+      company_logo: string | null;
+      brand_color: string | null;
+      notification_email: boolean;
+      notification_sms: boolean;
+      auto_approval: boolean;
+      approval_threshold: number;
+    };
+  }
+
+  if (primary.error) {
+    throw new Error(primary.error.message);
+  }
+
+  const row = primary.data && Array.isArray(primary.data) ? primary.data[0] : null;
+  if (!row) {
+    throw new Error("Partner not found for " + email);
+  }
+
+  return row;
 }

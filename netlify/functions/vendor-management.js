@@ -235,14 +235,15 @@ async function handleInviteVendor(body, user, supabase) {
 
   // For partner-based systems, try to get partner_id, but don't require it
   let partner_id = null;
-  const { data: partnerData } = await supabase
+  const { data: partnersRes, error: partnersErr } = await supabase
     .from('partners')
-    .select('id')
+    .select('id, created_at')
     .eq('contact_email', user.email)
-    .single();
+    .order('created_at', { ascending: false })
+    .limit(1);
   
-  if (partnerData) {
-    partner_id = partnerData.id;
+  if (!partnersErr && partnersRes && partnersRes.length > 0) {
+    partner_id = partnersRes[0].id;
   }
 
   // Generate invitation token

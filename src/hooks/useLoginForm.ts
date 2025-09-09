@@ -45,8 +45,10 @@ export const useLoginForm = (isDemoSession?: boolean) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const normalizedEmail = email.trim();
     
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       toast.error('Please enter both email and password');
       return;
     }
@@ -54,17 +56,17 @@ export const useLoginForm = (isDemoSession?: boolean) => {
     setIsLoading(true);
 
     try {
-      console.log('Starting login process for:', email);
+      console.log('Starting login process for:', normalizedEmail);
       
       // Security: Check rate limits and log attempt
       const ipAddress = SecurityService.getClientIP();
       const userAgent = SecurityService.getUserAgent();
       
-      console.log('🔒 Logging login attempt for:', email);
+      console.log('🔒 Logging login attempt for:', normalizedEmail);
       
       try {
         await SecurityService.logLoginAttempt({
-          email,
+          email: normalizedEmail,
           ip_address: ipAddress,
           user_agent: userAgent
         }, false); // Will be updated to true on success
@@ -74,14 +76,14 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       }
       
       // Track demo login attempt if it's a demo session
-      if (isDemoSession || email.includes('demo-')) {
+      if (isDemoSession || normalizedEmail.includes('demo-')) {
         DemoAnalytics.trackEvent(DEMO_EVENTS.LOGIN_ATTEMPT, {
-          email,
+          email: normalizedEmail,
           isDemoUser: true
         });
       }
 
-      await login(email, password);
+      await login(normalizedEmail, password);
       
       // If we get here, login was successful
       console.log('Login completed successfully');
@@ -89,7 +91,7 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       // Log successful login
       try {
         await SecurityService.logLoginAttempt({
-          email,
+          email: normalizedEmail,
           ip_address: ipAddress,
           user_agent: userAgent
         }, true);
@@ -99,14 +101,14 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       }
       
       // Check if this is a demo user
-      const isDemoUser = email.includes('demo-');
+      const isDemoUser = normalizedEmail.includes('demo-');
       
       if (isDemoUser) {
         console.log('Demo user logged in successfully');
         
         // Track successful demo login
         DemoAnalytics.trackEvent(DEMO_EVENTS.LOGIN_SUCCESS, {
-          email,
+          email: normalizedEmail,
           isDemoUser: true
         });
 
@@ -157,10 +159,10 @@ export const useLoginForm = (isDemoSession?: boolean) => {
       toast.error('Login failed', { description: friendly });
       
       // Track failed demo login
-      if (isDemoSession || email.includes('demo-')) {
+      if (isDemoSession || normalizedEmail.includes('demo-')) {
         DemoAnalytics.trackEvent(DEMO_EVENTS.REGISTRATION_FAILED, {
           error: errorMessage,
-          email
+          email: normalizedEmail
         });
       }
     } finally {
