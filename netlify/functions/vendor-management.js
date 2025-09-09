@@ -177,9 +177,9 @@ async function handleInviteVendor(body, user, supabase) {
   
   // Check if user has permission (Super Admin or Partner Admin)
   const { data: profile } = await supabase
-    .from('user_profiles')
+    .from('users')
     .select('role')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single();
   
   if (!profile || !['Super Admin', 'Partner Admin'].includes(profile.role)) {
@@ -236,9 +236,9 @@ async function handleCreateVendor(body, user, supabase) {
   
   // Check permissions
   const { data: profile } = await supabase
-    .from('user_profiles')
+    .from('users')
     .select('role')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single();
   
   if (!profile || !['Super Admin', 'Partner Admin'].includes(profile.role)) {
@@ -285,9 +285,9 @@ async function handleCreateVendor(body, user, supabase) {
 async function handleListVendors(user, supabase) {
   // Check permissions
   const { data: profile } = await supabase
-    .from('user_profiles')
+    .from('users')
     .select('role, partner_id')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single();
   
   if (!profile) {
@@ -457,18 +457,19 @@ async function handleVendorRegistration(body, supabase) {
     };
   }
 
-  // Create user profile
-  const { error: profileError } = await supabase
-    .from('user_profiles')
+  // Create user record in users table
+  const { error: userError } = await supabase
+    .from('users')
     .insert({
-      user_id: authUser.user.id,
+      id: authUser.user.id,
+      email: contact_email,
       full_name,
       role: 'Vendor',
-      vendor_id: vendor.id
+      partner_id: vendor.partner_id
     });
 
-  if (profileError) {
-    console.error('Profile creation error:', profileError);
+  if (userError) {
+    console.error('User record creation error:', userError);
   }
 
   return {
