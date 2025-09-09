@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 export const handler = async (event, context) => {
   // Initialize Supabase client with service role for admin operations
@@ -29,10 +30,11 @@ export const handler = async (event, context) => {
   }
 
   try {
-    // Get the action from query parameters or path
-    const { action } = event.queryStringParameters || {};
+    // Get the action from query parameters or request body
+    const queryParams = event.queryStringParameters || {};
     const method = event.httpMethod;
     const body = event.body ? JSON.parse(event.body) : {};
+    const action = queryParams.action || body.action;
     
     console.log('🔍 Vendor management request:', {
       action,
@@ -175,19 +177,67 @@ export const handler = async (event, context) => {
 async function handleInviteVendor(body, user, supabase) {
   const { vendor_name, contact_email, contact_phone, business_type } = body;
   
-  // Check if user has permission (Super Admin or Partner Admin)
+  // Get user profile to check role and subscription
   const { data: profile } = await supabase
     .from('users')
-    .select('role')
+    .select('role, subscription_tier')
     .eq('id', user.id)
     .single();
   
-  if (!profile || !['Super Admin', 'Partner Admin'].includes(profile.role)) {
+  if (!profile) {
     return {
       statusCode: 403,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Insufficient permissions' })
+      body: JSON.stringify({ error: 'User profile not found' })
     };
+  }
+
+  // Check vendor limits based on subscription tier
+  let vendorLimit = 0;
+  switch (profile.subscription_tier) {
+    case 'Premium':
+      vendorLimit = 999999; // Unlimited for Premium
+      break;
+    case 'Professional':
+      vendorLimit = 50;
+      break;
+    case 'Basic':
+      vendorLimit = 10;
+      break;
+    case 'Free':
+    default:
+      vendorLimit = 3;
+      break;
+  }
+
+  // Check current vendor count for this user
+  const { count: currentVendorCount } = await supabase
+    .from('vendors')
+    .select('*', { count: 'exact' })
+    .eq('invited_by', user.id);
+
+  if (currentVendorCount >= vendorLimit && vendorLimit !== 999999) {
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        error: `Vendor limit reached (${vendorLimit}). Upgrade your plan to add more vendors.`,
+        current_count: currentVendorCount,
+        limit: vendorLimit
+      })
+    };
+  }
+
+  // For partner-based systems, try to get partner_id, but don't require it
+  let partner_id = null;
+  const { data: partnerData } = await supabase
+    .from('partners')
+    .select('id')
+    .eq('contact_email', user.email)
+    .single();
+  
+  if (partnerData) {
+    partner_id = partnerData.id;
   }
 
   // Generate invitation token
@@ -197,14 +247,14 @@ async function handleInviteVendor(body, user, supabase) {
   const { data: vendor, error: vendorError } = await supabase
     .from('vendors')
     .insert({
+      partner_id,
       vendor_name,
       contact_email,
       contact_phone,
       business_type,
       invitation_status: 'pending',
       invitation_token: invitationToken,
-      invited_by: user.id,
-      invited_at: new Date().toISOString()
+      invited_by: user.id
     })
     .select()
     .single();
@@ -283,10 +333,10 @@ async function handleCreateVendor(body, user, supabase) {
 }
 
 async function handleListVendors(user, supabase) {
-  // Check permissions
+  // Get user profile
   const { data: profile } = await supabase
     .from('users')
-    .select('role, partner_id')
+    .select('role')
     .eq('id', user.id)
     .single();
   
@@ -300,15 +350,13 @@ async function handleListVendors(user, supabase) {
 
   let query = supabase.from('vendors').select('*');
   
-  // Filter based on role
-  if (profile.role === 'Partner Admin' && profile.partner_id) {
-    query = query.eq('partner_id', profile.partner_id);
-  } else if (profile.role !== 'Super Admin') {
-    return {
-      statusCode: 403,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Insufficient permissions' })
-    };
+  // Super Admins can see all vendors, others see only vendors they created
+  if (profile.role === 'Super Admin') {
+    // Super Admin sees all vendors
+    query = query.order('created_at', { ascending: false });
+  } else {
+    // Regular users see only vendors they invited/created
+    query = query.eq('invited_by', user.id).order('created_at', { ascending: false });
   }
 
   const { data: vendors, error } = await query;
