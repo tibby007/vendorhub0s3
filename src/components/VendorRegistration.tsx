@@ -48,7 +48,7 @@ const VendorRegistration: React.FC = () => {
 
       try {
         // Use direct API call to avoid Supabase type issues
-        const response = await fetch(`/api/vendor-management/validate-token?token=${encodeURIComponent(token)}`);
+        const response = await fetch(`/api/vendor-management?action=validate-token&token=${encodeURIComponent(token)}`);
         
         if (!response.ok) {
           setError('Invalid or expired invitation token');
@@ -101,7 +101,7 @@ const VendorRegistration: React.FC = () => {
       }
 
       // Call the registration API
-      const response = await fetch('/api/vendor-management/register-vendor', {
+      const response = await fetch('/api/vendor-management?action=register-vendor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

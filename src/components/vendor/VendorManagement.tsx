@@ -262,7 +262,7 @@ const VendorManagement = () => {
         throw new Error('No authentication token available');
       }
 
-      const response = await fetch('/api/vendor-management/invite-vendor', {
+      const response = await fetch('/api/vendor-management?action=invite-vendor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
