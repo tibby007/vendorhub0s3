@@ -1,10 +1,7 @@
-// if not present already
-import { createClient } from "@supabase/supabase-js";
+// Unified browser Supabase client factory
+// Reuse the canonical client that already handles env fallbacks and diagnostics
+import { supabase } from '@/integrations/supabase/client';
 
 export function createBrowserClient() {
-  return createClient(
-    import.meta.env.VITE_SUPABASE_URL!,
-    import.meta.env.VITE_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
-  );
+  return supabase;
 }
