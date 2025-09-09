@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ResellerManagement from '@/components/resellers/ResellerManagement';
 import DemoLeadsManagement from '@/components/demo/DemoLeadsManagement';
+import VendorManagement from '@/components/vendor/VendorManagement';
 import SuperAdminHeader from './SuperAdminHeader';
 import SuperAdminStats from './SuperAdminStats';
 import PartnersTable from './PartnersTable';
@@ -45,8 +46,9 @@ const SuperAdminDashboard = () => {
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="partners">Partner Management</TabsTrigger>
+            <TabsTrigger value="vendors">Vendor Management</TabsTrigger>
             <TabsTrigger value="demo-leads">Demo Leads</TabsTrigger>
             <TabsTrigger value="resellers">Reseller Program</TabsTrigger>
           </TabsList>
@@ -54,6 +56,10 @@ const SuperAdminDashboard = () => {
           <TabsContent value="partners" className="space-y-6">
             <PartnersTable partnerAdmins={partnerAdmins} />
             <RevenueOverview />
+          </TabsContent>
+
+          <TabsContent value="vendors" className="space-y-6">
+            <VendorManagement />
           </TabsContent>
 
           <TabsContent value="demo-leads" className="space-y-6">

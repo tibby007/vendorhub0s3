@@ -1,4 +1,3 @@
-
 -- Create RLS policies for the partners table
 
 -- Allow Super Admins full access to all partner records

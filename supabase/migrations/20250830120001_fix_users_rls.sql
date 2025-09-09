@@ -1,4 +1,3 @@
-
 -- First, let's disable RLS on the users table to fix the infinite recursion
 ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
 

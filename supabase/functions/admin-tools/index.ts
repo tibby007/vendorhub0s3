@@ -18,8 +18,8 @@ serve(async (req) => {
   // @ts-ignore
 // @ts-ignore
 const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    process.env.SUPABASE_URL ?? "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
     { auth: { persistSession: false } }
   );
 

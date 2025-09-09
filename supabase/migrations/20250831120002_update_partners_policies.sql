@@ -1,4 +1,3 @@
-
 -- Drop the function if it already exists to ensure a clean update
 DROP FUNCTION IF EXISTS public.get_user_partner_id(uuid);
 

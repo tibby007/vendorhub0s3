@@ -8,6 +8,19 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      '/api/vendor-management': {
+        target: 'http://localhost:8888/.netlify/functions/vendor-management',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/vendor-management/, ''),
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            const action = req.url?.split('/').pop() || '';
+            proxyReq.path = `/.netlify/functions/vendor-management?action=${action}`;
+          });
+        }
+      }
+    }
   },
   plugins: [
     react(),
